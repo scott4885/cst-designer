@@ -1,44 +1,38 @@
 import { NextResponse } from 'next/server';
-import { mockOffices, smileCascadeOffice } from '@/lib/mock-data';
-import { getOfficeById, updateOffice, deleteOffice } from '@/lib/office-data-store';
+import { getOfficeById, updateOffice, deleteOffice } from '@/lib/data-access';
 
 /**
  * GET /api/offices/:id
- * Get a single office with full details
+ * Get a single office with full details from database
  */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  try {
+    const { id } = await params;
+    const office = await getOfficeById(id);
+    
+    if (!office) {
+      return NextResponse.json(
+        { error: 'Office not found' },
+        { status: 404 }
+      );
+    }
 
-  // For Smile Cascade (id=1), return full detailed data
-  if (id === '1') {
-    return NextResponse.json(smileCascadeOffice);
-  }
-
-  // Check created offices first
-  const createdOffice = getOfficeById(id);
-  if (createdOffice) {
-    return NextResponse.json(createdOffice);
-  }
-
-  // Fall back to mock offices
-  const office = mockOffices.find(o => o.id === id);
-  
-  if (!office) {
+    return NextResponse.json(office);
+  } catch (error) {
+    console.error('Error fetching office:', error);
     return NextResponse.json(
-      { error: 'Office not found' },
-      { status: 404 }
+      { error: 'Failed to fetch office' },
+      { status: 500 }
     );
   }
-
-  return NextResponse.json(office);
 }
 
 /**
  * PUT /api/offices/:id
- * Update an office
+ * Update an office in database
  */
 export async function PUT(
   request: Request,
@@ -48,14 +42,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    // Check created offices first
-    let office = getOfficeById(id);
-    
-    // Fall back to mock offices (read-only)
-    if (!office) {
-      office = mockOffices.find(o => o.id === id);
-    }
-    
+    const office = await getOfficeById(id);
     if (!office) {
       return NextResponse.json(
         { error: 'Office not found' },
@@ -63,27 +50,26 @@ export async function PUT(
       );
     }
 
-    // Recalculate aggregates if providers changed
-    const updates = {
-      ...body,
-      providerCount: body.providers?.length || office.providerCount,
-      totalDailyGoal: body.providers?.reduce((sum: number, p: any) => sum + (p.dailyGoal || 0), 0) || office.totalDailyGoal,
-    };
+    // Update office in database
+    const updatedOffice = await updateOffice(id, {
+      name: body.name,
+      dpmsSystem: body.dpmsSystem,
+      workingDays: body.workingDays,
+      timeIncrement: body.timeIncrement,
+      feeModel: body.feeModel,
+      providers: body.providers,
+      blockTypes: body.blockTypes,
+      rules: body.rules,
+    });
 
-    // Try to update in created offices
-    const updatedOffice = updateOffice(id, updates);
-    
-    if (updatedOffice) {
-      return NextResponse.json(updatedOffice);
+    if (!updatedOffice) {
+      return NextResponse.json(
+        { error: 'Failed to update office' },
+        { status: 500 }
+      );
     }
 
-    // Mock offices are read-only, return updated data without persisting
-    return NextResponse.json({
-      ...office,
-      ...updates,
-      id,
-      updatedAt: new Date().toISOString(),
-    });
+    return NextResponse.json(updatedOffice);
   } catch (error) {
     console.error('Error updating office:', error);
     return NextResponse.json(
@@ -106,7 +92,7 @@ export async function PATCH(
 
 /**
  * DELETE /api/offices/:id
- * Delete (archive) an office
+ * Delete an office from database (cascade deletes all related data)
  */
 export async function DELETE(
   request: Request,
@@ -115,30 +101,18 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Try to delete from created offices
-    const deleted = deleteOffice(id);
+    const deleted = await deleteOffice(id);
     
-    if (deleted) {
-      return NextResponse.json({ 
-        success: true, 
-        message: `Office ${id} deleted successfully` 
-      });
-    }
-
-    // Check if it exists in mock offices
-    const mockOffice = mockOffices.find(o => o.id === id);
-    
-    if (!mockOffice) {
+    if (!deleted) {
       return NextResponse.json(
-        { error: 'Office not found' },
+        { error: 'Office not found or failed to delete' },
         { status: 404 }
       );
     }
 
-    // Mock offices cannot be deleted, but return success anyway
     return NextResponse.json({ 
       success: true, 
-      message: `Office ${id} is a demo office and cannot be deleted` 
+      message: `Office ${id} deleted successfully` 
     });
   } catch (error) {
     console.error('Error deleting office:', error);

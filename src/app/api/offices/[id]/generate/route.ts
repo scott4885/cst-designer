@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
-import { mockOffices, smileCascadeOffice } from '@/lib/mock-data';
-import { generateSchedule } from '@/lib/engine/generator';
-import { GenerationInput } from '@/lib/engine/types';
-import { getOfficeById } from '@/lib/office-data-store';
+import { getOfficeById, generateSchedule } from '@/lib/data-access';
 
 /**
  * POST /api/offices/:id/generate
- * Generate schedule for an office using the schedule engine
+ * Generate schedule for an office and save to database
  */
 export async function POST(
   request: Request,
@@ -16,18 +13,8 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
 
-    // Find the office - check created offices first
-    let office = getOfficeById(id);
-    
-    // Fall back to mock offices
-    if (!office) {
-      office = mockOffices.find(o => o.id === id);
-    }
-    
-    // For Smile Cascade, use full data
-    if (id === '1') {
-      office = smileCascadeOffice;
-    }
+    // Find the office in database
+    const office = await getOfficeById(id);
     
     if (!office) {
       return NextResponse.json(
@@ -62,21 +49,8 @@ export async function POST(
     // Get days to generate from request or use office working days
     const daysToGenerate = body.days || office.workingDays;
 
-    // Generate schedules for each day
-    const schedules = [];
-    
-    for (const dayOfWeek of daysToGenerate) {
-      const input: GenerationInput = {
-        providers: office.providers,
-        blockTypes: office.blockTypes,
-        rules: office.rules,
-        timeIncrement: office.timeIncrement,
-        dayOfWeek: dayOfWeek,
-      };
-
-      const result = generateSchedule(input);
-      schedules.push(result);
-    }
+    // Generate and save schedules to database
+    const schedules = await generateSchedule(id, daysToGenerate);
 
     return NextResponse.json({
       officeId: id,

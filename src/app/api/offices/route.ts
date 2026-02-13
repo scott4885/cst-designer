@@ -1,20 +1,27 @@
 import { NextResponse } from 'next/server';
-import { mockOffices } from '@/lib/mock-data';
 import { randomUUID } from 'crypto';
-import { addOffice, getAllCreatedOffices } from '@/lib/office-data-store';
+import { getOffices, createOffice } from '@/lib/data-access';
 
 /**
  * GET /api/offices
- * Returns list of all offices
+ * Returns list of all offices from database
  */
 export async function GET() {
-  // Combine mock offices with created offices
-  return NextResponse.json([...mockOffices, ...getAllCreatedOffices()]);
+  try {
+    const offices = await getOffices();
+    return NextResponse.json(offices);
+  } catch (error) {
+    console.error('Error fetching offices:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch offices' },
+      { status: 500 }
+    );
+  }
 }
 
 /**
  * POST /api/offices
- * Create a new office
+ * Create a new office in database
  */
 export async function POST(request: Request) {
   try {
@@ -27,9 +34,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    // Generate UUID for the new office
-    const newOfficeId = randomUUID();
 
     // Map providers to include IDs
     const providers = (body.providers || []).map((p: any) => ({
@@ -79,24 +83,17 @@ export async function POST(request: Request) {
       return dayMap[day] || day.toUpperCase();
     });
 
-    // Create new office
-    const newOffice: any = {
-      id: newOfficeId,
+    // Create office in database
+    const newOffice = await createOffice({
       name: body.name,
-      dpmsSystem: body.dpmsSystem.toUpperCase().replace(' ', '_') as 'DENTRIX' | 'OPEN_DENTAL' | 'EAGLESOFT' | 'DENTICON',
+      dpmsSystem: body.dpmsSystem.toUpperCase().replace(' ', '_'),
       workingDays,
       timeIncrement: body.timeIncrement || 10,
-      feeModel: (body.feeModel || 'UCR') as 'UCR' | 'PPO' | 'MIXED',
-      providerCount: providers.length,
-      totalDailyGoal: providers.reduce((sum: number, p: any) => sum + (p.dailyGoal || 0), 0),
-      updatedAt: new Date().toISOString(),
+      feeModel: body.feeModel || 'UCR',
       providers,
       blockTypes,
       rules,
-    };
-
-    // Store in memory
-    addOffice(newOffice);
+    });
 
     return NextResponse.json(newOffice, { status: 201 });
   } catch (error) {
