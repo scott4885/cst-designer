@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateExcel, ExportInput, ExportDaySchedule } from '@/lib/export/excel';
 import { mockOffices, smileCascadeOffice } from '@/lib/mock-data';
+import { getOfficeById } from '@/lib/office-data-store';
 
 /**
  * POST /api/offices/:id/export
@@ -14,8 +15,13 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
 
-    // Find the office
-    let office = mockOffices.find(o => o.id === id);
+    // Find the office - check created offices first
+    let office = getOfficeById(id);
+    
+    // Fall back to mock offices
+    if (!office) {
+      office = mockOffices.find(o => o.id === id);
+    }
     
     // For Smile Cascade, use full data
     if (id === '1') {
