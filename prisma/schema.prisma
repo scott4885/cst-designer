@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProviderRole {
+  DOCTOR
+  HYGIENIST
+}
+
+enum DpmsSystem {
+  DENTRIX
+  OPEN_DENTAL
+  EAGLESOFT
+  DENTICON
+}
+
+enum FeeModel {
+  UCR
+  PPO
+  MIXED
+}
+
+enum TemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum GeneratedBy {
+  MANUAL
+  AI
+  RULE_BASED
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+enum StaffingCode {
+  D
+  A
+  H
+}
+
+enum RuleType {
+  NP_MODEL
+  HP_PLACEMENT
+  DOUBLE_BOOKING
+  MATRIXING
+  EMERGENCY_HANDLING
+  SRP_PLACEMENT
+}
+
+model Office {
+  id            String          @id @default(uuid())
+  name          String
+  dpmsSystem    DpmsSystem      @map("dpms_system")
+  workingDays   DayOfWeek[]     @map("working_days")
+  timeIncrement Int             @default(10) @map("time_increment")
+  feeModel      FeeModel        @map("fee_model")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  
+  providers         Provider[]
+  blockTypes        BlockType[]
+  procedures        Procedure[]
+  scheduleTemplates ScheduleTemplate[]
+  scheduleRules     ScheduleRule[]
+
+  @@map("offices")
+}
+
+model Provider {
+  id           String       @id @default(uuid())
+  officeId     String       @map("office_id")
+  name         String
+  providerId   String       @map("provider_id")
+  role         ProviderRole
+  operatories  String[]
+  workingDays  DayOfWeek[]  @map("working_days")
+  workingStart String       @map("working_start")
+  workingEnd   String       @map("working_end")
+  lunchStart   String?      @map("lunch_start")
+  lunchEnd     String?      @map("lunch_end")
+  dailyGoal    Float        @map("daily_goal")
+  hourlyRate   Float?       @map("hourly_rate")
+  color        String       @default("#6b9bd1")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  office       Office       @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  rampUpGoals  RampUpGoal[]
+  timeSlots    TimeSlot[]
+
+  @@index([officeId])
+  @@map("providers")
+}
+
+model RampUpGoal {
+  id         String   @id @default(uuid())
+  providerId String   @map("provider_id")
+  startDate  DateTime @map("start_date")
+  endDate    DateTime @map("end_date")
+  dailyGoal  Float    @map("daily_goal")
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@map("ramp_up_goals")
+}
+
+model BlockType {
+  id             String       @id @default(uuid())
+  officeId       String       @map("office_id")
+  label          String
+  description    String?
+  minimumAmount  Float?       @map("minimum_amount")
+  appliesToRole  ProviderRole @map("applies_to_role")
+  durationMin    Int          @map("duration_min")
+  durationMax    Int?         @map("duration_max")
+  color          String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  office    Office     @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  timeSlots TimeSlot[]
+
+  @@index([officeId])
+  @@map("block_types")
+}
+
+model Procedure {
+  id           String       @id @default(uuid())
+  officeId     String       @map("office_id")
+  name         String
+  duration     Int
+  appliesToRole ProviderRole @map("applies_to_role")
+  typicalFee   Float?       @map("typical_fee")
+
+  office Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@index([officeId])
+  @@map("procedures")
+}
+
+model ScheduleTemplate {
+  id                 String         @id @default(uuid())
+  officeId           String         @map("office_id")
+  version            Int            @default(1)
+  effectiveDate      DateTime?      @map("effective_date")
+  status             TemplateStatus @default(DRAFT)
+  generatedBy        GeneratedBy    @default(MANUAL) @map("generated_by")
+  generationMetadata Json?          @map("generation_metadata")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  office       Office        @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  daySchedules DaySchedule[]
+
+  @@index([officeId])
+  @@map("schedule_templates")
+}
+
+model DaySchedule {
+  id         String    @id @default(uuid())
+  templateId String    @map("template_id")
+  dayOfWeek  DayOfWeek @map("day_of_week")
+  variant    String?
+
+  template  ScheduleTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  timeSlots TimeSlot[]
+
+  @@index([templateId])
+  @@map("day_schedules")
+}
+
+model TimeSlot {
+  id             String        @id @default(uuid())
+  dayScheduleId  String        @map("day_schedule_id")
+  time           String
+  providerId     String?       @map("provider_id")
+  operatory      String?
+  staffingCode   StaffingCode? @map("staffing_code")
+  blockTypeId    String?       @map("block_type_id")
+  blockLabel     String?       @map("block_label")
+  isBreak        Boolean       @default(false) @map("is_break")
+
+  daySchedule DaySchedule @relation(fields: [dayScheduleId], references: [id], onDelete: Cascade)
+  provider    Provider?   @relation(fields: [providerId], references: [id])
+  blockType   BlockType?  @relation(fields: [blockTypeId], references: [id])
+
+  @@index([dayScheduleId])
+  @@index([providerId])
+  @@map("time_slots")
+}
+
+model ScheduleRule {
+  id        String   @id @default(uuid())
+  officeId  String   @map("office_id")
+  ruleType  RuleType @map("rule_type")
+  ruleValue Json     @map("rule_value")
+
+  office Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@index([officeId])
+  @@map("schedule_rules")
+}
