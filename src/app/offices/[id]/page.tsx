@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,122 +11,252 @@ import { Separator } from "@/components/ui/separator";
 import ScheduleGrid, { ProviderInput, TimeSlotOutput } from "@/components/schedule/ScheduleGrid";
 import ProductionSummary, { ProviderProductionSummary } from "@/components/schedule/ProductionSummary";
 import { toast } from "sonner";
-
-// Mock data for Smile Cascade
-const mockOffice = {
-  id: "1",
-  name: "Smile Cascade",
-  dpms: "Dentrix",
-  workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-};
-
-const mockProviders: ProviderInput[] = [
-  { id: "p1", name: "Dr. Fitzpatrick", role: "Doctor", color: "#ec8a1b" },
-  { id: "p2", name: "Cheryl Dise RDH", role: "Hygienist", color: "#87bcf3" },
-  { id: "p3", name: "HYG 2", role: "Hygienist", color: "#f4de37" },
-];
-
-const mockProductionSummaries: ProviderProductionSummary[] = [
-  {
-    providerName: "Dr. Fitzpatrick",
-    providerColor: "#ec8a1b",
-    dailyGoal: 5000,
-    target75: 3750,
-    actualScheduled: 0,
-  },
-  {
-    providerName: "Cheryl Dise RDH",
-    providerColor: "#87bcf3",
-    dailyGoal: 2600,
-    target75: 1950,
-    actualScheduled: 0,
-  },
-  {
-    providerName: "HYG 2",
-    providerColor: "#f4de37",
-    dailyGoal: 1800,
-    target75: 1350,
-    actualScheduled: 0,
-  },
-];
+import { useOfficeStore } from "@/store/office-store";
+import { useScheduleStore } from "@/store/schedule-store";
+import { GenerationResult } from "@/lib/engine/types";
 
 export default function TemplateBuilderPage() {
   const params = useParams();
   const router = useRouter();
-  const [activeDay, setActiveDay] = useState("Mon");
+  const officeId = params.id as string;
+  
+  const { currentOffice, fetchOffice, isLoading: officeLoading } = useOfficeStore();
+  const {
+    generatedSchedules,
+    activeDay,
+    setActiveDay,
+    setSchedules,
+    isGenerating,
+    setGenerating,
+    isExporting,
+    setExporting,
+  } = useScheduleStore();
+
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
-  const [scheduleGenerated, setScheduleGenerated] = useState(false);
-  const [timeSlots, setTimeSlots] = useState<TimeSlotOutput[]>([]);
+  const [generatingDay, setGeneratingDay] = useState<string | null>(null);
 
-  const handleGenerateSchedule = () => {
-    // Mock schedule generation
-    toast.success("Generating optimized schedule...");
+  // Fetch office data on mount
+  useEffect(() => {
+    fetchOffice(officeId).catch((error) => {
+      toast.error("Failed to load office");
+      console.error(error);
+      router.push("/");
+    });
+  }, [officeId, fetchOffice, router]);
+
+  // Set initial active day when office loads
+  useEffect(() => {
+    if (currentOffice && currentOffice.workingDays.length > 0) {
+      setActiveDay(currentOffice.workingDays[0]);
+    }
+  }, [currentOffice, setActiveDay]);
+
+  if (officeLoading || !currentOffice) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center space-y-2">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-muted-foreground">Loading office...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Convert providers to ScheduleGrid format
+  const providers: ProviderInput[] =
+    currentOffice.providers?.map((p) => ({
+      id: p.id,
+      name: p.name,
+      role: p.role,
+      color: p.color,
+    })) || [];
+
+  // Get current day's schedule
+  const currentDaySchedule = generatedSchedules[activeDay];
+
+  // Convert schedule to TimeSlotOutput format for ScheduleGrid
+  // Group slots by time
+  const timeSlots: TimeSlotOutput[] = [];
+  if (currentDaySchedule) {
+    const slotsByTime: Record<string, any[]> = {};
     
-    // Simulate AI generation after a delay
-    setTimeout(() => {
-      // Generate mock schedule with some blocks
-      const mockSlots: TimeSlotOutput[] = [];
-      
-      // Sample blocks for demonstration
-      const sampleBlocks = [
-        { time: "7:00 AM", p1: { staffingCode: "D", blockLabel: "HP>$1200" } },
-        { time: "7:10 AM", p1: { staffingCode: "D", blockLabel: "HP>$1200" } },
-        { time: "8:00 AM", p2: { staffingCode: "H", blockLabel: "Recare>$150" } },
-        { time: "9:00 AM", p1: { staffingCode: "D", blockLabel: "NP>$300" } },
-      ];
-
-      // Generate all time slots
-      let hour = 7;
-      let minute = 0;
-      
-      while (hour < 18 || (hour === 18 && minute === 0)) {
-        const formattedHour = hour > 12 ? hour - 12 : hour;
-        const period = hour >= 12 ? "PM" : "AM";
-        const formattedMinute = minute.toString().padStart(2, "0");
-        const timeStr = `${formattedHour}:${formattedMinute} ${period}`;
-        
-        // Check if lunch time (1:00-2:00 PM)
-        const isLunchTime = (hour === 13 || hour === 14) && hour < 14;
-        
-        const slot: TimeSlotOutput = {
-          time: timeStr,
-          slots: mockProviders.map(p => ({
-            providerId: p.id,
-            isBreak: isLunchTime,
-          })),
-        };
-        
-        // Add sample blocks
-        const sampleBlock = sampleBlocks.find(b => b.time === timeStr);
-        if (sampleBlock) {
-          Object.keys(sampleBlock).forEach(key => {
-            if (key !== 'time') {
-              const providerSlot = slot.slots.find(s => s.providerId === key);
-              if (providerSlot) {
-                Object.assign(providerSlot, (sampleBlock as any)[key]);
-              }
-            }
-          });
-        }
-        
-        mockSlots.push(slot);
-        
-        minute += 10;
-        if (minute >= 60) {
-          minute = 0;
-          hour += 1;
-        }
+    currentDaySchedule.slots.forEach((slot) => {
+      if (!slotsByTime[slot.time]) {
+        slotsByTime[slot.time] = [];
       }
-      
-      setTimeSlots(mockSlots);
-      setScheduleGenerated(true);
-      toast.success("Schedule generated successfully!");
-    }, 1500);
+      slotsByTime[slot.time].push({
+        providerId: slot.providerId,
+        staffingCode: slot.staffingCode || undefined,
+        blockLabel: slot.blockLabel || undefined,
+        isBreak: slot.isBreak,
+      });
+    });
+
+    // Convert to array
+    Object.keys(slotsByTime).forEach((time) => {
+      timeSlots.push({
+        time,
+        slots: slotsByTime[time],
+      });
+    });
+
+    // Sort by time
+    timeSlots.sort((a, b) => {
+      const parseTime = (t: string) => {
+        const [time, period] = t.split(' ');
+        const [hour, min] = time.split(':').map(Number);
+        let h = hour;
+        if (period === 'PM' && h !== 12) h += 12;
+        if (period === 'AM' && h === 12) h = 0;
+        return h * 60 + min;
+      };
+      return parseTime(a.time) - parseTime(b.time);
+    });
+  }
+
+  // Convert production summary for ProductionSummary component
+  const productionSummaries: ProviderProductionSummary[] =
+    currentDaySchedule?.productionSummary.map((summary) => ({
+      providerName: summary.providerName,
+      providerColor:
+        currentOffice.providers?.find((p) => p.id === summary.providerId)?.color || "#666",
+      dailyGoal: summary.dailyGoal,
+      target75: summary.target75,
+      actualScheduled: summary.actualScheduled,
+    })) || [];
+
+  // Generate schedule for a single day
+  const handleGenerateSchedule = async () => {
+    if (!currentOffice) return;
+
+    setGenerating(true);
+    try {
+      const response = await fetch(`/api/offices/${officeId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days: [activeDay] }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate schedule");
+      }
+
+      const data = await response.json();
+      setSchedules(data.schedules);
+      toast.success(`Schedule generated for ${activeDay}!`);
+    } catch (error) {
+      console.error("Error generating schedule:", error);
+      toast.error("Failed to generate schedule");
+    } finally {
+      setGenerating(false);
+    }
   };
 
-  const handleExport = () => {
-    toast.success("Exporting to Excel...");
-    // TODO: Implement Excel export
+  // Generate schedules for all working days
+  const handleGenerateAllDays = async () => {
+    if (!currentOffice || !currentOffice.workingDays.length) return;
+
+    setGenerating(true);
+    const totalDays = currentOffice.workingDays.length;
+    let completedDays = 0;
+
+    try {
+      for (const day of currentOffice.workingDays) {
+        setGeneratingDay(day);
+        
+        const response = await fetch(`/api/offices/${officeId}/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ days: [day] }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to generate schedule for ${day}`);
+        }
+
+        const data = await response.json();
+        
+        // Merge with existing schedules
+        setSchedules([
+          ...Object.values(generatedSchedules),
+          ...data.schedules,
+        ]);
+
+        completedDays++;
+        toast.success(`Generated ${day} (${completedDays}/${totalDays})`);
+      }
+
+      toast.success("All schedules generated successfully!");
+      setGeneratingDay(null);
+    } catch (error) {
+      console.error("Error generating all schedules:", error);
+      toast.error("Failed to generate all schedules");
+      setGeneratingDay(null);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // Export schedule to Excel
+  const handleExport = async () => {
+    if (!currentDaySchedule) {
+      toast.error("Please generate a schedule first");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const allSchedules = Object.values(generatedSchedules);
+      
+      if (allSchedules.length === 0) {
+        toast.error("No schedules to export");
+        return;
+      }
+
+      const response = await fetch(`/api/offices/${officeId}/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schedules: allSchedules }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to export schedule");
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Customized Schedule Template - ${currentOffice.name}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("Schedule exported successfully!");
+    } catch (error) {
+      console.error("Error exporting schedule:", error);
+      toast.error("Failed to export schedule");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Convert day format for display
+  const getDayLabel = (day: string): string => {
+    const dayLabels: Record<string, string> = {
+      MONDAY: "Monday",
+      TUESDAY: "Tuesday",
+      WEDNESDAY: "Wednesday",
+      THURSDAY: "Thursday",
+      FRIDAY: "Friday",
+    };
+    return dayLabels[day] || day;
+  };
+
+  const getDayShort = (day: string): string => {
+    return getDayLabel(day).substring(0, 3);
   };
 
   return (
@@ -140,20 +270,55 @@ export default function TemplateBuilderPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{mockOffice.name}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{currentOffice.name}</h1>
             <p className="text-muted-foreground text-sm">
-              {mockOffice.dpms} • Template Builder
+              {currentOffice.dpmsSystem} • Template Builder
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={Object.keys(generatedSchedules).length === 0 || isExporting}
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </>
+            )}
           </Button>
-          <Button onClick={handleGenerateSchedule}>
-            <Sparkles className="w-4 h-4 mr-2" />
-            Generate Schedule
+          <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary">
+            {isGenerating && generatingDay ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating {getDayLabel(generatingDay)}...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate All Days
+              </>
+            )}
+          </Button>
+          <Button onClick={handleGenerateSchedule} disabled={isGenerating}>
+            {isGenerating && !generatingDay ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate {getDayLabel(activeDay)}
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -194,7 +359,7 @@ export default function TemplateBuilderPage() {
                     Providers
                   </h3>
                   <div className="space-y-2">
-                    {mockProviders.map((provider) => (
+                    {providers.map((provider) => (
                       <div key={provider.id} className="flex items-center gap-2">
                         <div
                           className="w-3 h-3 rounded-full"
@@ -216,12 +381,12 @@ export default function TemplateBuilderPage() {
                     Working Days
                   </h3>
                   <div className="flex gap-1">
-                    {mockOffice.workingDays.map((day) => (
+                    {currentOffice.workingDays.map((day) => (
                       <div
                         key={day}
                         className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-medium border border-accent/30"
                       >
-                        {day[0]}
+                        {getDayShort(day)[0]}
                       </div>
                     ))}
                   </div>
@@ -233,7 +398,18 @@ export default function TemplateBuilderPage() {
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                     System
                   </h3>
-                  <p className="text-sm">{mockOffice.dpms}</p>
+                  <p className="text-sm">{currentOffice.dpmsSystem}</p>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                    Daily Goal
+                  </h3>
+                  <p className="text-sm font-semibold">
+                    ${currentOffice.totalDailyGoal.toLocaleString()}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -243,22 +419,25 @@ export default function TemplateBuilderPage() {
         {/* Center Panel - Schedule Grid */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-5 mb-4">
-              <TabsTrigger value="Mon">Monday</TabsTrigger>
-              <TabsTrigger value="Tue">Tuesday</TabsTrigger>
-              <TabsTrigger value="Wed">Wednesday</TabsTrigger>
-              <TabsTrigger value="Thu">Thursday</TabsTrigger>
-              <TabsTrigger value="Fri">Friday</TabsTrigger>
+            <TabsList className={`grid w-full mb-4 grid-cols-${currentOffice.workingDays.length}`}>
+              {currentOffice.workingDays.map((day) => (
+                <TabsTrigger key={day} value={day}>
+                  {getDayLabel(day)}
+                  {generatedSchedules[day] && (
+                    <span className="ml-2 w-2 h-2 rounded-full bg-success" />
+                  )}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
             <div className="flex-1 overflow-auto">
-              {mockOffice.workingDays.map((day) => (
+              {currentOffice.workingDays.map((day) => (
                 <TabsContent key={day} value={day} className="h-full mt-0">
                   <Card className="h-full">
                     <CardContent className="p-6">
                       <ScheduleGrid
-                        slots={scheduleGenerated ? timeSlots : []}
-                        providers={mockProviders}
+                        slots={activeDay === day ? timeSlots : []}
+                        providers={providers}
                       />
                     </CardContent>
                   </Card>
@@ -270,7 +449,7 @@ export default function TemplateBuilderPage() {
 
         {/* Right Panel - Production Summary */}
         <div className="w-80 flex-shrink-0 overflow-auto">
-          <ProductionSummary summaries={mockProductionSummaries} />
+          <ProductionSummary summaries={productionSummaries} />
         </div>
       </div>
     </div>
