@@ -2,16 +2,23 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Sparkles, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OfficeCard from "@/components/offices/OfficeCard";
 import { useOfficeStore } from "@/store/office-store";
 import { toast } from "sonner";
+import { mockOffices } from "@/lib/mock-data";
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { offices, isLoading, fetchOffices } = useOfficeStore();
+  const [loadingDemo, setLoadingDemo] = useState(false);
+  const { offices, isLoading, fetchOffices, setOffices } = useOfficeStore();
+
+  // Set page title
+  useEffect(() => {
+    document.title = "Schedule Template Designer";
+  }, []);
 
   // Fetch offices on mount
   useEffect(() => {
@@ -53,6 +60,21 @@ export default function Dashboard() {
     return "over a month ago";
   };
 
+  // Load demo data
+  const handleLoadDemoData = () => {
+    setLoadingDemo(true);
+    try {
+      // Directly set offices state to mockOffices
+      setOffices(mockOffices);
+      toast.success("Demo data loaded! 5 sample offices are now available.");
+    } catch (error) {
+      console.error("Error loading demo data:", error);
+      toast.error("Failed to load demo data");
+    } finally {
+      setLoadingDemo(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -63,12 +85,25 @@ export default function Dashboard() {
             Manage schedule templates for {offices.length} dental offices
           </p>
         </div>
-        <Link href="/offices/new">
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            New Office
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          {offices.length === 0 && (
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={handleLoadDemoData}
+              disabled={loadingDemo}
+            >
+              <Sparkles className="w-4 h-4" />
+              {loadingDemo ? "Loading..." : "Load Demo Data"}
+            </Button>
+          )}
+          <Link href="/offices/new">
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" />
+              New Office
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search */}
@@ -110,13 +145,34 @@ export default function Dashboard() {
 
       {/* Empty State */}
       {!isLoading && filteredOffices.length === 0 && offices.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No offices found</p>
-          <Link href="/offices/new">
-            <Button variant="outline" className="mt-4">
-              Create your first office
-            </Button>
-          </Link>
+        <div className="flex items-center justify-center py-24">
+          <div className="text-center space-y-6 max-w-md">
+            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto">
+              <Building2 className="w-8 h-8 text-accent" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-foreground mb-2">No offices yet</h2>
+              <p className="text-muted-foreground">
+                Get started by creating your first office template or load demo data to explore the app.
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center">
+              <Link href="/offices/new">
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Office
+                </Button>
+              </Link>
+              <Button 
+                variant="outline"
+                onClick={handleLoadDemoData}
+                disabled={loadingDemo}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                {loadingDemo ? "Loading..." : "Load Demo Data"}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

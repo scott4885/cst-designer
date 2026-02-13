@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -76,6 +76,19 @@ export default function NewOfficePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("practice");
 
+  // Keyboard shortcut: Cmd/Ctrl+S to submit
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSubmit(onSubmit)();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const {
     register,
     control,
@@ -133,12 +146,44 @@ export default function NewOfficePage() {
     });
   };
 
-  const onSubmit = (data: OfficeFormData) => {
-    console.log("Office Data:", data);
-    toast.success("Office created successfully!");
-    // TODO: Save to database
-    router.push("/");
+  const onSubmit = async (data: OfficeFormData) => {
+    try {
+      const response = await fetch("/api/offices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: data.name,
+          dpmsSystem: data.dpms,
+          workingDays: data.workingDays,
+          providers: data.providers,
+          blockTypes: data.procedures.map(p => ({
+            label: p.name,
+            duration: p.duration,
+            role: p.role,
+          })),
+          rules: data.scheduleRules,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create office");
+      }
+
+      const newOffice = await response.json();
+      toast.success("Office created successfully!");
+      router.push(`/offices/${newOffice.id}`);
+    } catch (error) {
+      console.error("Error creating office:", error);
+      toast.error("Failed to create office. Please try again.");
+    }
   };
+
+  // Set page title
+  useEffect(() => {
+    document.title = "New Office - Schedule Template Designer";
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
