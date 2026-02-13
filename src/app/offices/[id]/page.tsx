@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,7 @@ export default function TemplateBuilderPage() {
     setGenerating,
     isExporting,
     setExporting,
+    loadSchedulesForOffice,
   } = useScheduleStore();
 
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
@@ -43,6 +44,11 @@ export default function TemplateBuilderPage() {
       router.push("/");
     });
   }, [officeId, fetchOffice, router]);
+
+  // Load schedules for this office from localStorage
+  useEffect(() => {
+    loadSchedulesForOffice(officeId);
+  }, [officeId, loadSchedulesForOffice]);
 
   // Set initial active day when office loads
   useEffect(() => {
@@ -142,7 +148,7 @@ export default function TemplateBuilderPage() {
       }
 
       const data = await response.json();
-      setSchedules(data.schedules);
+      setSchedules(data.schedules, officeId);
       toast.success(`Schedule generated for ${activeDay}!`);
     } catch (error) {
       console.error("Error generating schedule:", error);
@@ -152,17 +158,21 @@ export default function TemplateBuilderPage() {
     }
   };
 
-  // Generate schedules for all working days
+  // Generate schedules for all working days (with yielding to prevent UI blocking)
   const handleGenerateAllDays = async () => {
     if (!currentOffice || !currentOffice.workingDays.length) return;
 
     setGenerating(true);
     const totalDays = currentOffice.workingDays.length;
     let completedDays = 0;
+    const allSchedules: any[] = [...Object.values(generatedSchedules)];
 
     try {
       for (const day of currentOffice.workingDays) {
         setGeneratingDay(day);
+        
+        // Yield to browser to prevent "Page Unresponsive" error
+        await new Promise(resolve => setTimeout(resolve, 0));
         
         const response = await fetch(`/api/offices/${officeId}/generate`, {
           method: "POST",
@@ -176,14 +186,17 @@ export default function TemplateBuilderPage() {
 
         const data = await response.json();
         
-        // Merge with existing schedules
-        setSchedules([
-          ...Object.values(generatedSchedules),
-          ...data.schedules,
-        ]);
+        // Collect schedules
+        allSchedules.push(...data.schedules);
+        
+        // Update UI incrementally
+        setSchedules(allSchedules, officeId);
 
         completedDays++;
-        toast.success(`Generated ${day} (${completedDays}/${totalDays})`);
+        toast.success(`Generated ${getDayLabel(day)} (${completedDays}/${totalDays})`);
+        
+        // Another yield for smoother UI updates
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       toast.success("All schedules generated successfully!");
@@ -355,22 +368,36 @@ export default function TemplateBuilderPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-                    Providers
-                  </h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase">
+                      Providers
+                    </h3>
+                    <Link href={`/offices/${officeId}/edit`}>
+                      <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+                        <Settings className="w-3 h-3" />
+                        Edit
+                      </Button>
+                    </Link>
+                  </div>
                   <div className="space-y-2">
-                    {providers.map((provider) => (
-                      <div key={provider.id} className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: provider.color }}
-                        />
-                        <div>
-                          <p className="text-sm font-medium">{provider.name}</p>
-                          <p className="text-xs text-muted-foreground">{provider.role}</p>
+                    {providers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">
+                        No providers configured
+                      </p>
+                    ) : (
+                      providers.map((provider) => (
+                        <div key={provider.id} className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: provider.color }}
+                          />
+                          <div>
+                            <p className="text-sm font-medium">{provider.name}</p>
+                            <p className="text-xs text-muted-foreground">{provider.role}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
 
