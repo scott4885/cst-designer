@@ -1,52 +1,50 @@
 @import "tailwindcss";
 
 @theme {
-  /* Dark mode color palette */
-  --color-background: #1a1a1a;
-  --color-surface: #2d2d2d;
-  --color-border: #404040;
-  --color-text-primary: #e0e0e0;
-  --color-text-secondary: #a0a0a0;
-  --color-accent: #6b9bd1;
-  --color-success: #4caf50;
-  --color-warning: #ff9800;
-  --color-error: #f44336;
+  /* shadcn/ui dark mode color palette */
+  --color-background: oklch(18% 0 0);
+  --color-foreground: oklch(88% 0 0);
+  --color-card: oklch(22% 0 0);
+  --color-card-foreground: oklch(88% 0 0);
+  --color-popover: oklch(22% 0 0);
+  --color-popover-foreground: oklch(88% 0 0);
+  --color-primary: oklch(62% 0.1 240);
+  --color-primary-foreground: oklch(18% 0 0);
+  --color-secondary: oklch(28% 0 0);
+  --color-secondary-foreground: oklch(88% 0 0);
+  --color-muted: oklch(28% 0 0);
+  --color-muted-foreground: oklch(65% 0 0);
+  --color-accent: oklch(62% 0.1 240);
+  --color-accent-foreground: oklch(18% 0 0);
+  --color-destructive: oklch(55% 0.22 25);
+  --color-destructive-foreground: oklch(88% 0 0);
+  --color-border: oklch(28% 0 0);
+  --color-input: oklch(28% 0 0);
+  --color-ring: oklch(62% 0.1 240);
+  
+  /* Custom app colors */
+  --color-surface: oklch(22% 0 0);
+  --color-text-secondary: oklch(65% 0 0);
+  --color-success: oklch(60% 0.15 145);
+  --color-warning: oklch(65% 0.15 60);
+  --color-error: oklch(55% 0.22 25);
   
   /* Provider colors */
-  --color-provider-1: #ec8a1b;
-  --color-provider-2: #87bcf3;
-  --color-provider-3: #f4de37;
-  --color-provider-4: #44f2ce;
+  --color-provider-1: oklch(68% 0.15 50);
+  --color-provider-2: oklch(70% 0.1 240);
+  --color-provider-3: oklch(80% 0.15 95);
+  --color-provider-4: oklch(75% 0.12 180);
   
-  /* shadcn/ui CSS variables */
-  --background: 26 26 26;
-  --foreground: 224 224 224;
-  --card: 45 45 45;
-  --card-foreground: 224 224 224;
-  --popover: 45 45 45;
-  --popover-foreground: 224 224 224;
-  --primary: 107 155 209;
-  --primary-foreground: 26 26 26;
-  --secondary: 64 64 64;
-  --secondary-foreground: 224 224 224;
-  --muted: 64 64 64;
-  --muted-foreground: 160 160 160;
-  --accent: 107 155 209;
-  --accent-foreground: 26 26 26;
-  --destructive: 244 67 54;
-  --destructive-foreground: 224 224 224;
-  --border: 64 64 64;
-  --input: 64 64 64;
-  --ring: 107 155 209;
   --radius: 0.5rem;
 }
 
 * {
-  @apply border-border;
+  border-color: var(--color-border);
 }
 
 body {
-  @apply bg-background text-foreground;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -66,18 +64,5 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-secondary);
-}
-
-/* Grid utilities */
-.schedule-grid {
-  @apply border border-border rounded-lg overflow-auto;
-}
-
-.time-slot-cell {
-  @apply px-3 py-2 text-sm text-center border-r border-border transition-colors;
-}
-
-.provider-cell {
-  @apply px-3 py-2 text-sm border-r border-border cursor-pointer hover:brightness-110 transition-all;
+  background: var(--color-muted-foreground);
 }
