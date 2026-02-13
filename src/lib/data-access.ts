@@ -4,7 +4,7 @@
  */
 import { prisma } from './db';
 import { ProviderInput, BlockTypeInput, ScheduleRules, GenerationResult } from './engine/types';
-import { generateSchedule as engineGenerateSchedule } from './engine/schedule-generator';
+import { generateSchedule as engineGenerateSchedule } from './engine/generator';
 
 export interface OfficeListItem {
   id: string;
@@ -266,19 +266,19 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
       data.providers.map(provider =>
         prisma.provider.create({
           data: {
-            id: provider.id,
+            id: provider.id || crypto.randomUUID(),
             officeId: id,
             name: provider.name,
-            providerId: provider.id,
+            providerId: provider.id || crypto.randomUUID(),
             role: provider.role,
-            operatories: JSON.stringify(provider.operatories),
-            workingDays: JSON.stringify(data.workingDays || existingOffice.workingDays),
-            workingStart: provider.workingStart,
-            workingEnd: provider.workingEnd,
+            operatories: JSON.stringify(provider.operatories || []),
+            workingDays: JSON.stringify(data.workingDays || JSON.parse(existingOffice.workingDays)),
+            workingStart: provider.workingStart || '07:00',
+            workingEnd: provider.workingEnd || '18:00',
             lunchStart: provider.lunchStart,
             lunchEnd: provider.lunchEnd,
-            dailyGoal: provider.dailyGoal,
-            color: provider.color,
+            dailyGoal: provider.dailyGoal || 0,
+            color: provider.color || '#6b9bd1',
           },
         })
       )

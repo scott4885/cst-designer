@@ -6,7 +6,6 @@ import { PrismaClient } from '@prisma/client';
 import { mockOffices } from '../src/lib/mock-data';
 
 const prisma = new PrismaClient({
-  omit: {},
   log: ['error'],
 });
 
