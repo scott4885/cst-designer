@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { mockOffices, smileCascadeOffice } from '@/lib/mock-data';
+import { getOfficeById, updateOffice, deleteOffice } from '@/lib/office-data-store';
 
 /**
  * GET /api/offices/:id
@@ -16,7 +17,13 @@ export async function GET(
     return NextResponse.json(smileCascadeOffice);
   }
 
-  // For other offices, return summary data
+  // Check created offices first
+  const createdOffice = getOfficeById(id);
+  if (createdOffice) {
+    return NextResponse.json(createdOffice);
+  }
+
+  // Fall back to mock offices
   const office = mockOffices.find(o => o.id === id);
   
   if (!office) {
@@ -41,8 +48,13 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    // Find the office
-    const office = mockOffices.find(o => o.id === id);
+    // Check created offices first
+    let office = getOfficeById(id);
+    
+    // Fall back to mock offices (read-only)
+    if (!office) {
+      office = mockOffices.find(o => o.id === id);
+    }
     
     if (!office) {
       return NextResponse.json(
@@ -51,20 +63,27 @@ export async function PUT(
       );
     }
 
-    // Update office fields
-    const updatedOffice = {
-      ...office,
+    // Recalculate aggregates if providers changed
+    const updates = {
       ...body,
-      id, // Preserve ID
-      updatedAt: new Date().toISOString(),
-      // Recalculate aggregates if providers changed
       providerCount: body.providers?.length || office.providerCount,
       totalDailyGoal: body.providers?.reduce((sum: number, p: any) => sum + (p.dailyGoal || 0), 0) || office.totalDailyGoal,
     };
 
-    // In a real app, save to database
-    // For now, just return the updated office
-    return NextResponse.json(updatedOffice);
+    // Try to update in created offices
+    const updatedOffice = updateOffice(id, updates);
+    
+    if (updatedOffice) {
+      return NextResponse.json(updatedOffice);
+    }
+
+    // Mock offices are read-only, return updated data without persisting
+    return NextResponse.json({
+      ...office,
+      ...updates,
+      id,
+      updatedAt: new Date().toISOString(),
+    });
   } catch (error) {
     console.error('Error updating office:', error);
     return NextResponse.json(
@@ -85,21 +104,30 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Find the office
-    const office = mockOffices.find(o => o.id === id);
+    // Try to delete from created offices
+    const deleted = deleteOffice(id);
     
-    if (!office) {
+    if (deleted) {
+      return NextResponse.json({ 
+        success: true, 
+        message: `Office ${id} deleted successfully` 
+      });
+    }
+
+    // Check if it exists in mock offices
+    const mockOffice = mockOffices.find(o => o.id === id);
+    
+    if (!mockOffice) {
       return NextResponse.json(
         { error: 'Office not found' },
         { status: 404 }
       );
     }
 
-    // In a real app, soft delete in database
-    // For now, just return success
+    // Mock offices cannot be deleted, but return success anyway
     return NextResponse.json({ 
       success: true, 
-      message: `Office ${id} archived successfully` 
+      message: `Office ${id} is a demo office and cannot be deleted` 
     });
   } catch (error) {
     console.error('Error deleting office:', error);
