@@ -79,7 +79,8 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
         ),
         cell: (info) => {
           const slot = info.row.original.slots.find(s => s.providerId === provider.id);
-          const isLunchTime = info.row.original.time.startsWith("1:") || info.row.original.time.startsWith("2:");
+          const timeStr = info.row.original.time;
+          const isLunchTime = timeStr >= "1:00 PM" && timeStr < "2:00 PM" && timeStr.includes("PM") && (timeStr.startsWith("1:"));
           
           return (
             <TimeSlotCell
@@ -100,7 +101,8 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
       ),
       cell: (info) => {
         const slot = info.row.original.slots.find(s => s.providerId === provider.id);
-        const isLunchTime = info.row.original.time.startsWith("1:") || info.row.original.time.startsWith("2:");
+        const timeStr2 = info.row.original.time;
+        const isLunchTime = timeStr2.includes("PM") && timeStr2.startsWith("1:");
         
         return (
           <TimeSlotCell
