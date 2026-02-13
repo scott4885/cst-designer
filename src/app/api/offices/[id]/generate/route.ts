@@ -44,6 +44,21 @@ export async function POST(
       );
     }
 
+    // Validate arrays are not empty
+    if (office.providers.length === 0) {
+      return NextResponse.json(
+        { error: 'Office must have at least one provider to generate schedules' },
+        { status: 400 }
+      );
+    }
+
+    if (office.blockTypes.length === 0) {
+      return NextResponse.json(
+        { error: 'Office must have at least one block type to generate schedules' },
+        { status: 400 }
+      );
+    }
+
     // Get days to generate from request or use office working days
     const daysToGenerate = body.days || office.workingDays;
 

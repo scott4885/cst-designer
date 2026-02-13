@@ -53,6 +53,21 @@ export async function POST(
       );
     }
 
+    // Validate arrays are not empty
+    if (office.providers.length === 0) {
+      return NextResponse.json(
+        { error: 'Office must have at least one provider to export schedules' },
+        { status: 400 }
+      );
+    }
+
+    if (office.blockTypes.length === 0) {
+      return NextResponse.json(
+        { error: 'Office must have at least one block type to export schedules' },
+        { status: 400 }
+      );
+    }
+
     // Transform data for Excel export
     const exportInput: ExportInput = {
       officeName: office.name,
