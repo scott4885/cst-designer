@@ -94,6 +94,17 @@ export async function PUT(
 }
 
 /**
+ * PATCH /api/offices/:id
+ * Partially update an office
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return PUT(request, { params });
+}
+
+/**
  * DELETE /api/offices/:id
  * Delete (archive) an office
  */
