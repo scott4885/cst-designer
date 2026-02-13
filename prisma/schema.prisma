@@ -3,72 +3,22 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-enum ProviderRole {
-  DOCTOR
-  HYGIENIST
-}
-
-enum DpmsSystem {
-  DENTRIX
-  OPEN_DENTAL
-  EAGLESOFT
-  DENTICON
-}
-
-enum FeeModel {
-  UCR
-  PPO
-  MIXED
-}
-
-enum TemplateStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
-enum GeneratedBy {
-  MANUAL
-  AI
-  RULE_BASED
-}
-
-enum DayOfWeek {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-}
-
-enum StaffingCode {
-  D
-  A
-  H
-}
-
-enum RuleType {
-  NP_MODEL
-  HP_PLACEMENT
-  DOUBLE_BOOKING
-  MATRIXING
-  EMERGENCY_HANDLING
-  SRP_PLACEMENT
-}
+// SQLite doesn't support enums or JSON, so we use String types
+// Application code will validate these values
 
 model Office {
-  id            String          @id @default(uuid())
+  id            String   @id @default(uuid())
   name          String
-  dpmsSystem    DpmsSystem      @map("dpms_system")
-  workingDays   DayOfWeek[]     @map("working_days")
-  timeIncrement Int             @default(10) @map("time_increment")
-  feeModel      FeeModel        @map("fee_model")
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
+  dpmsSystem    String   @map("dpms_system") // DENTRIX | OPEN_DENTAL | EAGLESOFT | DENTICON
+  workingDays   String   @map("working_days") // JSON array of day strings
+  timeIncrement Int      @default(10) @map("time_increment")
+  feeModel      String   @map("fee_model") // UCR | PPO | MIXED
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
   
   providers         Provider[]
   blockTypes        BlockType[]
@@ -80,26 +30,26 @@ model Office {
 }
 
 model Provider {
-  id           String       @id @default(uuid())
-  officeId     String       @map("office_id")
+  id           String   @id @default(uuid())
+  officeId     String   @map("office_id")
   name         String
-  providerId   String       @map("provider_id")
-  role         ProviderRole
-  operatories  String[]
-  workingDays  DayOfWeek[]  @map("working_days")
-  workingStart String       @map("working_start")
-  workingEnd   String       @map("working_end")
-  lunchStart   String?      @map("lunch_start")
-  lunchEnd     String?      @map("lunch_end")
-  dailyGoal    Float        @map("daily_goal")
-  hourlyRate   Float?       @map("hourly_rate")
-  color        String       @default("#6b9bd1")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  providerId   String   @map("provider_id")
+  role         String   // DOCTOR | HYGIENIST
+  operatories  String   // JSON array of strings
+  workingDays  String   @map("working_days") // JSON array of day strings
+  workingStart String   @map("working_start")
+  workingEnd   String   @map("working_end")
+  lunchStart   String?  @map("lunch_start")
+  lunchEnd     String?  @map("lunch_end")
+  dailyGoal    Float    @map("daily_goal")
+  hourlyRate   Float?   @map("hourly_rate")
+  color        String   @default("#6b9bd1")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  office       Office       @relation(fields: [officeId], references: [id], onDelete: Cascade)
-  rampUpGoals  RampUpGoal[]
-  timeSlots    TimeSlot[]
+  office      Office       @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  rampUpGoals RampUpGoal[]
+  timeSlots   TimeSlot[]
 
   @@index([officeId])
   @@map("providers")
@@ -119,17 +69,17 @@ model RampUpGoal {
 }
 
 model BlockType {
-  id             String       @id @default(uuid())
-  officeId       String       @map("office_id")
-  label          String
-  description    String?
-  minimumAmount  Float?       @map("minimum_amount")
-  appliesToRole  ProviderRole @map("applies_to_role")
-  durationMin    Int          @map("duration_min")
-  durationMax    Int?         @map("duration_max")
-  color          String?
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  officeId      String   @map("office_id")
+  label         String
+  description   String?
+  minimumAmount Float?   @map("minimum_amount")
+  appliesToRole String   @map("applies_to_role") // DOCTOR | HYGIENIST | BOTH
+  durationMin   Int      @map("duration_min")
+  durationMax   Int?     @map("duration_max")
+  color         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   office    Office     @relation(fields: [officeId], references: [id], onDelete: Cascade)
   timeSlots TimeSlot[]
@@ -139,12 +89,12 @@ model BlockType {
 }
 
 model Procedure {
-  id           String       @id @default(uuid())
-  officeId     String       @map("office_id")
-  name         String
-  duration     Int
-  appliesToRole ProviderRole @map("applies_to_role")
-  typicalFee   Float?       @map("typical_fee")
+  id            String   @id @default(uuid())
+  officeId      String   @map("office_id")
+  name          String
+  duration      Int
+  appliesToRole String   @map("applies_to_role") // DOCTOR | HYGIENIST
+  typicalFee    Float?   @map("typical_fee")
 
   office Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
 
@@ -153,15 +103,15 @@ model Procedure {
 }
 
 model ScheduleTemplate {
-  id                 String         @id @default(uuid())
-  officeId           String         @map("office_id")
-  version            Int            @default(1)
-  effectiveDate      DateTime?      @map("effective_date")
-  status             TemplateStatus @default(DRAFT)
-  generatedBy        GeneratedBy    @default(MANUAL) @map("generated_by")
-  generationMetadata Json?          @map("generation_metadata")
-  createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid())
+  officeId           String   @map("office_id")
+  version            Int      @default(1)
+  effectiveDate      DateTime? @map("effective_date")
+  status             String   @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  generatedBy        String   @default("MANUAL") @map("generated_by") // MANUAL | AI | RULE_BASED
+  generationMetadata String?  @map("generation_metadata") // JSON string
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   office       Office        @relation(fields: [officeId], references: [id], onDelete: Cascade)
   daySchedules DaySchedule[]
@@ -171,9 +121,9 @@ model ScheduleTemplate {
 }
 
 model DaySchedule {
-  id         String    @id @default(uuid())
-  templateId String    @map("template_id")
-  dayOfWeek  DayOfWeek @map("day_of_week")
+  id         String  @id @default(uuid())
+  templateId String  @map("template_id")
+  dayOfWeek  String  @map("day_of_week") // MONDAY | TUESDAY | etc.
   variant    String?
 
   template  ScheduleTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
@@ -184,15 +134,15 @@ model DaySchedule {
 }
 
 model TimeSlot {
-  id             String        @id @default(uuid())
-  dayScheduleId  String        @map("day_schedule_id")
-  time           String
-  providerId     String?       @map("provider_id")
-  operatory      String?
-  staffingCode   StaffingCode? @map("staffing_code")
-  blockTypeId    String?       @map("block_type_id")
-  blockLabel     String?       @map("block_label")
-  isBreak        Boolean       @default(false) @map("is_break")
+  id            String  @id @default(uuid())
+  dayScheduleId String  @map("day_schedule_id")
+  time          String
+  providerId    String? @map("provider_id")
+  operatory     String?
+  staffingCode  String? @map("staffing_code") // D | A | H
+  blockTypeId   String? @map("block_type_id")
+  blockLabel    String? @map("block_label")
+  isBreak       Boolean @default(false) @map("is_break")
 
   daySchedule DaySchedule @relation(fields: [dayScheduleId], references: [id], onDelete: Cascade)
   provider    Provider?   @relation(fields: [providerId], references: [id])
@@ -204,10 +154,10 @@ model TimeSlot {
 }
 
 model ScheduleRule {
-  id        String   @id @default(uuid())
-  officeId  String   @map("office_id")
-  ruleType  RuleType @map("rule_type")
-  ruleValue Json     @map("rule_value")
+  id        String @id @default(uuid())
+  officeId  String @map("office_id")
+  ruleType  String @map("rule_type") // NP_MODEL | HP_PLACEMENT | etc.
+  ruleValue String @map("rule_value") // JSON string
 
   office Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
 
