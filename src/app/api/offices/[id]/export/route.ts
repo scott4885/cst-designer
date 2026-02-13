@@ -8,10 +8,10 @@ import { mockOffices, smileCascadeOffice } from '@/lib/mock-data';
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     // Find the office
@@ -93,7 +93,7 @@ export async function POST(
     const buffer = await generateExcel(exportInput);
 
     // Return as downloadable file
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename="Customized Schedule Template - ${office.name}.xlsx"`,
