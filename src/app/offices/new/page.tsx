@@ -116,6 +116,7 @@ function NewOfficeForm() {
     formState: { errors, isDirty },
   } = useForm<OfficeFormData>({
     resolver: zodResolver(officeSchema),
+    mode: "onBlur",
     defaultValues: {
       workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
       providers: [],

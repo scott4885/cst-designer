@@ -57,6 +57,7 @@ export default function EditOfficePage() {
     formState: { errors, isDirty },
   } = useForm<EditOfficeFormData>({
     resolver: zodResolver(editOfficeSchema),
+    mode: "onBlur",
     defaultValues: {
       name: "",
       providers: [],
