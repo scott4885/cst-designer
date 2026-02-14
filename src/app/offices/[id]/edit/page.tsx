@@ -274,11 +274,11 @@ export default function EditOfficePage() {
                   </div>
                   <div>
                     <Label>Color</Label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Input
                         type="color"
                         {...register(`providers.${index}.color`)}
-                        className="w-16 h-10"
+                        className="w-10 h-10 p-1 cursor-pointer rounded-md border border-border"
                       />
                       <Input
                         {...register(`providers.${index}.color`)}
