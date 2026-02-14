@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { throwIfError } from "@/lib/api-error";
 
 // Form schema for editing
 const editOfficeSchema = z.object({
@@ -126,9 +127,7 @@ export default function EditOfficePage() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to update office");
-      }
+      await throwIfError(response, "Failed to update office");
 
       toast.success("Office updated successfully!");
       // Refetch to update the store before navigating
@@ -136,7 +135,7 @@ export default function EditOfficePage() {
       router.push(`/offices/${officeId}`);
     } catch (error) {
       console.error("Error updating office:", error);
-      toast.error("Failed to update office. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to update office");
     } finally {
       setIsSaving(false);
     }

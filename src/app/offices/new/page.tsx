@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { getSettings } from "@/lib/settings";
+import { throwIfError } from "@/lib/api-error";
 
 // Form schema
 const officeSchema = z.object({
@@ -171,16 +172,14 @@ export default function NewOfficePage() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create office");
-      }
+      await throwIfError(response, "Failed to create office");
 
       const newOffice = await response.json();
       toast.success("Office created successfully!");
       router.push(`/offices/${newOffice.id}`);
     } catch (error) {
       console.error("Error creating office:", error);
-      toast.error("Failed to create office. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to create office");
     } finally {
       setIsSubmitting(false);
     }

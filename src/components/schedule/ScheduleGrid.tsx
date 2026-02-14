@@ -83,6 +83,20 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
     );
   }
 
+  if (slots.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-96 border border-border rounded-lg bg-surface/30">
+        <div className="text-center space-y-3 max-w-sm">
+          <div className="text-4xl">✨</div>
+          <h3 className="text-lg font-semibold text-foreground">No Schedule Yet</h3>
+          <p className="text-sm text-muted-foreground">
+            Click &quot;Generate&quot; above to create an optimized schedule for this day.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Pagination controls */}

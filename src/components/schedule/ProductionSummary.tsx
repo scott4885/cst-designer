@@ -39,6 +39,21 @@ export default function ProductionSummary({ summaries }: ProductionSummaryProps)
   const totalTarget = summaries.reduce((sum, s) => sum + s.target75, 0);
   const totalActual = summaries.reduce((sum, s) => sum + s.actualScheduled, 0);
 
+  if (summaries.length === 0) {
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-foreground">Production Summary</h3>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              Production metrics will appear here after generating a schedule
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-foreground">Production Summary</h3>
