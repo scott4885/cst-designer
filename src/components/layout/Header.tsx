@@ -1,48 +1,75 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Settings, User } from "lucide-react";
+import Link from "next/link";
+import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useOfficeStore } from "@/store/office-store";
 
 export default function Header() {
   const pathname = usePathname();
+  const { currentOffice } = useOfficeStore();
 
-  // Generate breadcrumbs from pathname
-  const generateBreadcrumbs = () => {
+  const getBreadcrumbs = (): { label: string; href?: string }[] => {
     const segments = pathname.split("/").filter(Boolean);
-    if (segments.length === 0) return "Dashboard";
-    
-    const breadcrumbs = segments.map((segment, index) => {
-      // Capitalize and format segment
-      let label = segment.charAt(0).toUpperCase() + segment.slice(1);
-      
-      // Replace common patterns
-      if (segment === "new") label = "New Office";
-      if (segment.match(/^[0-9a-f-]{36}$/i)) label = "Template Builder"; // UUID pattern
-      
-      return label;
-    });
-    
-    return breadcrumbs.join(" / ");
+
+    if (segments.length === 0) return [{ label: "Offices" }];
+
+    if (segments[0] === "settings") return [{ label: "Settings" }];
+
+    if (segments[0] === "offices") {
+      const crumbs: { label: string; href?: string }[] = [
+        { label: "Offices", href: "/" },
+      ];
+
+      if (segments[1] === "new") {
+        crumbs.push({ label: "New Office" });
+      } else if (segments[1]) {
+        const officeName = currentOffice?.name || "Office";
+        if (segments[2] === "edit") {
+          crumbs.push({ label: officeName, href: `/offices/${segments[1]}` });
+          crumbs.push({ label: "Edit" });
+        } else {
+          crumbs.push({ label: officeName });
+        }
+      }
+
+      return crumbs;
+    }
+
+    return [{ label: segments[0].charAt(0).toUpperCase() + segments[0].slice(1) }];
   };
+
+  const crumbs = getBreadcrumbs();
 
   return (
     <header className="h-16 border-b border-border bg-surface px-6 flex items-center justify-between">
-      {/* Breadcrumbs */}
       <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold text-foreground">
-          {generateBreadcrumbs()}
-        </h2>
+        {crumbs.map((crumb, i) => (
+          <span key={i} className="flex items-center gap-2">
+            {i > 0 && <span className="text-muted-foreground">/</span>}
+            {crumb.href ? (
+              <Link
+                href={crumb.href}
+                className="text-lg font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {crumb.label}
+              </Link>
+            ) : (
+              <h2 className="text-lg font-semibold text-foreground">
+                {crumb.label}
+              </h2>
+            )}
+          </span>
+        ))}
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Settings className="w-5 h-5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <User className="w-5 h-5" />
-        </Button>
+        <Link href="/settings">
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Settings className="w-5 h-5" />
+          </Button>
+        </Link>
       </div>
     </header>
   );

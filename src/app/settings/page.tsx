@@ -8,28 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
-
-interface AppSettings {
-  timeIncrement: number;
-  defaultStartTime: string;
-  defaultEndTime: string;
-  defaultLunchStart: string;
-  defaultLunchEnd: string;
-  autoSaveSchedules: boolean;
-  showProductionWarnings: boolean;
-  theme: "light" | "dark" | "system";
-}
-
-const DEFAULT_SETTINGS: AppSettings = {
-  timeIncrement: 15,
-  defaultStartTime: "07:00",
-  defaultEndTime: "18:00",
-  defaultLunchStart: "13:00",
-  defaultLunchEnd: "14:00",
-  autoSaveSchedules: true,
-  showProductionWarnings: true,
-  theme: "system",
-};
+import { type AppSettings, DEFAULT_SETTINGS } from "@/lib/settings";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);

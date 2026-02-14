@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { getSettings } from "@/lib/settings";
 
 // Form schema
 const officeSchema = z.object({
@@ -136,12 +137,13 @@ export default function NewOfficePage() {
   };
 
   const addProvider = () => {
+    const s = getSettings();
     appendProvider({
       name: "",
       role: "Doctor",
       operatories: ["OP1"],
-      workingHours: { start: "07:00", end: "18:00" },
-      lunchBreak: { start: "13:00", end: "14:00" },
+      workingHours: { start: s.defaultStartTime, end: s.defaultEndTime },
+      lunchBreak: { start: s.defaultLunchStart, end: s.defaultLunchEnd },
       dailyGoal: 5000,
       color: PROVIDER_COLORS[providerFields.length % PROVIDER_COLORS.length],
     });
