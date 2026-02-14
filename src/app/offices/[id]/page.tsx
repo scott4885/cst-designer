@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { useScheduleStore } from "@/store/schedule-store";
 import { GenerationResult } from "@/lib/engine/types";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export default function TemplateBuilderPage() {
   const params = useParams();
@@ -35,6 +36,8 @@ export default function TemplateBuilderPage() {
 
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [generatingDay, setGeneratingDay] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch office data on mount
   useEffect(() => {
@@ -211,6 +214,24 @@ export default function TemplateBuilderPage() {
   };
 
   // Export schedule to Excel
+  const handleDeleteOffice = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/offices/${officeId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete office");
+      toast.success("Office deleted");
+      router.push("/");
+    } catch (error) {
+      console.error("Error deleting office:", error);
+      toast.error("Failed to delete office");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   const handleExport = async () => {
     if (!currentDaySchedule) {
       toast.error("Please generate a schedule first");
@@ -333,8 +354,27 @@ export default function TemplateBuilderPage() {
               </>
             )}
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowDeleteDialog(true)}
+            title="Delete office"
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Office"
+        description={`Are you sure you want to delete "${currentOffice.name}"? This will permanently remove all providers, block types, rules, and generated schedules. This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDeleteOffice}
+        isLoading={isDeleting}
+      />
 
       {/* 3-Panel Layout */}
       <div className="flex-1 flex gap-6 overflow-hidden">
