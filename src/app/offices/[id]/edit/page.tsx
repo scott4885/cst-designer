@@ -129,6 +129,8 @@ export default function EditOfficePage() {
       }
 
       toast.success("Office updated successfully!");
+      // Refetch to update the store before navigating
+      await fetchOffice(officeId);
       router.push(`/offices/${officeId}`);
     } catch (error) {
       console.error("Error updating office:", error);
