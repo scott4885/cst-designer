@@ -6,8 +6,7 @@ import { Home, Building2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: Home },
-  { href: "/offices", label: "Offices", icon: Building2 },
+  { href: "/", label: "Offices", icon: Building2 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -33,7 +32,9 @@ export default function Sidebar() {
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive = item.href === "/"
+            ? pathname === "/" || pathname.startsWith("/offices")
+            : pathname === item.href || pathname.startsWith(item.href + "/");
           
           return (
             <Link

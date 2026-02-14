@@ -75,6 +75,7 @@ const DEFAULT_PROCEDURES = [
 export default function NewOfficePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("practice");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Keyboard shortcut: Cmd/Ctrl+S to submit
   useEffect(() => {
@@ -147,6 +148,7 @@ export default function NewOfficePage() {
   };
 
   const onSubmit = async (data: OfficeFormData) => {
+    setIsSubmitting(true);
     try {
       const response = await fetch("/api/offices", {
         method: "POST",
@@ -177,6 +179,8 @@ export default function NewOfficePage() {
     } catch (error) {
       console.error("Error creating office:", error);
       toast.error("Failed to create office. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -491,8 +495,8 @@ export default function NewOfficePage() {
               <Button type="button" variant="outline" onClick={() => setActiveTab("timing")}>
                 Back
               </Button>
-              <Button type="submit">
-                Create Office
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Office"}
               </Button>
             </div>
           </TabsContent>

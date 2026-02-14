@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 // Form schema for editing
 const editOfficeSchema = z.object({
@@ -45,6 +46,7 @@ export default function EditOfficePage() {
   const officeId = params.id as string;
   const { currentOffice, fetchOffice, isLoading } = useOfficeStore();
   const [isSaving, setIsSaving] = useState(false);
+  const [providerToDelete, setProviderToDelete] = useState<number | null>(null);
 
   const {
     register,
@@ -211,7 +213,7 @@ export default function EditOfficePage() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => removeProvider(index)}
+                    onClick={() => setProviderToDelete(index)}
                   >
                     <Trash2 className="w-4 h-4 text-error" />
                   </Button>
@@ -314,6 +316,22 @@ export default function EditOfficePage() {
           </Button>
         </div>
       </form>
+
+      <ConfirmDialog
+        open={providerToDelete !== null}
+        onOpenChange={(open) => !open && setProviderToDelete(null)}
+        title="Remove Provider"
+        description={`Remove ${providerToDelete !== null ? providerFields[providerToDelete]?.name || `Provider ${providerToDelete + 1}` : "this provider"}? This cannot be undone after saving.`}
+        confirmLabel="Remove"
+        variant="destructive"
+        onConfirm={() => {
+          if (providerToDelete !== null) {
+            removeProvider(providerToDelete);
+            toast.success("Provider removed");
+            setProviderToDelete(null);
+          }
+        }}
+      />
     </div>
   );
 }

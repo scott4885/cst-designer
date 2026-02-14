@@ -9,6 +9,7 @@ import OfficeCard from "@/components/offices/OfficeCard";
 import { useOfficeStore } from "@/store/office-store";
 import { toast } from "sonner";
 import { mockOffices } from "@/lib/mock-data";
+import { OfficeListSkeleton } from "@/components/LoadingState";
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,11 +120,7 @@ export default function Dashboard() {
       </div>
 
       {/* Loading State */}
-      {isLoading && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading offices...</p>
-        </div>
-      )}
+      {isLoading && <OfficeListSkeleton />}
 
       {/* Office Grid */}
       {!isLoading && filteredOffices.length > 0 && (
