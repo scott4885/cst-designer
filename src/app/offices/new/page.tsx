@@ -405,6 +405,7 @@ function NewOfficeForm() {
                           <span className="self-center">to</span>
                           <Input type="time" {...register(`providers.${index}.workingHours.end`)} />
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1">e.g. 7:00 AM – 5:00 PM</p>
                       </div>
                       <div>
                         <Label>Lunch Break</Label>
@@ -413,6 +414,7 @@ function NewOfficeForm() {
                           <span className="self-center">to</span>
                           <Input type="time" {...register(`providers.${index}.lunchBreak.end`)} />
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
                       </div>
                     </div>
                   </div>
