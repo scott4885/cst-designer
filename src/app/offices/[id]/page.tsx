@@ -15,6 +15,8 @@ import { useOfficeStore } from "@/store/office-store";
 import { useScheduleStore } from "@/store/schedule-store";
 import { GenerationResult } from "@/lib/engine/types";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function TemplateBuilderPage() {
   const params = useParams();
@@ -38,6 +40,7 @@ export default function TemplateBuilderPage() {
   const [generatingDay, setGeneratingDay] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState({ completed: 0, total: 0 });
 
   // Fetch office data on mount
   useEffect(() => {
@@ -168,6 +171,7 @@ export default function TemplateBuilderPage() {
     setGenerating(true);
     const totalDays = currentOffice.workingDays.length;
     let completedDays = 0;
+    setGenerationProgress({ completed: 0, total: totalDays });
     const allSchedules: any[] = [...Object.values(generatedSchedules)];
 
     try {
@@ -196,6 +200,7 @@ export default function TemplateBuilderPage() {
         setSchedules(allSchedules, officeId);
 
         completedDays++;
+        setGenerationProgress({ completed: completedDays, total: totalDays });
         toast.success(`Generated ${getDayLabel(day)} (${completedDays}/${totalDays})`);
         
         // Another yield for smoother UI updates
@@ -375,6 +380,23 @@ export default function TemplateBuilderPage() {
         onConfirm={handleDeleteOffice}
         isLoading={isDeleting}
       />
+
+      {/* Generate All Days Progress Overlay */}
+      <Dialog open={isGenerating && generatingDay !== null}>
+        <DialogContent className="max-w-sm [&>button]:hidden" onPointerDownOutside={(e) => e.preventDefault()}>
+          <div className="space-y-4 text-center">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto text-accent" />
+            <h3 className="text-lg font-semibold">Generating Schedules</h3>
+            <p className="text-muted-foreground">
+              Currently generating {generatingDay ? getDayLabel(generatingDay) : ""}...
+            </p>
+            <Progress value={generationProgress.total > 0 ? (generationProgress.completed / generationProgress.total) * 100 : 0} />
+            <p className="text-sm text-muted-foreground">
+              {generationProgress.completed} of {generationProgress.total} days complete
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* 3-Panel Layout */}
       <div className="flex-1 flex gap-6 overflow-hidden">

@@ -502,6 +502,9 @@ export default function NewOfficePage() {
             </div>
           </TabsContent>
         </Tabs>
+        <p className="text-xs text-muted-foreground text-center mt-2">
+          Tip: Press ⌘S / Ctrl+S to save from any tab
+        </p>
       </form>
     </div>
   );
