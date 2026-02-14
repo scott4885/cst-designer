@@ -16,7 +16,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-[#1a1a1a] border-r border-border flex flex-col">
       {/* Logo/Brand */}
-      <div className="p-6 border-b border-border">
+      <Link href="/" className="block p-6 border-b border-border hover:bg-secondary/50 transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
             <span className="text-accent font-bold text-lg">S</span>
@@ -26,7 +26,7 @@ export default function Sidebar() {
             <p className="text-xs text-muted-foreground">Template Designer</p>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
