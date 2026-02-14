@@ -6,7 +6,6 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,7 +54,7 @@ export default function EditOfficePage() {
     handleSubmit,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<EditOfficeFormData>({
     resolver: zodResolver(editOfficeSchema),
     defaultValues: {
@@ -68,6 +67,24 @@ export default function EditOfficePage() {
     control,
     name: "providers",
   });
+
+  // Warn on browser navigation away with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  const handleBack = () => {
+    if (isDirty) {
+      if (!confirm("You have unsaved changes. Leave anyway?")) return;
+    }
+    router.push(`/offices/${officeId}`);
+  };
 
   // Load office data
   useEffect(() => {
@@ -153,11 +170,9 @@ export default function EditOfficePage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href={`/offices/${officeId}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" onClick={handleBack}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Edit Office</h1>
           <p className="text-muted-foreground mt-1">
@@ -298,11 +313,9 @@ export default function EditOfficePage() {
 
         {/* Actions */}
         <div className="flex justify-between">
-          <Link href={`/offices/${officeId}`}>
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-          </Link>
+          <Button type="button" variant="outline" onClick={handleBack}>
+            Cancel
+          </Button>
           <Button type="submit" disabled={isSaving}>
             {isSaving ? (
               <>Saving...</>
