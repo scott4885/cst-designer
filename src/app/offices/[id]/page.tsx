@@ -17,6 +17,7 @@ import { GenerationResult } from "@/lib/engine/types";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export default function TemplateBuilderPage() {
   const params = useParams();
@@ -316,23 +317,34 @@ export default function TemplateBuilderPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleExport}
-            disabled={Object.keys(generatedSchedules).length === 0 || isExporting}
-          >
-            {isExporting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </>
-            )}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0}>
+                <Button
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={Object.keys(generatedSchedules).length === 0 || isExporting}
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Export
+                    </>
+                  )}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {Object.keys(generatedSchedules).length === 0
+                ? "Generate a schedule first"
+                : "Export all generated schedules to Excel"}
+            </TooltipContent>
+          </Tooltip>
           <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary">
             {isGenerating && generatingDay ? (
               <>
