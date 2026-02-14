@@ -87,7 +87,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          {offices.length === 0 && (
+          {offices.length < 3 && (
             <Button 
               variant="outline" 
               className="gap-2"
