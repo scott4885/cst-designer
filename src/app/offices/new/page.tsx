@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -74,9 +74,25 @@ const DEFAULT_PROCEDURES = [
 ];
 
 export default function NewOfficePage() {
+  return (
+    <Suspense>
+      <NewOfficeForm />
+    </Suspense>
+  );
+}
+
+function NewOfficeForm() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("practice");
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "practice");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   // Keyboard shortcut: Cmd/Ctrl+S to submit
   useEffect(() => {
@@ -224,7 +240,7 @@ export default function NewOfficePage() {
 
       {/* Tabbed Form */}
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="practice">1. Practice Foundation</TabsTrigger>
             <TabsTrigger value="providers">2. Providers</TabsTrigger>
@@ -292,7 +308,7 @@ export default function NewOfficePage() {
             </Card>
 
             <div className="flex justify-end">
-              <Button type="button" onClick={() => setActiveTab("providers")}>
+              <Button type="button" onClick={() => handleTabChange("providers")}>
                 Next: Providers
               </Button>
             </div>
@@ -403,10 +419,10 @@ export default function NewOfficePage() {
             </Card>
 
             <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={() => setActiveTab("practice")}>
+              <Button type="button" variant="outline" onClick={() => handleTabChange("practice")}>
                 Back
               </Button>
-              <Button type="button" onClick={() => setActiveTab("timing")}>
+              <Button type="button" onClick={() => handleTabChange("timing")}>
                 Next: Clinical Timing
               </Button>
             </div>
@@ -440,10 +456,10 @@ export default function NewOfficePage() {
             </Card>
 
             <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={() => setActiveTab("providers")}>
+              <Button type="button" variant="outline" onClick={() => handleTabChange("providers")}>
                 Back
               </Button>
-              <Button type="button" onClick={() => setActiveTab("rules")}>
+              <Button type="button" onClick={() => handleTabChange("rules")}>
                 Next: Schedule Rules
               </Button>
             </div>
@@ -508,7 +524,7 @@ export default function NewOfficePage() {
             </Card>
 
             <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={() => setActiveTab("timing")}>
+              <Button type="button" variant="outline" onClick={() => handleTabChange("timing")}>
                 Back
               </Button>
               <Button type="submit" disabled={isSubmitting}>
