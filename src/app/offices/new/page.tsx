@@ -295,6 +295,7 @@ function NewOfficeForm() {
                         type="button"
                         variant={workingDays?.includes(day) ? "default" : "outline"}
                         onClick={() => toggleWorkingDay(day)}
+                        aria-pressed={workingDays?.includes(day)}
                         className="flex-1"
                       >
                         {day}
