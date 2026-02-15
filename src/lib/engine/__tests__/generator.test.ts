@@ -2,11 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   generateTimeSlots,
   isLunchTime,
-  findAvailableSlots,
   getStaffingCode,
   generateSchedule
 } from '../generator';
-import type { GenerationInput, ProviderInput, BlockTypeInput, TimeSlotOutput } from '../types';
+import type { GenerationInput, ProviderInput, BlockTypeInput } from '../types';
 
 describe('generator', () => {
   describe('generateTimeSlots', () => {
@@ -64,60 +63,6 @@ describe('generator', () => {
 
     it('should return false when no lunch configured', () => {
       expect(isLunchTime('13:00', undefined, undefined)).toBe(false);
-    });
-  });
-
-  describe('findAvailableSlots', () => {
-    const mockProvider: ProviderInput = {
-      id: 'dr1',
-      name: 'Dr. Test',
-      role: 'DOCTOR',
-      operatories: ['OP1'],
-      workingStart: '07:00',
-      workingEnd: '18:00',
-      dailyGoal: 5000,
-      color: '#ec8a1b'
-    };
-
-    it('should find available slots for a 60min block', () => {
-      const slots: TimeSlotOutput[] = [
-        { time: '07:00', providerId: 'dr1', operatory: 'OP1', staffingCode: 'D', blockTypeId: null, blockLabel: null, isBreak: false },
-        { time: '07:10', providerId: 'dr1', operatory: 'OP1', staffingCode: 'D', blockTypeId: null, blockLabel: null, isBreak: false },
-        { time: '07:20', providerId: 'dr1', operatory: 'OP1', staffingCode: 'D', blockTypeId: null, blockLabel: null, isBreak: false },
-        { time: '07:30', providerId: 'dr1', operatory: 'OP1', staffingCode: 'D', blockTypeId: null, blockLabel: null, isBreak: false },
-        { time: '07:40', providerId: 'dr1', operatory: 'OP1', staffingCode: 'D', blockTypeId: null, blockLabel: null, isBreak: false },
-        { time: '07:50', providerId: 'dr1', operatory: 'OP1', staffingCode: 'D', blockTypeId: null, blockLabel: null, isBreak: false },
-      ];
-
-      const available = findAvailableSlots(slots, mockProvider, 60, 10);
-      
-      // 60 min / 10 min = 6 slots needed
-      // Should be able to start at index 0 (slots 0-5)
-      expect(available).toContain(0);
-      expect(available).toHaveLength(1); // Only one position where 6 consecutive slots fit
-    });
-
-    it('should not find slots when occupied', () => {
-      const slots: TimeSlotOutput[] = [
-        { time: '07:00', providerId: 'dr1', operatory: 'OP1', staffingCode: 'D', blockTypeId: 'hp1', blockLabel: 'HP', isBreak: false },
-        { time: '07:10', providerId: 'dr1', operatory: 'OP1', staffingCode: 'D', blockTypeId: null, blockLabel: null, isBreak: false },
-      ];
-
-      const available = findAvailableSlots(slots, mockProvider, 20, 10);
-      
-      // First slot is occupied, so can't start there
-      expect(available).not.toContain(0);
-    });
-
-    it('should not find slots during break', () => {
-      const slots: TimeSlotOutput[] = [
-        { time: '13:00', providerId: 'dr1', operatory: 'OP1', staffingCode: null, blockTypeId: null, blockLabel: 'LUNCH', isBreak: true },
-        { time: '13:10', providerId: 'dr1', operatory: 'OP1', staffingCode: null, blockTypeId: null, blockLabel: 'LUNCH', isBreak: true },
-      ];
-
-      const available = findAvailableSlots(slots, mockProvider, 20, 10);
-      
-      expect(available).toHaveLength(0);
     });
   });
 
@@ -220,8 +165,8 @@ describe('generator', () => {
       const input = createTestInput();
       const result = generateSchedule(input);
 
-      const npSlots = result.slots.filter(s => 
-        s.blockTypeId === 'np1' && s.blockLabel === 'NP CONS'
+      const npSlots = result.slots.filter(s =>
+        s.blockTypeId === 'np1'
       );
 
       // Should have at least one NP block

@@ -323,9 +323,6 @@ function addDayScheduleSheet(
 
   currentRow++;
 
-  // Generate time slots from 7:00 AM to 6:00 PM (10-minute increments)
-  const timeSlots = generateTimeSlots('07:00', '18:00', 10);
-  
   // Group slots by time for easier lookup
   const slotsByTime = new Map<string, ExportTimeSlot[]>();
   for (const slot of daySchedule.slots) {
@@ -334,6 +331,12 @@ function addDayScheduleSheet(
     }
     slotsByTime.get(slot.time)!.push(slot);
   }
+
+  // Use default time range 7:00 AM to 6:00 PM (standard office hours)
+  // This ensures consistent grid even with sparse slot data
+  const startTime = '07:00';
+  const endTime = '18:00';
+  const timeSlots = generateTimeSlots(startTime, endTime, 10);
 
   // Render each time slot row
   for (const timeSlot of timeSlots) {
@@ -462,7 +465,7 @@ function addDayScheduleSheet(
 }
 
 /**
- * Generate time slots between start and end time
+ * Generate time slots between start and end time (inclusive of end time)
  */
 function generateTimeSlots(start: string, end: string, increment: number): string[] {
   const slots: string[] = [];

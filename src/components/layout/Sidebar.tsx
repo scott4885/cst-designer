@@ -14,7 +14,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-[#1a1a1a] border-r border-border flex flex-col">
+    <aside className="w-64 bg-sidebar-bg border-r border-border flex flex-col">
       {/* Logo/Brand */}
       <Link href="/" className="block p-6 border-b border-border hover:bg-secondary/50 transition-colors">
         <div className="flex items-center gap-3">

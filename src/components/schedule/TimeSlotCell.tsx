@@ -9,6 +9,7 @@ interface TimeSlotCellProps {
   providerColor?: string;
   isBreak?: boolean;
   onClick?: () => void;
+  isClickable?: boolean;
 }
 
 export default function TimeSlotCell({
@@ -18,13 +19,14 @@ export default function TimeSlotCell({
   providerColor,
   isBreak = false,
   onClick,
+  isClickable = false,
 }: TimeSlotCellProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   // Time column cell
   if (time) {
     return (
-      <div className="time-slot-cell bg-surface font-medium text-muted-foreground sticky left-0 z-10">
+      <div className="time-slot-cell bg-surface font-medium text-muted-foreground sticky left-0 z-10 text-xs px-2 py-1.5 whitespace-nowrap">
         {time}
       </div>
     );
@@ -34,10 +36,21 @@ export default function TimeSlotCell({
   if (isBreak || (!staffingCode && !blockLabel)) {
     return (
       <div
-        className={`provider-cell ${isBreak ? "bg-secondary/30" : "bg-surface/50"}`}
-        onClick={onClick}
+        className={`provider-cell px-2 py-1.5 min-h-[28px] ${
+          isBreak
+            ? "bg-muted/40"
+            : "bg-background"
+        } ${
+          isClickable && !isBreak
+            ? "cursor-pointer hover:bg-accent/10 transition-colors group/cell"
+            : ""
+        }`}
+        onClick={!isBreak ? onClick : undefined}
       >
-        {isBreak && <span className="text-muted-foreground text-xs">LUNCH</span>}
+        {isBreak && <span className="text-muted-foreground text-[10px] font-medium">LUNCH</span>}
+        {isClickable && !isBreak && (
+          <span className="text-muted-foreground/40 text-xs transition-opacity opacity-0 group-hover/cell:opacity-100">+</span>
+        )}
       </div>
     );
   }
@@ -45,14 +58,16 @@ export default function TimeSlotCell({
   // Provider cell with data
   const cellStyle = providerColor
     ? {
-        backgroundColor: providerColor + "40", // Add alpha for transparency
+        backgroundColor: providerColor + "30",
         borderLeft: `3px solid ${providerColor}`,
       }
     : {};
 
   return (
     <div
-      className="provider-cell relative group"
+      className={`provider-cell relative group px-2 py-1.5 min-h-[28px] ${
+        isClickable ? "cursor-pointer hover:brightness-110 transition-all" : ""
+      }`}
       style={cellStyle}
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -60,17 +75,18 @@ export default function TimeSlotCell({
       title={blockLabel ? `${staffingCode || ""} ${blockLabel}` : ""}
     >
       {staffingCode && (
-        <div className="text-xs font-semibold text-foreground/80">{staffingCode}</div>
+        <div className="text-[11px] font-semibold text-foreground/80">{staffingCode}</div>
       )}
       {blockLabel && (
-        <div className="text-xs text-foreground/70 mt-0.5">{blockLabel}</div>
+        <div className="text-[11px] text-foreground/70 mt-0.5 leading-tight">{blockLabel}</div>
       )}
-      
+
       {/* Hover tooltip */}
       {isHovered && blockLabel && (
-        <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover border border-border rounded shadow-lg text-xs whitespace-nowrap">
-          <div className="font-semibold">{blockLabel}</div>
+        <div className="absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover border border-border rounded shadow-lg text-xs whitespace-nowrap pointer-events-none">
+          <div className="font-semibold text-foreground">{blockLabel}</div>
           {staffingCode && <div className="text-muted-foreground">Code: {staffingCode}</div>}
+          {isClickable && <div className="text-accent text-[10px]">Click to edit</div>}
         </div>
       )}
     </div>

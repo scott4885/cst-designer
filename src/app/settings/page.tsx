@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { type AppSettings, DEFAULT_SETTINGS } from "@/lib/settings";
+import { useTheme } from "next-themes";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [hasChanges, setHasChanges] = useState(false);
+  const { setTheme: setNextTheme } = useTheme();
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -222,7 +224,10 @@ export default function SettingsPage() {
             <Label htmlFor="theme">Theme</Label>
             <Select
               value={settings.theme}
-              onValueChange={(value) => updateSetting("theme", value as any)}
+              onValueChange={(value) => {
+                updateSetting("theme", value as any);
+                setNextTheme(value);
+              }}
             >
               <SelectTrigger id="theme">
                 <SelectValue />

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOfficeStore } from "@/store/office-store";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Header() {
   const pathname = usePathname();
@@ -64,7 +65,8 @@ export default function Header() {
         ))}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
         <Link href="/settings">
           <Button variant="ghost" size="icon" className="rounded-full">
             <Settings className="w-5 h-5" />

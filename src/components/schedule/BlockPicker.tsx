@@ -1,0 +1,96 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { BlockTypeInput } from "@/lib/engine/types";
+
+interface BlockPickerProps {
+  blockTypes: BlockTypeInput[];
+  providerRole: "DOCTOR" | "HYGIENIST";
+  onSelect: (blockType: BlockTypeInput) => void;
+  onClose: () => void;
+  timeLabel: string;
+}
+
+export default function BlockPicker({
+  blockTypes,
+  providerRole,
+  onSelect,
+  onClose,
+  timeLabel,
+}: BlockPickerProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    // Close on Escape
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [onClose]);
+
+  // Filter block types by provider role - include ALL matching blocks
+  const applicableBlocks = blockTypes.filter(
+    (bt) =>
+      bt.appliesToRole === providerRole ||
+      bt.appliesToRole === "BOTH" ||
+      bt.appliesToRole?.toUpperCase() === providerRole
+  );
+
+  if (applicableBlocks.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      ref={ref}
+      className="bg-popover border border-border rounded-lg shadow-xl p-3 z-50 max-w-xs"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-sm font-semibold text-foreground">
+          Add Block at {timeLabel}
+        </h4>
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
+      <div className="space-y-1 max-h-64 overflow-y-auto">
+        {applicableBlocks.map((bt) => (
+          <button
+            key={bt.id}
+            className="w-full text-left px-3 py-2 rounded-md hover:bg-accent/20 transition-colors text-sm group border border-transparent hover:border-border"
+            onClick={() => onSelect(bt)}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-foreground">{bt.label}</span>
+              <span className="flex items-center gap-1.5">
+                {bt.minimumAmount ? (
+                  <span className="text-xs font-medium text-success">${bt.minimumAmount}</span>
+                ) : null}
+                <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                  {bt.durationMin}min
+                </span>
+              </span>
+            </div>
+            {bt.description && (
+              <p className="text-xs text-muted-foreground mt-0.5">{bt.description}</p>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

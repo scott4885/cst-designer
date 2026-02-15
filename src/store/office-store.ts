@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { OfficeData } from '@/lib/mock-data';
+import { getOffices, getOfficeById, saveOffices } from '@/lib/local-storage';
 
 interface OfficeState {
   currentOffice: OfficeData | null;
@@ -18,16 +19,15 @@ export const useOfficeStore = create<OfficeState>((set) => ({
   
   setCurrentOffice: (office: OfficeData | null) => set({ currentOffice: office }),
   
-  setOffices: (offices: OfficeData[]) => set({ offices }),
+  setOffices: (offices: OfficeData[]) => {
+    saveOffices(offices as any);
+    set({ offices });
+  },
   
   fetchOffices: async () => {
     set({ isLoading: true });
     try {
-      const response = await fetch('/api/offices');
-      if (!response.ok) {
-        throw new Error('Failed to fetch offices');
-      }
-      const offices = await response.json();
+      const offices = (await getOffices()) as OfficeData[];
       set({ offices, isLoading: false });
     } catch (error) {
       console.error('Error fetching offices:', error);
@@ -39,12 +39,19 @@ export const useOfficeStore = create<OfficeState>((set) => ({
   fetchOffice: async (id: string) => {
     set({ isLoading: true });
     try {
-      const response = await fetch(`/api/offices/${id}`);
-      if (!response.ok) {
+      const office = await getOfficeById(id);
+      if (!office) {
         throw new Error('Failed to fetch office');
       }
-      const office = await response.json();
-      set({ currentOffice: office, isLoading: false });
+      const providerCount = office.providers?.length || 0;
+      const totalDailyGoal = office.providers?.reduce((sum, p) => sum + (p.dailyGoal || 0), 0) || 0;
+      const currentOffice: OfficeData = {
+        ...(office as OfficeData),
+        providerCount,
+        totalDailyGoal,
+        updatedAt: (office as any).updatedAt || new Date().toISOString(),
+      };
+      set({ currentOffice, isLoading: false });
     } catch (error) {
       console.error('Error fetching office:', error);
       set({ isLoading: false });

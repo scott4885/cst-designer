@@ -42,18 +42,20 @@ export function distributeBlockMinimums(
   const npBlocks = applicableBlocks.filter(bt => bt.label.toUpperCase().includes('NP'));
   const srpBlocks = applicableBlocks.filter(bt => bt.label.toUpperCase().includes('SRP'));
 
-  // Distribution percentages
-  const hpPercent = 0.65; // 65% for HP
+  // Distribution percentages per TASK.md Rock-Sand-Water framework:
+  // Doctor: HP 55-70%, NP 15-20%, MP 10-15%, ER 5-10%, NON-PROD 0-5%
+  // Hygienist: HP 60-70%, NP 15-20%, SRP 15-20%
+  const hpPercent = 0.65; // 65% for HP (ROCKS)
   const npPercent = 0.18; // 18% for NP
-  const srpPercent = 0.17; // 17% for SRP
+  const srpPercent = 0.17; // 17% for SRP (hygienist rocks)
 
-  // HP blocks (60-70% of target)
+  // HP blocks (65% of target)
   if (hpBlocks.length > 0) {
     const hpTotal = target75 * hpPercent;
     const hpBlock = hpBlocks[0];
-    const hpCount = role === 'DOCTOR' ? 3 : 4; // Doctors: 3 HP blocks, Hygienists: 4
+    const hpCount = role === 'DOCTOR' ? 3 : 4; // Doctors: 3 HP blocks, Hygienists: 4 HP blocks
     const hpMinimum = Math.round(hpTotal / hpCount);
-    
+
     distribution.push({
       blockTypeId: hpBlock.id,
       minimumAmount: hpMinimum,
@@ -61,13 +63,13 @@ export function distributeBlockMinimums(
     });
   }
 
-  // NP blocks (15-20% of target)
+  // NP blocks (18% of target)
   if (npBlocks.length > 0) {
     const npTotal = target75 * npPercent;
     const npBlock = npBlocks[0];
-    const npCount = 1; // Typically 1-2 NP blocks per day
+    const npCount = 1;
     const npMinimum = Math.round(npTotal / npCount);
-    
+
     distribution.push({
       blockTypeId: npBlock.id,
       minimumAmount: npMinimum,
@@ -75,13 +77,13 @@ export function distributeBlockMinimums(
     });
   }
 
-  // SRP blocks (15-20% of target, hygienists only)
+  // SRP blocks (hygienist rocks — morning)
   if (role === 'HYGIENIST' && srpBlocks.length > 0) {
     const srpTotal = target75 * srpPercent;
     const srpBlock = srpBlocks[0];
-    const srpCount = 1; // Typically 1-2 SRP blocks per day
+    const srpCount = 1;
     const srpMinimum = Math.round(srpTotal / srpCount);
-    
+
     distribution.push({
       blockTypeId: srpBlock.id,
       minimumAmount: srpMinimum,

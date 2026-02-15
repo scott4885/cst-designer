@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useMemo, Fragment } from "react";
+import { useState, useCallback, Fragment } from "react";
 import TimeSlotCell from "./TimeSlotCell";
+import BlockPicker from "./BlockPicker";
+import BlockEditor from "./BlockEditor";
+import type { BlockTypeInput } from "@/lib/engine/types";
 
 export interface ProviderInput {
   id: string;
@@ -16,6 +19,7 @@ export interface TimeSlotOutput {
     providerId: string;
     staffingCode?: string;
     blockLabel?: string;
+    blockTypeId?: string;
     isBreak?: boolean;
   }[];
 }
@@ -23,13 +27,54 @@ export interface TimeSlotOutput {
 interface ScheduleGridProps {
   slots: TimeSlotOutput[];
   providers: ProviderInput[];
+  blockTypes?: BlockTypeInput[];
+  timeIncrement?: number;
+  onAddBlock?: (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => void;
+  onRemoveBlock?: (time: string, providerId: string) => void;
+  onMoveBlock?: (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => void;
+  onUpdateBlock?: (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => void;
 }
 
-export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
-  const [currentPage, setCurrentPage] = useState(0);
-  const ROWS_PER_PAGE = 30; // Show 30 rows at a time (5 hours worth)
+// Drag state
+interface DragState {
+  time: string;
+  providerId: string;
+  blockTypeId: string;
+  blockLabel: string;
+}
 
-  // Generate time slots from 7:00 AM to 6:00 PM in 10-minute increments
+export default function ScheduleGrid({
+  slots,
+  providers,
+  blockTypes = [],
+  timeIncrement = 10,
+  onAddBlock,
+  onRemoveBlock,
+  onMoveBlock,
+  onUpdateBlock,
+}: ScheduleGridProps) {
+  const [currentPage, setCurrentPage] = useState(0);
+  const ROWS_PER_PAGE = 30;
+
+  // Block picker state (click-to-add)
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerPosition, setPickerPosition] = useState<{ time: string; providerId: string } | null>(null);
+
+  // Block editor state (click-to-edit)
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorPosition, setEditorPosition] = useState<{
+    time: string;
+    providerId: string;
+    blockTypeId: string;
+    blockLabel: string;
+    slotCount: number;
+  } | null>(null);
+
+  // Drag state
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const [dragOverCell, setDragOverCell] = useState<{ time: string; providerId: string } | null>(null);
+
+  // Generate default time slots
   const generateTimeSlots = (): string[] => {
     const times: string[] = [];
     let hour = 7;
@@ -51,25 +96,188 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
     return times;
   };
 
-  const timeSlots: TimeSlotOutput[] = slots.length > 0 ? slots : generateTimeSlots().map(time => ({
-    time,
-    slots: providers.map(p => ({ 
-      providerId: p.id,
-      staffingCode: undefined,
-      blockLabel: undefined,
-      isBreak: false,
-    })),
-  }));
+  const timeSlots: TimeSlotOutput[] =
+    slots.length > 0
+      ? slots
+      : generateTimeSlots().map((time) => ({
+          time,
+          slots: providers.map((p) => ({
+            providerId: p.id,
+            staffingCode: undefined,
+            blockLabel: undefined,
+            isBreak: false,
+          })),
+        }));
 
-  // Calculate pagination
   const totalPages = Math.ceil(timeSlots.length / ROWS_PER_PAGE);
   const startIdx = currentPage * ROWS_PER_PAGE;
   const endIdx = Math.min(startIdx + ROWS_PER_PAGE, timeSlots.length);
   const visibleSlots = timeSlots.slice(startIdx, endIdx);
 
-  // Get time range for current page
   const pageStartTime = timeSlots[startIdx]?.time || "";
   const pageEndTime = timeSlots[Math.min(endIdx - 1, timeSlots.length - 1)]?.time || "";
+
+  // Find the block that a slot belongs to (for determining block spans)
+  const getBlockInfo = useCallback(
+    (time: string, providerId: string) => {
+      if (slots.length === 0) return null;
+
+      // Find this provider's slots across all time rows
+      const providerSlotData: { time: string; blockTypeId?: string; blockLabel?: string; isBreak?: boolean }[] = [];
+      for (const row of timeSlots) {
+        const slot = row.slots.find((s) => s.providerId === providerId);
+        if (slot) {
+          providerSlotData.push({ time: row.time, ...slot });
+        }
+      }
+
+      // Find the slot at the given time
+      const idx = providerSlotData.findIndex((s) => s.time === time);
+      if (idx === -1) return null;
+
+      const slot = providerSlotData[idx];
+      if (!slot.blockTypeId) return null;
+
+      // Count contiguous slots with same blockTypeId
+      let start = idx;
+      while (start > 0 && providerSlotData[start - 1].blockTypeId === slot.blockTypeId) {
+        start--;
+      }
+      let end = idx;
+      while (end < providerSlotData.length - 1 && providerSlotData[end + 1].blockTypeId === slot.blockTypeId) {
+        end++;
+      }
+
+      return {
+        blockTypeId: slot.blockTypeId,
+        blockLabel: slot.blockLabel || "",
+        slotCount: end - start + 1,
+        isFirst: idx === start,
+        isLast: idx === end,
+        startTime: providerSlotData[start].time,
+      };
+    },
+    [timeSlots, slots.length]
+  );
+
+  // Handle clicking an empty cell
+  const handleEmptyCellClick = useCallback(
+    (time: string, providerId: string) => {
+      if (!onAddBlock || blockTypes.length === 0) return;
+      setPickerPosition({ time, providerId });
+      setPickerOpen(true);
+      setEditorOpen(false);
+    },
+    [onAddBlock, blockTypes.length]
+  );
+
+  // Handle clicking an occupied cell
+  const handleBlockCellClick = useCallback(
+    (time: string, providerId: string) => {
+      if (!onUpdateBlock && !onRemoveBlock) return;
+      const info = getBlockInfo(time, providerId);
+      if (!info) return;
+
+      setEditorPosition({
+        time: info.startTime,
+        providerId,
+        blockTypeId: info.blockTypeId,
+        blockLabel: info.blockLabel,
+        slotCount: info.slotCount,
+      });
+      setEditorOpen(true);
+      setPickerOpen(false);
+    },
+    [onUpdateBlock, onRemoveBlock, getBlockInfo]
+  );
+
+  // Handle block type selection from picker
+  const handleBlockSelected = useCallback(
+    (blockType: BlockTypeInput) => {
+      if (!pickerPosition || !onAddBlock) return;
+      const durationSlots = Math.ceil(blockType.durationMin / timeIncrement);
+      onAddBlock(pickerPosition.time, pickerPosition.providerId, blockType, durationSlots);
+      setPickerOpen(false);
+      setPickerPosition(null);
+    },
+    [pickerPosition, onAddBlock, timeIncrement]
+  );
+
+  // Handle block edit
+  const handleBlockUpdate = useCallback(
+    (blockType: BlockTypeInput, durationSlots: number) => {
+      if (!editorPosition || !onUpdateBlock) return;
+      onUpdateBlock(editorPosition.time, editorPosition.providerId, blockType, durationSlots);
+      setEditorOpen(false);
+      setEditorPosition(null);
+    },
+    [editorPosition, onUpdateBlock]
+  );
+
+  // Handle block delete
+  const handleBlockDelete = useCallback(() => {
+    if (!editorPosition || !onRemoveBlock) return;
+    onRemoveBlock(editorPosition.time, editorPosition.providerId);
+    setEditorOpen(false);
+    setEditorPosition(null);
+  }, [editorPosition, onRemoveBlock]);
+
+  // Drag handlers
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, time: string, providerId: string) => {
+      const info = getBlockInfo(time, providerId);
+      if (!info) return;
+
+      setDragState({
+        time: info.startTime,
+        providerId,
+        blockTypeId: info.blockTypeId,
+        blockLabel: info.blockLabel,
+      });
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", "block");
+    },
+    [getBlockInfo]
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, time: string, providerId: string) => {
+      if (!dragState) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setDragOverCell({ time, providerId });
+    },
+    [dragState]
+  );
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverCell(null);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, time: string, providerId: string) => {
+      e.preventDefault();
+      if (!dragState || !onMoveBlock) return;
+
+      onMoveBlock(dragState.time, dragState.providerId, time, providerId);
+      setDragState(null);
+      setDragOverCell(null);
+    },
+    [dragState, onMoveBlock]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDragState(null);
+    setDragOverCell(null);
+  }, []);
+
+  // Determine the provider role for filtering block types in the picker
+  const getProviderRole = useCallback(
+    (providerId: string) => {
+      return providers.find((p) => p.id === providerId)?.role || "DOCTOR";
+    },
+    [providers]
+  );
 
   // Empty state
   if (providers.length === 0) {
@@ -87,7 +295,7 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
     return (
       <div className="flex items-center justify-center h-96 border border-border rounded-lg bg-surface/30">
         <div className="text-center space-y-3 max-w-sm">
-          <div className="text-4xl">✨</div>
+          <div className="text-4xl">&#10024;</div>
           <h3 className="text-lg font-semibold text-foreground">No Schedule Yet</h3>
           <p className="text-sm text-muted-foreground">
             Click &quot;Generate&quot; above to create an optimized schedule for this day.
@@ -97,8 +305,41 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
     );
   }
 
+  const isInteractive = !!(onAddBlock || onRemoveBlock || onMoveBlock || onUpdateBlock);
+
   return (
     <div className="space-y-4">
+      {/* Block Picker (click-to-add) */}
+      {pickerOpen && pickerPosition && (
+        <BlockPicker
+          blockTypes={blockTypes}
+          providerRole={getProviderRole(pickerPosition.providerId) as "DOCTOR" | "HYGIENIST"}
+          onSelect={handleBlockSelected}
+          onClose={() => {
+            setPickerOpen(false);
+            setPickerPosition(null);
+          }}
+          timeLabel={pickerPosition.time}
+        />
+      )}
+
+      {/* Block Editor (click-to-edit) */}
+      {editorOpen && editorPosition && (
+        <BlockEditor
+          blockTypes={blockTypes}
+          providerRole={getProviderRole(editorPosition.providerId) as "DOCTOR" | "HYGIENIST"}
+          currentBlockTypeId={editorPosition.blockTypeId}
+          currentSlotCount={editorPosition.slotCount}
+          timeIncrement={timeIncrement}
+          onUpdate={handleBlockUpdate}
+          onDelete={handleBlockDelete}
+          onClose={() => {
+            setEditorOpen(false);
+            setEditorPosition(null);
+          }}
+        />
+      )}
+
       {/* Pagination controls */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-4 py-2 bg-surface border border-border rounded-lg">
@@ -107,21 +348,21 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
               disabled={currentPage === 0}
               className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ← Previous
+              &larr; Previous
             </button>
             <div className="px-3 py-1 text-sm">
               Page {currentPage + 1} of {totalPages}
             </div>
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={currentPage === totalPages - 1}
               className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Next →
+              Next &rarr;
             </button>
           </div>
         </div>
@@ -163,15 +404,24 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
             </thead>
             <tbody>
               {visibleSlots.map((row, rowIdx) => (
-                <tr key={startIdx + rowIdx} className="hover:bg-surface/50 transition-colors">
+                <tr key={startIdx + rowIdx} className="hover:bg-muted/30 transition-colors">
                   <td className="p-0 border-b border-border">
                     <TimeSlotCell time={row.time} />
                   </td>
                   {providers.map((provider) => {
-                    const slot = row.slots.find(s => s.providerId === provider.id);
+                    const slot = row.slots.find((s) => s.providerId === provider.id);
                     const timeStr = row.time;
-                    const isLunchTime = timeStr >= "1:00 PM" && timeStr < "2:00 PM" && timeStr.includes("PM") && (timeStr.startsWith("1:"));
-                    
+                    const isLunchTime =
+                      timeStr >= "1:00 PM" &&
+                      timeStr < "2:00 PM" &&
+                      timeStr.includes("PM") &&
+                      timeStr.startsWith("1:");
+
+                    const hasBlock = !!(slot?.blockTypeId || slot?.blockLabel) && !slot?.isBreak;
+                    const isEmpty = !hasBlock && !slot?.isBreak && !(isLunchTime && !slot?.staffingCode);
+                    const isDragOver =
+                      dragOverCell?.time === row.time && dragOverCell?.providerId === provider.id;
+
                     return (
                       <Fragment key={provider.id}>
                         <td className="p-0 border-b border-border">
@@ -182,11 +432,33 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
                           />
                         </td>
                         <td className="p-0 border-b border-border">
-                          <TimeSlotCell
-                            blockLabel={slot?.blockLabel}
-                            providerColor={slot?.blockLabel ? provider.color : undefined}
-                            isBreak={slot?.isBreak || (isLunchTime && !slot?.blockLabel)}
-                          />
+                          <div
+                            className={`${isDragOver ? "ring-2 ring-accent ring-inset" : ""}`}
+                            draggable={hasBlock && !!onMoveBlock}
+                            onDragStart={(e) => hasBlock && handleDragStart(e, row.time, provider.id)}
+                            onDragOver={(e) => isEmpty && handleDragOver(e, row.time, provider.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => isEmpty && handleDrop(e, row.time, provider.id)}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <TimeSlotCell
+                              blockLabel={slot?.blockLabel}
+                              providerColor={slot?.blockLabel ? provider.color : undefined}
+                              isBreak={slot?.isBreak || (isLunchTime && !slot?.blockLabel)}
+                              onClick={
+                                isInteractive
+                                  ? () => {
+                                      if (hasBlock) {
+                                        handleBlockCellClick(row.time, provider.id);
+                                      } else if (isEmpty) {
+                                        handleEmptyCellClick(row.time, provider.id);
+                                      }
+                                    }
+                                  : undefined
+                              }
+                              isClickable={isInteractive && (hasBlock || isEmpty)}
+                            />
+                          </div>
                         </td>
                       </Fragment>
                     );
@@ -198,14 +470,7 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
         </div>
       </div>
 
-      {/* Empty state message when no schedule generated */}
-      {slots.length === 0 && providers.length > 0 && (
-        <div className="text-center py-6 text-muted-foreground">
-          <p>Click "Generate Schedule" to create optimized schedule blocks</p>
-        </div>
-      )}
-
-      {/* Bottom pagination controls */}
+      {/* Bottom pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 px-4 py-2">
           <button
@@ -216,21 +481,21 @@ export default function ScheduleGrid({ slots, providers }: ScheduleGridProps) {
             First
           </button>
           <button
-            onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+            onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
             disabled={currentPage === 0}
             className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            ← Previous
+            &larr; Previous
           </button>
           <span className="px-3 py-1 text-sm">
             {currentPage + 1} / {totalPages}
           </span>
           <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={currentPage === totalPages - 1}
             className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next →
+            Next &rarr;
           </button>
           <button
             onClick={() => setCurrentPage(totalPages - 1)}

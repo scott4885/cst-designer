@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { getSettings } from "@/lib/settings";
-import { throwIfError } from "@/lib/api-error";
+import { createOffice } from "@/lib/local-storage";
 
 // Form schema
 const officeSchema = z.object({
@@ -72,6 +72,27 @@ const DEFAULT_PROCEDURES = [
   { name: "Perio Maintenance (PM)", duration: 60, role: "Hygienist" as const },
   { name: "SRP", duration: 75, role: "Hygienist" as const },
 ];
+
+function inferMinimumAmount(name: string): number {
+  const n = name.toUpperCase();
+  if (n.includes('CROWN') || n.includes('IMPLANT') || n.includes('BRIDGE') || n.includes('VENEER') || n.includes('ENDO') || n.includes('HP'))
+    return 1200;
+  if (n.includes('MP') || n.includes('FILL') || n.includes('MEDIUM') || n.includes('RESTO'))
+    return 375;
+  if (n.includes('NP') || n.includes('CONSULT') || n.includes('NEW PAT'))
+    return 300;
+  if (n.includes('ER') || n.includes('EMERG'))
+    return 187;
+  if (n.includes('SRP') || n.includes('AHT') || n.includes('SCALING'))
+    return 300;
+  if (n.includes('PM') || n.includes('PERIO MAINT'))
+    return 190;
+  if (n.includes('RECARE') || n.includes('RECALL') || n.includes('PROPHY'))
+    return 150;
+  if (n.includes('NON-PROD') || n.includes('SEAT') || n.includes('ADJUST'))
+    return 0;
+  return 0;
+}
 
 export default function NewOfficePage() {
   return (
@@ -169,28 +190,77 @@ function NewOfficeForm() {
   const onSubmit = async (data: OfficeFormData) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/offices", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: data.name,
-          dpmsSystem: data.dpms,
-          workingDays: data.workingDays,
-          providers: data.providers,
-          blockTypes: data.procedures.map(p => ({
-            label: p.name,
-            duration: p.duration,
-            role: p.role,
-          })),
-          rules: data.scheduleRules,
-        }),
+      const generateId = () =>
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      const providers = (data.providers || []).map((p) => ({
+        id: generateId(),
+        name: p.name,
+        role: (p.role === "Doctor" ? "DOCTOR" : "HYGIENIST") as "DOCTOR" | "HYGIENIST",
+        operatories: p.operatories || ["OP1"],
+        workingStart: p.workingHours?.start || "07:00",
+        workingEnd: p.workingHours?.end || "18:00",
+        lunchStart: p.lunchBreak?.start || "13:00",
+        lunchEnd: p.lunchBreak?.end || "14:00",
+        dailyGoal: p.dailyGoal || 0,
+        color: p.color || "#666",
+      }));
+
+      const blockTypes = (data.procedures || []).map((b) => ({
+        id: generateId(),
+        label: b.name,
+        description: "",
+        minimumAmount: inferMinimumAmount(b.name),
+        appliesToRole: (b.role === "Doctor"
+          ? "DOCTOR"
+          : b.role === "Hygienist"
+          ? "HYGIENIST"
+          : "BOTH") as "DOCTOR" | "HYGIENIST" | "BOTH",
+        durationMin: b.duration || 30,
+        durationMax: b.duration || 30,
+      }));
+
+      const rules = {
+        npModel: (data.scheduleRules?.npModel?.toUpperCase() || "DOCTOR_ONLY") as
+          | "DOCTOR_ONLY"
+          | "HYGIENIST_ONLY"
+          | "EITHER",
+        npBlocksPerDay: data.scheduleRules?.npBlocksPerDay || 2,
+        srpBlocksPerDay: data.scheduleRules?.srpBlocksPerDay || 2,
+        hpPlacement: (data.scheduleRules?.hpPlacement?.toUpperCase() || "MORNING") as
+          | "MORNING"
+          | "AFTERNOON"
+          | "ANY",
+        doubleBooking: data.scheduleRules?.doubleBooking || false,
+        matrixing: data.scheduleRules?.matrixing !== false,
+        emergencyHandling: "ACCESS_BLOCKS" as "DEDICATED" | "FLEX" | "ACCESS_BLOCKS",
+      };
+
+      const workingDays = (data.workingDays || []).map((day) => {
+        const dayMap: Record<string, string> = {
+          Mon: "MONDAY",
+          Tue: "TUESDAY",
+          Wed: "WEDNESDAY",
+          Thu: "THURSDAY",
+          Fri: "FRIDAY",
+        };
+        return dayMap[day] || day.toUpperCase();
       });
 
-      await throwIfError(response, "Failed to create office");
+      const settings = getSettings();
+      const newOffice = await createOffice({
+        name: data.name,
+        dpmsSystem: data.dpms.toUpperCase().replace(" ", "_"),
+        workingDays,
+        timeIncrement: settings.timeIncrement,
+        feeModel: "UCR",
+        providers,
+        blockTypes,
+        rules,
+      });
 
-      const newOffice = await response.json();
       toast.success("Office created successfully!");
       router.push(`/offices/${newOffice.id}`);
     } catch (error) {

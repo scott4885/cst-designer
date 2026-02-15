@@ -17,7 +17,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultLunchEnd: "14:00",
   autoSaveSchedules: true,
   showProductionWarnings: true,
-  theme: "dark",
+  theme: "system",
 };
 
 export function getSettings(): AppSettings {

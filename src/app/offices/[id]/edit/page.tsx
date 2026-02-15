@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { throwIfError } from "@/lib/api-error";
+import { updateOffice } from "@/lib/local-storage";
 
 // Form schema for editing
 const editOfficeSchema = z.object({
@@ -134,18 +134,24 @@ export default function EditOfficePage() {
   const onSubmit = async (data: EditOfficeFormData) => {
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/offices/${officeId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: data.name,
-          providers: data.providers,
-        }),
+      const generateId = () =>
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      const providers = data.providers.map((provider) => ({
+        ...provider,
+        id: provider.id || generateId(),
+      }));
+
+      const updatedOffice = await updateOffice(officeId, {
+        name: data.name,
+        providers,
       });
 
-      await throwIfError(response, "Failed to update office");
+      if (!updatedOffice) {
+        throw new Error("Failed to update office");
+      }
 
       toast.success("Office updated successfully!");
       // Refetch to update the store before navigating

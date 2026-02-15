@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2 } from "lucide-react";
@@ -13,17 +13,19 @@ import ProductionSummary, { ProviderProductionSummary } from "@/components/sched
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { useScheduleStore } from "@/store/schedule-store";
-import { GenerationResult } from "@/lib/engine/types";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { deleteOffice, generateSchedule } from "@/lib/local-storage";
+import { generateExcel, ExportInput, ExportDaySchedule } from "@/lib/export/excel";
+import type { BlockTypeInput } from "@/lib/engine/types";
 
 export default function TemplateBuilderPage() {
   const params = useParams();
   const router = useRouter();
   const officeId = params.id as string;
-  
+
   const { currentOffice, fetchOffice, isLoading: officeLoading } = useOfficeStore();
   const {
     generatedSchedules,
@@ -35,6 +37,10 @@ export default function TemplateBuilderPage() {
     isExporting,
     setExporting,
     loadSchedulesForOffice,
+    placeBlockInDay,
+    removeBlockInDay,
+    moveBlockInDay,
+    updateBlockInDay,
   } = useScheduleStore();
 
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
@@ -84,15 +90,19 @@ export default function TemplateBuilderPage() {
       color: p.color,
     })) || [];
 
+  // Full provider data for store operations
+  const fullProviders = currentOffice.providers || [];
+  const blockTypes = currentOffice.blockTypes || [];
+  const timeIncrement = currentOffice.timeIncrement || 10;
+
   // Get current day's schedule
   const currentDaySchedule = generatedSchedules[activeDay];
 
   // Convert schedule to TimeSlotOutput format for ScheduleGrid
-  // Group slots by time
   const timeSlots: TimeSlotOutput[] = [];
   if (currentDaySchedule) {
     const slotsByTime: Record<string, any[]> = {};
-    
+
     currentDaySchedule.slots.forEach((slot) => {
       if (!slotsByTime[slot.time]) {
         slotsByTime[slot.time] = [];
@@ -101,11 +111,11 @@ export default function TemplateBuilderPage() {
         providerId: slot.providerId,
         staffingCode: slot.staffingCode || undefined,
         blockLabel: slot.blockLabel || undefined,
+        blockTypeId: slot.blockTypeId || undefined,
         isBreak: slot.isBreak,
       });
     });
 
-    // Convert to array
     Object.keys(slotsByTime).forEach((time) => {
       timeSlots.push({
         time,
@@ -127,16 +137,18 @@ export default function TemplateBuilderPage() {
     });
   }
 
-  // Convert production summary for ProductionSummary component
-  const productionSummaries: ProviderProductionSummary[] =
-    currentDaySchedule?.productionSummary.map((summary) => ({
+  // Reactively compute production summaries from current slots
+  const productionSummaries: ProviderProductionSummary[] = useMemo(() => {
+    if (!currentDaySchedule) return [];
+    return currentDaySchedule.productionSummary.map((summary) => ({
       providerName: summary.providerName,
       providerColor:
         currentOffice.providers?.find((p) => p.id === summary.providerId)?.color || "#666",
       dailyGoal: summary.dailyGoal,
       target75: summary.target75,
       actualScheduled: summary.actualScheduled,
-    })) || [];
+    }));
+  }, [currentDaySchedule, currentOffice.providers]);
 
   // Generate schedule for a single day
   const handleGenerateSchedule = async () => {
@@ -144,18 +156,8 @@ export default function TemplateBuilderPage() {
 
     setGenerating(true);
     try {
-      const response = await fetch(`/api/offices/${officeId}/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ days: [activeDay] }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate schedule");
-      }
-
-      const data = await response.json();
-      setSchedules(data.schedules, officeId);
+      const schedules = await generateSchedule(officeId, [activeDay]);
+      setSchedules(schedules, officeId);
       toast.success(`Schedule generated for ${activeDay}!`);
     } catch (error) {
       console.error("Error generating schedule:", error);
@@ -165,7 +167,7 @@ export default function TemplateBuilderPage() {
     }
   };
 
-  // Generate schedules for all working days (with yielding to prevent UI blocking)
+  // Generate schedules for all working days
   const handleGenerateAllDays = async () => {
     if (!currentOffice || !currentOffice.workingDays.length) return;
 
@@ -178,33 +180,17 @@ export default function TemplateBuilderPage() {
     try {
       for (const day of currentOffice.workingDays) {
         setGeneratingDay(day);
-        
-        // Yield to browser to prevent "Page Unresponsive" error
+
         await new Promise(resolve => setTimeout(resolve, 0));
-        
-        const response = await fetch(`/api/offices/${officeId}/generate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ days: [day] }),
-        });
 
-        if (!response.ok) {
-          throw new Error(`Failed to generate schedule for ${day}`);
-        }
-
-        const data = await response.json();
-        
-        // Collect schedules
-        allSchedules.push(...data.schedules);
-        
-        // Update UI incrementally
+        const schedules = await generateSchedule(officeId, [day]);
+        allSchedules.push(...schedules);
         setSchedules(allSchedules, officeId);
 
         completedDays++;
         setGenerationProgress({ completed: completedDays, total: totalDays });
         toast.success(`Generated ${getDayLabel(day)} (${completedDays}/${totalDays})`);
-        
-        // Another yield for smoother UI updates
+
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
@@ -219,14 +205,11 @@ export default function TemplateBuilderPage() {
     }
   };
 
-  // Export schedule to Excel
   const handleDeleteOffice = async () => {
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/offices/${officeId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete office");
+      const deleted = await deleteOffice(officeId);
+      if (!deleted) throw new Error("Failed to delete office");
       toast.success("Office deleted");
       router.push("/");
     } catch (error) {
@@ -247,24 +230,63 @@ export default function TemplateBuilderPage() {
     setExporting(true);
     try {
       const allSchedules = Object.values(generatedSchedules);
-      
+
       if (allSchedules.length === 0) {
         toast.error("No schedules to export");
         return;
       }
 
-      const response = await fetch(`/api/offices/${officeId}/export`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schedules: allSchedules }),
+      const exportInput: ExportInput = {
+        officeName: currentOffice.name,
+        providers: (currentOffice.providers || []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          role: p.role,
+          operatories: p.operatories,
+          dailyGoal: p.dailyGoal,
+          hourlyRate: calculateHourlyRate(
+            p.workingStart,
+            p.workingEnd,
+            p.lunchStart,
+            p.lunchEnd,
+            p.dailyGoal
+          ),
+          color: p.color,
+          goal75: p.dailyGoal * 0.75,
+        })),
+        blockTypes: (currentOffice.blockTypes || []).map((b) => ({
+          label: b.label,
+          description: b.description,
+          minimumAmount: b.minimumAmount,
+          color: undefined,
+        })),
+        daySchedules: allSchedules.map((schedule: any) => {
+          const daySchedule: ExportDaySchedule = {
+            dayOfWeek: schedule.dayOfWeek,
+            variant: schedule.variant,
+            slots: schedule.slots.map((slot: any) => ({
+              time: slot.time,
+              providerId: slot.providerId,
+              staffingCode: slot.staffingCode,
+              blockLabel: slot.blockLabel
+                ? formatBlockLabel(slot.blockLabel, currentOffice.blockTypes || [], slot.blockTypeId)
+                : null,
+              isBreak: slot.isBreak,
+            })),
+            productionSummary: schedule.productionSummary.map((summary: any) => ({
+              providerId: summary.providerId,
+              actualScheduled: summary.actualScheduled,
+              status: summary.status,
+            })),
+          };
+          return daySchedule;
+        }),
+      };
+
+      const buffer = await generateExcel(exportInput);
+      const blob = new Blob([buffer as BlobPart], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to export schedule");
-      }
-
-      // Download the file
-      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -283,7 +305,27 @@ export default function TemplateBuilderPage() {
     }
   };
 
-  // Convert day format for display
+  // Interactive schedule editing handlers
+  const handleAddBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => {
+    placeBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypes);
+    toast.success(`Added ${blockType.label} block`);
+  };
+
+  const handleRemoveBlock = (time: string, providerId: string) => {
+    removeBlockInDay(activeDay, time, providerId, fullProviders, blockTypes);
+    toast.success("Block removed");
+  };
+
+  const handleMoveBlock = (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => {
+    moveBlockInDay(activeDay, fromTime, fromProviderId, toTime, toProviderId, fullProviders, blockTypes);
+    toast.success("Block moved");
+  };
+
+  const handleUpdateBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => {
+    updateBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypes);
+    toast.success(`Block updated to ${blockType.label}`);
+  };
+
   const getDayLabel = (day: string): string => {
     const dayLabels: Record<string, string> = {
       MONDAY: "Monday",
@@ -312,7 +354,7 @@ export default function TemplateBuilderPage() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">{currentOffice.name}</h1>
             <p className="text-muted-foreground text-sm">
-              {currentOffice.dpmsSystem} • Template Builder
+              {currentOffice.dpmsSystem} &bull; Template Builder
             </p>
           </div>
         </div>
@@ -512,6 +554,20 @@ export default function TemplateBuilderPage() {
                     ${currentOffice.totalDailyGoal.toLocaleString()}
                   </p>
                 </div>
+
+                {currentDaySchedule && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                        Editing
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Click empty slots to add blocks. Click existing blocks to edit. Drag blocks to move them.
+                      </p>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}
@@ -539,6 +595,12 @@ export default function TemplateBuilderPage() {
                       <ScheduleGrid
                         slots={activeDay === day ? timeSlots : []}
                         providers={providers}
+                        blockTypes={blockTypes}
+                        timeIncrement={timeIncrement}
+                        onAddBlock={currentDaySchedule ? handleAddBlock : undefined}
+                        onRemoveBlock={currentDaySchedule ? handleRemoveBlock : undefined}
+                        onMoveBlock={currentDaySchedule ? handleMoveBlock : undefined}
+                        onUpdateBlock={currentDaySchedule ? handleUpdateBlock : undefined}
                       />
                     </CardContent>
                   </Card>
@@ -555,4 +617,54 @@ export default function TemplateBuilderPage() {
       </div>
     </div>
   );
+}
+
+function calculateHourlyRate(
+  workingStart: string,
+  workingEnd: string,
+  lunchStart?: string,
+  lunchEnd?: string,
+  dailyGoal?: number
+): number {
+  if (!dailyGoal) return 0;
+
+  const [startHour, startMin] = workingStart.split(":").map(Number);
+  const [endHour, endMin] = workingEnd.split(":").map(Number);
+
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+
+  let totalMinutes = endMinutes - startMinutes;
+
+  if (lunchStart && lunchEnd) {
+    const [lunchStartHour, lunchStartMin] = lunchStart.split(":").map(Number);
+    const [lunchEndHour, lunchEndMin] = lunchEnd.split(":").map(Number);
+    const lunchMinutes =
+      lunchEndHour * 60 +
+      lunchEndMin -
+      (lunchStartHour * 60 + lunchStartMin);
+    totalMinutes -= lunchMinutes;
+  }
+
+  const hours = totalMinutes / 60;
+  return Math.round(dailyGoal / hours);
+}
+
+function formatBlockLabel(
+  label: string,
+  blockTypes: any[],
+  blockTypeId: string | null
+): string {
+  if (label === "LUNCH") return "LUNCH";
+
+  if (label.includes(">$")) return label;
+
+  if (blockTypeId) {
+    const blockType = blockTypes.find((bt) => bt.id === blockTypeId);
+    if (blockType && blockType.minimumAmount && blockType.minimumAmount > 0) {
+      return `${label}>$${blockType.minimumAmount}`;
+    }
+  }
+
+  return label;
 }
