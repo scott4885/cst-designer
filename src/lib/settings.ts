@@ -10,7 +10,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  timeIncrement: 15,
+  timeIncrement: 10,
   defaultStartTime: "07:00",
   defaultEndTime: "18:00",
   defaultLunchStart: "13:00",
