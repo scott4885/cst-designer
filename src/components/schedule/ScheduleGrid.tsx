@@ -403,23 +403,30 @@ export default function ScheduleGrid({
                             onDrop={(e) => isEmpty && handleDrop(e, row.time, provider.id)}
                             onDragEnd={handleDragEnd}
                           >
-                            <TimeSlotCell
-                              blockLabel={slot?.blockLabel}
-                              providerColor={slot?.blockLabel ? provider.color : undefined}
-                              isBreak={slot?.isBreak || (isLunchTime && !slot?.blockLabel)}
-                              onClick={
-                                isInteractive
-                                  ? () => {
-                                      if (hasBlock) {
-                                        handleBlockCellClick(row.time, provider.id);
-                                      } else if (isEmpty) {
-                                        handleEmptyCellClick(row.time, provider.id);
-                                      }
-                                    }
-                                  : undefined
-                              }
-                              isClickable={isInteractive && (hasBlock || isEmpty)}
-                            />
+                            {(() => {
+                              const blockInfo = hasBlock ? getBlockInfo(row.time, provider.id) : null;
+                              return (
+                                <TimeSlotCell
+                                  blockLabel={slot?.blockLabel}
+                                  providerColor={slot?.blockLabel ? provider.color : undefined}
+                                  isBreak={slot?.isBreak || (isLunchTime && !slot?.blockLabel)}
+                                  onClick={
+                                    isInteractive
+                                      ? () => {
+                                          if (hasBlock) {
+                                            handleBlockCellClick(row.time, provider.id);
+                                          } else if (isEmpty) {
+                                            handleEmptyCellClick(row.time, provider.id);
+                                          }
+                                        }
+                                      : undefined
+                                  }
+                                  isClickable={isInteractive && (hasBlock || isEmpty)}
+                                  isBlockFirst={blockInfo?.isFirst || false}
+                                  isBlockLast={blockInfo?.isLast || false}
+                                />
+                              );
+                            })()}
                           </div>
                         </td>
                       </Fragment>

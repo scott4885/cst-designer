@@ -10,6 +10,8 @@ interface TimeSlotCellProps {
   isBreak?: boolean;
   onClick?: () => void;
   isClickable?: boolean;
+  isBlockFirst?: boolean;
+  isBlockLast?: boolean;
 }
 
 export default function TimeSlotCell({
@@ -20,6 +22,8 @@ export default function TimeSlotCell({
   isBreak = false,
   onClick,
   isClickable = false,
+  isBlockFirst = false,
+  isBlockLast = false,
 }: TimeSlotCellProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -56,10 +60,23 @@ export default function TimeSlotCell({
   }
 
   // Provider cell with data
+  const hasBlock = !!blockLabel;
+  
   const cellStyle = providerColor
     ? {
         backgroundColor: providerColor + "30",
         borderLeft: `3px solid ${providerColor}`,
+        borderRight: `2px solid ${providerColor}`,
+        ...(isBlockFirst && { 
+          borderTop: `2px solid ${providerColor}`, 
+          borderTopLeftRadius: '4px', 
+          borderTopRightRadius: '4px' 
+        }),
+        ...(isBlockLast && { 
+          borderBottom: `2px solid ${providerColor}`, 
+          borderBottomLeftRadius: '4px', 
+          borderBottomRightRadius: '4px' 
+        }),
       }
     : {};
 
