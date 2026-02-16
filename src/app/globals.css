@@ -39,6 +39,44 @@
 }
 
 /* ──────────────────────────────────────────────────────────────
+   Light theme (explicit)
+   ────────────────────────────────────────────────────────────── */
+.light {
+  --background: oklch(98% 0 0);
+  --foreground: oklch(15% 0 0);
+  --card: oklch(100% 0 0);
+  --card-foreground: oklch(15% 0 0);
+  --popover: oklch(100% 0 0);
+  --popover-foreground: oklch(15% 0 0);
+  --primary: oklch(52% 0.12 240);
+  --primary-foreground: oklch(98% 0 0);
+  --secondary: oklch(93% 0 0);
+  --secondary-foreground: oklch(20% 0 0);
+  --muted: oklch(93% 0 0);
+  --muted-foreground: oklch(45% 0 0);
+  --accent: oklch(52% 0.12 240);
+  --accent-foreground: oklch(98% 0 0);
+  --destructive: oklch(55% 0.22 25);
+  --destructive-foreground: oklch(98% 0 0);
+  --border: oklch(88% 0 0);
+  --input: oklch(88% 0 0);
+  --ring: oklch(52% 0.12 240);
+
+  --surface: oklch(96% 0 0);
+  --text-secondary: oklch(45% 0 0);
+  --success: oklch(50% 0.15 145);
+  --warning: oklch(55% 0.15 60);
+  --error: oklch(55% 0.22 25);
+
+  --provider-1: oklch(68% 0.15 50);
+  --provider-2: oklch(55% 0.12 240);
+  --provider-3: oklch(65% 0.15 95);
+  --provider-4: oklch(60% 0.12 180);
+
+  --sidebar-bg: oklch(96% 0.005 240);
+}
+
+/* ──────────────────────────────────────────────────────────────
    Dark theme
    ────────────────────────────────────────────────────────────── */
 .dark {
