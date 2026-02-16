@@ -576,9 +576,9 @@ export default function TemplateBuilderPage() {
         {/* Center Panel - Schedule Grid */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
-            <TabsList className={`grid w-full mb-4 grid-cols-${currentOffice.workingDays.length}`}>
+            <TabsList className="inline-flex w-auto mb-4 h-10">
               {currentOffice.workingDays.map((day) => (
-                <TabsTrigger key={day} value={day}>
+                <TabsTrigger key={day} value={day} className="flex-1 min-w-[120px]">
                   {getDayLabel(day)}
                   {generatedSchedules[day] && (
                     <span className="ml-2 w-2 h-2 rounded-full bg-success" />
