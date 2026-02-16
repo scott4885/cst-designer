@@ -11,10 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { updateOffice } from "@/lib/local-storage";
+import type { BlockTypeInput } from "@/lib/engine/types";
 
 // Form schema for editing
 const editOfficeSchema = z.object({
@@ -23,7 +25,7 @@ const editOfficeSchema = z.object({
     z.object({
       id: z.string().optional(),
       name: z.string().min(1, "Provider name is required"),
-      role: z.enum(["DOCTOR", "HYGIENIST"]),
+      role: z.enum(["DOCTOR", "HYGIENIST", "OTHER"]),
       operatories: z.array(z.string()).min(1, "Select at least one operatory"),
       workingStart: z.string(),
       workingEnd: z.string(),
@@ -31,6 +33,8 @@ const editOfficeSchema = z.object({
       lunchEnd: z.string().optional(),
       dailyGoal: z.number().min(0),
       color: z.string(),
+      seesNewPatients: z.boolean().optional(),
+      enabledBlockTypeIds: z.array(z.string()).optional(),
     })
   ).min(1, "Add at least one provider"),
 });
@@ -112,6 +116,8 @@ export default function EditOfficePage() {
           lunchEnd: p.lunchEnd || "14:00",
           dailyGoal: p.dailyGoal || 5000,
           color: p.color || "#666",
+          seesNewPatients: p.seesNewPatients !== false,
+          enabledBlockTypeIds: p.enabledBlockTypeIds || [],
         })) || [],
       });
     }
@@ -128,6 +134,8 @@ export default function EditOfficePage() {
       lunchEnd: "14:00",
       dailyGoal: 5000,
       color: PROVIDER_COLORS[providerFields.length % PROVIDER_COLORS.length],
+      seesNewPatients: true,
+      enabledBlockTypeIds: [],
     });
   };
 
@@ -262,12 +270,67 @@ export default function EditOfficePage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="DOCTOR">Doctor</SelectItem>
+                        <SelectItem value="DOCTOR">Dentist</SelectItem>
                         <SelectItem value="HYGIENIST">Hygienist</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id={`provider-${index}-new-patients`}
+                    checked={field.seesNewPatients !== false}
+                    onCheckedChange={(checked) =>
+                      setValue(`providers.${index}.seesNewPatients`, checked)
+                    }
+                  />
+                  <Label htmlFor={`provider-${index}-new-patients`} className="cursor-pointer">
+                    Sees New Patients
+                  </Label>
+                </div>
+
+                {currentOffice?.blockTypes && currentOffice.blockTypes.length > 0 && (
+                  <div>
+                    <Label className="mb-2 block">Appointment Types Handled</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Leave all unchecked to handle all applicable types
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 border border-border rounded-lg p-3">
+                      {currentOffice.blockTypes
+                        .filter(bt => 
+                          bt.appliesToRole === 'BOTH' || 
+                          bt.appliesToRole === field.role ||
+                          (field.role === 'OTHER')
+                        )
+                        .map((blockType) => (
+                          <div key={blockType.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`provider-${index}-block-${blockType.id}`}
+                              value={blockType.id}
+                              checked={field.enabledBlockTypeIds?.includes(blockType.id) || false}
+                              onChange={(e) => {
+                                const current = field.enabledBlockTypeIds || [];
+                                const updated = e.target.checked
+                                  ? [...current, blockType.id]
+                                  : current.filter(id => id !== blockType.id);
+                                setValue(`providers.${index}.enabledBlockTypeIds`, updated);
+                              }}
+                              className="w-4 h-4 rounded border-border"
+                            />
+                            <Label
+                              htmlFor={`provider-${index}-block-${blockType.id}`}
+                              className="text-sm cursor-pointer"
+                            >
+                              {blockType.label}
+                            </Label>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>

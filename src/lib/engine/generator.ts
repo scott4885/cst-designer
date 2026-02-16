@@ -54,8 +54,10 @@ function toMinutes(time: string): number {
 /**
  * Get staffing code based on provider role
  */
-export function getStaffingCode(role: 'DOCTOR' | 'HYGIENIST'): StaffingCode {
-  return role === 'DOCTOR' ? 'D' : 'H';
+export function getStaffingCode(role: 'DOCTOR' | 'HYGIENIST' | 'OTHER'): StaffingCode {
+  if (role === 'DOCTOR') return 'D';
+  if (role === 'HYGIENIST') return 'H';
+  return 'A'; // 'OTHER' role gets 'A' for Assistant/Other
 }
 
 // ---------------------------------------------------------------------------

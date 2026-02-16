@@ -1,7 +1,7 @@
 export interface ProviderInput {
   id: string;
   name: string;
-  role: 'DOCTOR' | 'HYGIENIST';
+  role: 'DOCTOR' | 'HYGIENIST' | 'OTHER';
   operatories: string[];
   workingStart: string; // "07:00"
   workingEnd: string;   // "18:00"
@@ -9,6 +9,8 @@ export interface ProviderInput {
   lunchEnd?: string;    // "14:00"
   dailyGoal: number;
   color: string;
+  seesNewPatients?: boolean;          // defaults to true
+  enabledBlockTypeIds?: string[];     // if set, only these block types; if unset, all applicable
 }
 
 export interface BlockTypeInput {
