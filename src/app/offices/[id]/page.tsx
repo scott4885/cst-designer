@@ -140,14 +140,20 @@ export default function TemplateBuilderPage() {
   // Reactively compute production summaries from current slots
   const productionSummaries: ProviderProductionSummary[] = useMemo(() => {
     if (!currentDaySchedule) return [];
-    return currentDaySchedule.productionSummary.map((summary) => ({
-      providerName: summary.providerName,
-      providerColor:
-        currentOffice.providers?.find((p) => p.id === summary.providerId)?.color || "#666",
-      dailyGoal: summary.dailyGoal,
-      target75: summary.target75,
-      actualScheduled: summary.actualScheduled,
-    }));
+    if (!currentDaySchedule.productionSummary || !Array.isArray(currentDaySchedule.productionSummary)) return [];
+    try {
+      return currentDaySchedule.productionSummary.map((summary) => ({
+        providerName: String(summary.providerName || "Unknown"),
+        providerColor:
+          currentOffice.providers?.find((p) => p.id === summary.providerId)?.color || "#666",
+        dailyGoal: Number(summary.dailyGoal) || 0,
+        target75: Number(summary.target75) || 0,
+        actualScheduled: Number(summary.actualScheduled) || 0,
+      }));
+    } catch {
+      console.error("Error computing production summaries");
+      return [];
+    }
   }, [currentDaySchedule, currentOffice.providers]);
 
   // Generate schedule for a single day
