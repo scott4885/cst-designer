@@ -622,12 +622,13 @@ function placeHygienistBlocks(
     }
   }
 
-  // 3c. RECARE — Fill all remaining non-lunch slots
+  // 3c. RECARE — Place a few recare blocks (not all slots - variety will come from fill function)
   if (recareBlock) {
     const slotsNeeded = Math.ceil(recareBlock.durationMin / timeIncrement);
     let safety = 0;
 
-    while (safety < 20) {
+    // Place only 2-3 recare blocks initially, rest will be varied in fill function
+    while (safety < 3) {
       safety++;
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) break;
@@ -650,28 +651,68 @@ function fillRemainingDoctorSlots(
 ): void {
   for (const doc of doctors) {
     const ps = psMap.get(doc.id)!;
-    const mpBlock = getBlockForCategory('MP', blocksByCategory, doc);
-    if (!mpBlock) continue;
-
-    // Try filling with MP blocks at decreasing sizes
-    const slotsNeeded = Math.ceil(mpBlock.durationMin / timeIncrement);
-
+    
+    // Get all available block types for this doctor
+    const hpBlocks = getAllBlocksForCategory('HP', blocksByCategory, doc);
+    const mpBlocks = getAllBlocksForCategory('MP', blocksByCategory, doc);
+    const npBlocks = getAllBlocksForCategory('NP', blocksByCategory, doc);
+    const erBlocks = getAllBlocksForCategory('ER', blocksByCategory, doc);
+    
+    // Distribution: HP (30%), MP (30%), ER/Low (20%), NP (20%)
+    const blockPool: { block: BlockTypeInput; weight: number }[] = [];
+    hpBlocks.forEach(b => blockPool.push({ block: b, weight: 30 }));
+    mpBlocks.forEach(b => blockPool.push({ block: b, weight: 30 }));
+    erBlocks.forEach(b => blockPool.push({ block: b, weight: 20 }));
+    npBlocks.forEach(b => blockPool.push({ block: b, weight: 20 }));
+    
+    if (blockPool.length === 0) return;
+    
+    // Shuffle and distribute blocks
     let safety = 0;
     while (safety < 30) {
       safety++;
+      
+      // Pick a random block type based on weights
+      const totalWeight = blockPool.reduce((sum, item) => sum + item.weight, 0);
+      let random = Math.random() * totalWeight;
+      let selectedBlock = blockPool[0].block;
+      
+      for (const item of blockPool) {
+        random -= item.weight;
+        if (random <= 0) {
+          selectedBlock = item.block;
+          break;
+        }
+      }
+      
+      const slotsNeeded = Math.ceil(selectedBlock.durationMin / timeIncrement);
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) break;
-
-      placeBlockInSlots(slots, ranges[0], mpBlock, doc, makeLabel(mpBlock));
+      
+      // Prefer morning for HP, afternoon for MP/ER
+      const cat = categorize(selectedBlock);
+      let targetRange = ranges[0];
+      if (cat === 'HP') {
+        const amRanges = morningRanges(ranges, slots, doc);
+        targetRange = amRanges[0] || ranges[0];
+      } else if (cat === 'MP' || cat === 'ER') {
+        const pmRanges = afternoonRanges(ranges, slots, doc);
+        targetRange = pmRanges[0] || ranges[0];
+      }
+      
+      placeBlockInSlots(slots, targetRange, selectedBlock, doc, makeLabel(selectedBlock));
     }
 
-    // Fill any remaining small gaps (< full block duration) with individual slot MP fills
-    for (const idx of ps.indices) {
-      const slot = slots[idx];
-      if (slot.blockTypeId === null && !slot.isBreak) {
-        slots[idx].blockTypeId = mpBlock.id;
-        slots[idx].blockLabel = makeLabel(mpBlock);
-        slots[idx].staffingCode = getStaffingCode(doc.role);
+    // Fill any remaining small gaps with MP
+    const mpBlock = mpBlocks[0];
+    if (mpBlock) {
+      for (const idx of ps.indices) {
+        const slot = slots[idx];
+        if (slot.blockTypeId === null && !slot.isBreak) {
+          slots[idx].blockTypeId = mpBlock.id;
+          slots[idx].blockLabel = makeLabel(mpBlock);
+          slots[idx].staffingCode = getStaffingCode(doc.role);
+        }
       }
     }
   }
@@ -686,27 +727,63 @@ function fillRemainingHygienistSlots(
 ): void {
   for (const hyg of hygienists) {
     const ps = psMap.get(hyg.id)!;
-    const recareBlock = getBlockForCategory('RECARE', blocksByCategory, hyg);
-    if (!recareBlock) continue;
-
-    const slotsNeeded = Math.ceil(recareBlock.durationMin / timeIncrement);
-
+    
+    // Get all available block types for this hygienist
+    const recareBlocks = getAllBlocksForCategory('RECARE', blocksByCategory, hyg);
+    const pmBlocks = getAllBlocksForCategory('PM', blocksByCategory, hyg);
+    const srpBlocks = getAllBlocksForCategory('SRP', blocksByCategory, hyg);
+    const npBlocks = getAllBlocksForCategory('NP', blocksByCategory, hyg);
+    
+    // Distribution: Prophy/Recare (40%), Perio/PM (25%), New Patient (25%), SRP/Other (10%)
+    const blockPool: { block: BlockTypeInput; weight: number }[] = [];
+    recareBlocks.forEach(b => blockPool.push({ block: b, weight: 40 }));
+    pmBlocks.forEach(b => blockPool.push({ block: b, weight: 25 }));
+    npBlocks.forEach(b => blockPool.push({ block: b, weight: 25 }));
+    srpBlocks.forEach(b => blockPool.push({ block: b, weight: 10 }));
+    
+    if (blockPool.length === 0) {
+      // Fallback: if no blocks, just fill with recare
+      const recareBlock = getBlockForCategory('RECARE', blocksByCategory, hyg);
+      if (recareBlock) blockPool.push({ block: recareBlock, weight: 100 });
+    }
+    
+    if (blockPool.length === 0) return;
+    
+    // Shuffle and distribute blocks
     let safety = 0;
     while (safety < 30) {
       safety++;
+      
+      // Pick a random block type based on weights
+      const totalWeight = blockPool.reduce((sum, item) => sum + item.weight, 0);
+      let random = Math.random() * totalWeight;
+      let selectedBlock = blockPool[0].block;
+      
+      for (const item of blockPool) {
+        random -= item.weight;
+        if (random <= 0) {
+          selectedBlock = item.block;
+          break;
+        }
+      }
+      
+      const slotsNeeded = Math.ceil(selectedBlock.durationMin / timeIncrement);
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) break;
-
-      placeBlockInSlots(slots, ranges[0], recareBlock, hyg, makeLabel(recareBlock));
+      
+      placeBlockInSlots(slots, ranges[0], selectedBlock, hyg, makeLabel(selectedBlock));
     }
 
-    // Fill any remaining small gaps with individual slot recare fills
-    for (const idx of ps.indices) {
-      const slot = slots[idx];
-      if (slot.blockTypeId === null && !slot.isBreak) {
-        slots[idx].blockTypeId = recareBlock.id;
-        slots[idx].blockLabel = makeLabel(recareBlock);
-        slots[idx].staffingCode = getStaffingCode(hyg.role);
+    // Fill any remaining small gaps with Prophy/Recare
+    const recareBlock = recareBlocks[0] || getBlockForCategory('RECARE', blocksByCategory, hyg);
+    if (recareBlock) {
+      for (const idx of ps.indices) {
+        const slot = slots[idx];
+        if (slot.blockTypeId === null && !slot.isBreak) {
+          slots[idx].blockTypeId = recareBlock.id;
+          slots[idx].blockLabel = makeLabel(recareBlock);
+          slots[idx].staffingCode = getStaffingCode(hyg.role);
+        }
       }
     }
   }
