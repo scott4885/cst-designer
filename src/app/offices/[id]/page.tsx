@@ -70,6 +70,29 @@ export default function TemplateBuilderPage() {
     }
   }, [currentOffice, setActiveDay]);
 
+  // Get current day's schedule
+  const currentDaySchedule = generatedSchedules[activeDay];
+
+  // Reactively compute production summaries from current slots
+  // NOTE: This useMemo MUST be above the early return to maintain consistent hook order
+  const productionSummaries: ProviderProductionSummary[] = useMemo(() => {
+    if (!currentDaySchedule || !currentOffice) return [];
+    if (!currentDaySchedule.productionSummary || !Array.isArray(currentDaySchedule.productionSummary)) return [];
+    try {
+      return currentDaySchedule.productionSummary.map((summary) => ({
+        providerName: String(summary.providerName || "Unknown"),
+        providerColor:
+          currentOffice.providers?.find((p) => p.id === summary.providerId)?.color || "#666",
+        dailyGoal: Number(summary.dailyGoal) || 0,
+        target75: Number(summary.target75) || 0,
+        actualScheduled: Number(summary.actualScheduled) || 0,
+      }));
+    } catch {
+      console.error("Error computing production summaries");
+      return [];
+    }
+  }, [currentDaySchedule, currentOffice]);
+
   if (officeLoading || !currentOffice) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -94,9 +117,6 @@ export default function TemplateBuilderPage() {
   const fullProviders = currentOffice.providers || [];
   const blockTypes = currentOffice.blockTypes || [];
   const timeIncrement = currentOffice.timeIncrement || 10;
-
-  // Get current day's schedule
-  const currentDaySchedule = generatedSchedules[activeDay];
 
   // Convert schedule to TimeSlotOutput format for ScheduleGrid
   const timeSlots: TimeSlotOutput[] = [];
@@ -136,25 +156,6 @@ export default function TemplateBuilderPage() {
       return parseTime(a.time) - parseTime(b.time);
     });
   }
-
-  // Reactively compute production summaries from current slots
-  const productionSummaries: ProviderProductionSummary[] = useMemo(() => {
-    if (!currentDaySchedule) return [];
-    if (!currentDaySchedule.productionSummary || !Array.isArray(currentDaySchedule.productionSummary)) return [];
-    try {
-      return currentDaySchedule.productionSummary.map((summary) => ({
-        providerName: String(summary.providerName || "Unknown"),
-        providerColor:
-          currentOffice.providers?.find((p) => p.id === summary.providerId)?.color || "#666",
-        dailyGoal: Number(summary.dailyGoal) || 0,
-        target75: Number(summary.target75) || 0,
-        actualScheduled: Number(summary.actualScheduled) || 0,
-      }));
-    } catch {
-      console.error("Error computing production summaries");
-      return [];
-    }
-  }, [currentDaySchedule, currentOffice.providers]);
 
   // Generate schedule for a single day
   const handleGenerateSchedule = async () => {
