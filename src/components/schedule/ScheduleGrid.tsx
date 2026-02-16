@@ -53,8 +53,6 @@ export default function ScheduleGrid({
   onMoveBlock,
   onUpdateBlock,
 }: ScheduleGridProps) {
-  const [currentPage, setCurrentPage] = useState(0);
-  const ROWS_PER_PAGE = 30;
 
   // Block picker state (click-to-add)
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -108,14 +106,6 @@ export default function ScheduleGrid({
             isBreak: false,
           })),
         }));
-
-  const totalPages = Math.ceil(timeSlots.length / ROWS_PER_PAGE);
-  const startIdx = currentPage * ROWS_PER_PAGE;
-  const endIdx = Math.min(startIdx + ROWS_PER_PAGE, timeSlots.length);
-  const visibleSlots = timeSlots.slice(startIdx, endIdx);
-
-  const pageStartTime = timeSlots[startIdx]?.time || "";
-  const pageEndTime = timeSlots[Math.min(endIdx - 1, timeSlots.length - 1)]?.time || "";
 
   // Find the block that a slot belongs to (for determining block spans)
   const getBlockInfo = useCallback(
@@ -340,35 +330,7 @@ export default function ScheduleGrid({
         />
       )}
 
-      {/* Pagination controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-2 bg-surface border border-border rounded-lg">
-          <div className="text-sm text-muted-foreground">
-            Showing {pageStartTime} - {pageEndTime} ({startIdx + 1}-{endIdx} of {timeSlots.length} slots)
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-              disabled={currentPage === 0}
-              className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              &larr; Previous
-            </button>
-            <div className="px-3 py-1 text-sm">
-              Page {currentPage + 1} of {totalPages}
-            </div>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={currentPage === totalPages - 1}
-              className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next &rarr;
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="schedule-grid border border-border rounded-lg overflow-hidden">
+      <div className="schedule-grid border border-border rounded-lg overflow-hidden max-h-[700px] overflow-y-auto">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead className="sticky top-0 bg-surface z-20">
@@ -403,8 +365,8 @@ export default function ScheduleGrid({
               </tr>
             </thead>
             <tbody>
-              {visibleSlots.map((row, rowIdx) => (
-                <tr key={startIdx + rowIdx} className="hover:bg-muted/30 transition-colors">
+              {timeSlots.map((row, rowIdx) => (
+                <tr key={rowIdx} className="hover:bg-muted/30 transition-colors">
                   <td className="p-0 border-b border-border">
                     <TimeSlotCell time={row.time} />
                   </td>
@@ -469,43 +431,6 @@ export default function ScheduleGrid({
           </table>
         </div>
       </div>
-
-      {/* Bottom pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 px-4 py-2">
-          <button
-            onClick={() => setCurrentPage(0)}
-            disabled={currentPage === 0}
-            className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            First
-          </button>
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-            disabled={currentPage === 0}
-            className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            &larr; Previous
-          </button>
-          <span className="px-3 py-1 text-sm">
-            {currentPage + 1} / {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={currentPage === totalPages - 1}
-            className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next &rarr;
-          </button>
-          <button
-            onClick={() => setCurrentPage(totalPages - 1)}
-            disabled={currentPage === totalPages - 1}
-            className="px-3 py-1 text-sm border border-border rounded hover:bg-surface/50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Last
-          </button>
-        </div>
-      )}
     </div>
   );
 }
