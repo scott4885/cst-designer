@@ -30,6 +30,7 @@ export interface OfficeDetail {
   workingDays: string[];
   timeIncrement: number;
   feeModel: string;
+  operatories: string[];
   providers: ProviderInput[];
   blockTypes: BlockTypeInput[];
   rules: ScheduleRules;
@@ -41,6 +42,7 @@ export interface CreateOfficeInput {
   workingDays: string[];
   timeIncrement: number;
   feeModel: string;
+  operatories?: string[];
   providers?: ProviderInput[];
   blockTypes?: BlockTypeInput[];
   rules?: ScheduleRules;

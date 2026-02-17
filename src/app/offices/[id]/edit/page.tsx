@@ -41,7 +41,7 @@ const editOfficeSchema = z.object({
 
 type EditOfficeFormData = z.infer<typeof editOfficeSchema>;
 
-const OPERATORIES = ["OP1", "OP2", "OP3", "OP4", "OP5", "Main", "Consult Room"];
+const OPERATORIES = ["OP1", "OP2", "OP3", "OP4", "OP5", "HYG1", "HYG2", "HYG3", "HYG4", "Main", "Consult Room"];
 const PROVIDER_COLORS = ["#ec8a1b", "#87bcf3", "#f4de37", "#44f2ce", "#ff6b9d", "#9b59b6"];
 
 export default function EditOfficePage() {
@@ -57,6 +57,7 @@ export default function EditOfficePage() {
     control,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors, isDirty },
   } = useForm<EditOfficeFormData>({
@@ -72,6 +73,8 @@ export default function EditOfficePage() {
     control,
     name: "providers",
   });
+
+  const watchProviders = watch("providers");
 
   // Warn on browser navigation away with unsaved changes
   useEffect(() => {
@@ -377,6 +380,47 @@ export default function EditOfficePage() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
                   </div>
+                </div>
+
+                <div>
+                  <Label className="mb-2 block">Operatory Assignment</Label>
+                  <p className="text-xs text-muted-foreground mb-2">Select which operatories this provider works in</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 border border-border rounded-lg p-3">
+                    {OPERATORIES.map((op) => {
+                      const currentOps = watchProviders?.[index]?.operatories || [];
+                      const isChecked = currentOps.includes(op);
+                      return (
+                        <div key={op} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`edit-provider-${index}-op-${op}`}
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const updated = e.target.checked
+                                ? [...currentOps, op]
+                                : currentOps.filter((o: string) => o !== op);
+                              setValue(
+                                `providers.${index}.operatories`,
+                                updated.length > 0 ? updated : [op]
+                              );
+                            }}
+                            className="w-4 h-4 rounded border-border"
+                          />
+                          <label
+                            htmlFor={`edit-provider-${index}-op-${op}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {op}
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {errors.providers?.[index]?.operatories && (
+                    <p className="text-sm text-error mt-1">
+                      Select at least one operatory
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

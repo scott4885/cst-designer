@@ -60,7 +60,7 @@ const officeSchema = z.object({
 type OfficeFormData = z.infer<typeof officeSchema>;
 
 const WORKING_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const OPERATORIES = ["OP1", "OP2", "OP3", "OP4", "OP5", "Main", "Consult Room"];
+const OPERATORIES = ["OP1", "OP2", "OP3", "OP4", "OP5", "HYG1", "HYG2", "HYG3", "HYG4", "Main", "Consult Room"];
 const PROVIDER_COLORS = ["#ec8a1b", "#87bcf3", "#f4de37", "#44f2ce", "#ff6b9d", "#9b59b6"];
 
 const DEFAULT_PROCEDURES = [
@@ -164,6 +164,7 @@ function NewOfficeForm() {
   });
 
   const workingDays = watch("workingDays");
+  const watchProviders = watch("providers");
 
   const toggleWorkingDay = (day: string) => {
     const current = workingDays || [];
@@ -425,9 +426,16 @@ function NewOfficeForm() {
                       <div>
                         <Label>Role</Label>
                         <Select
-                          onValueChange={(value) =>
-                            setValue(`providers.${index}.role`, value as any)
-                          }
+                          onValueChange={(value) => {
+                            setValue(`providers.${index}.role`, value as any);
+                            // Auto-update daily goal when role changes
+                            const currentGoal = watchProviders?.[index]?.dailyGoal;
+                            if (value === "Hygienist" && (currentGoal === 5000 || !currentGoal)) {
+                              setValue(`providers.${index}.dailyGoal`, 1500);
+                            } else if (value === "Doctor" && currentGoal === 1500) {
+                              setValue(`providers.${index}.dailyGoal`, 5000);
+                            }
+                          }}
                           defaultValue={field.role}
                         >
                           <SelectTrigger>
@@ -447,7 +455,7 @@ function NewOfficeForm() {
                         <Input
                           type="number"
                           {...register(`providers.${index}.dailyGoal`, { valueAsNumber: true })}
-                          placeholder="5000"
+                          placeholder={watchProviders?.[index]?.role === "Hygienist" ? "1500" : "5000"}
                         />
                       </div>
                       <div>
@@ -486,6 +494,47 @@ function NewOfficeForm() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
                       </div>
+                    </div>
+
+                    <div>
+                      <Label className="mb-2 block">Operatory Assignment</Label>
+                      <p className="text-xs text-muted-foreground mb-2">Select which operatories this provider works in</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 border border-border rounded-lg p-3">
+                        {OPERATORIES.map((op) => {
+                          const currentOps = watchProviders?.[index]?.operatories || [];
+                          const isChecked = currentOps.includes(op);
+                          return (
+                            <div key={op} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`provider-${index}-op-${op}`}
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const updated = e.target.checked
+                                    ? [...currentOps, op]
+                                    : currentOps.filter((o: string) => o !== op);
+                                  setValue(
+                                    `providers.${index}.operatories`,
+                                    updated.length > 0 ? updated : [op]
+                                  );
+                                }}
+                                className="w-4 h-4 rounded border-border"
+                              />
+                              <label
+                                htmlFor={`provider-${index}-op-${op}`}
+                                className="text-sm cursor-pointer"
+                              >
+                                {op}
+                              </label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {errors.providers?.[index]?.operatories && (
+                        <p className="text-sm text-error mt-1">
+                          Select at least one operatory
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -561,6 +610,33 @@ function NewOfficeForm() {
                       <SelectItem value="either">Either</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="npBlocksPerDay">NP Blocks Per Day</Label>
+                    <Input
+                      id="npBlocksPerDay"
+                      type="number"
+                      min={1}
+                      max={3}
+                      {...register("scheduleRules.npBlocksPerDay", { valueAsNumber: true })}
+                      placeholder="2"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">How many new patient slots per day (1–3)</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="srpBlocksPerDay">SRP Blocks Per Day</Label>
+                    <Input
+                      id="srpBlocksPerDay"
+                      type="number"
+                      min={1}
+                      max={3}
+                      {...register("scheduleRules.srpBlocksPerDay", { valueAsNumber: true })}
+                      placeholder="2"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">How many SRP slots per day (1–3)</p>
+                  </div>
                 </div>
 
                 <div>

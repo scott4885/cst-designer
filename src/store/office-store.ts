@@ -46,7 +46,7 @@ export const useOfficeStore = create<OfficeState>((set) => ({
       const providerCount = office.providers?.length || 0;
       const totalDailyGoal = office.providers?.reduce((sum, p) => sum + (p.dailyGoal || 0), 0) || 0;
       const currentOffice: OfficeData = {
-        ...(office as OfficeData),
+        ...(office as unknown as OfficeData),
         providerCount,
         totalDailyGoal,
         updatedAt: (office as any).updatedAt || new Date().toISOString(),

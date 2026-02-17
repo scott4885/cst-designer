@@ -4,9 +4,11 @@ import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BlockTypeInput } from "@/lib/engine/types";
+import { useBlockTypeStore } from "@/store/block-type-store";
 
 interface BlockPickerProps {
-  blockTypes: BlockTypeInput[];
+  /** If omitted, falls back to the global Appointment Type Library */
+  blockTypes?: BlockTypeInput[];
   providerRole: "DOCTOR" | "HYGIENIST";
   onSelect: (blockType: BlockTypeInput) => void;
   onClose: () => void;
@@ -14,13 +16,17 @@ interface BlockPickerProps {
 }
 
 export default function BlockPicker({
-  blockTypes,
+  blockTypes: propBlockTypes,
   providerRole,
   onSelect,
   onClose,
   timeLabel,
 }: BlockPickerProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const libraryBlockTypes = useBlockTypeStore((s) => s.blockTypes);
+
+  // Use prop block types when provided; fall back to global library
+  const blockTypes = propBlockTypes ?? libraryBlockTypes;
 
   // Close on click outside
   useEffect(() => {
@@ -75,7 +81,15 @@ export default function BlockPicker({
             onClick={() => onSelect(bt)}
           >
             <div className="flex items-center justify-between">
-              <span className="font-medium text-foreground">{bt.label}</span>
+              <span className="font-medium text-foreground flex items-center gap-1.5">
+                {"color" in bt && (bt as any).color ? (
+                  <span
+                    className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: (bt as any).color }}
+                  />
+                ) : null}
+                {bt.label}
+              </span>
               <span className="flex items-center gap-1.5">
                 {bt.minimumAmount ? (
                   <span className="text-xs font-medium text-success">${bt.minimumAmount}</span>

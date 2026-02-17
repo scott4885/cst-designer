@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useCallback, Fragment } from "react";
+import { useState, useCallback, useMemo, Fragment } from "react";
 import TimeSlotCell from "./TimeSlotCell";
 import BlockPicker from "./BlockPicker";
 import BlockEditor from "./BlockEditor";
 import type { BlockTypeInput } from "@/lib/engine/types";
+import type { ConflictResult } from "@/lib/engine/stagger";
 
 export interface ProviderInput {
   id: string;
   name: string;
   role: string;
   color: string;
+  operatories?: string[];
 }
 
 export interface TimeSlotOutput {
@@ -29,6 +31,7 @@ interface ScheduleGridProps {
   providers: ProviderInput[];
   blockTypes?: BlockTypeInput[];
   timeIncrement?: number;
+  conflicts?: ConflictResult[];
   onAddBlock?: (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => void;
   onRemoveBlock?: (time: string, providerId: string) => void;
   onMoveBlock?: (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => void;
@@ -48,6 +51,7 @@ export default function ScheduleGrid({
   providers,
   blockTypes = [],
   timeIncrement = 10,
+  conflicts = [],
   onAddBlock,
   onRemoveBlock,
   onMoveBlock,
@@ -71,6 +75,15 @@ export default function ScheduleGrid({
   // Drag state
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragOverCell, setDragOverCell] = useState<{ time: string; providerId: string } | null>(null);
+
+  // Build conflict lookup: "time:providerId" → ConflictResult
+  const conflictMap = useMemo(() => {
+    const map = new Map<string, ConflictResult>();
+    for (const c of conflicts) {
+      map.set(`${c.time}:${c.providerId}`, c);
+    }
+    return map;
+  }, [conflicts]);
 
   // Generate default time slots
   const generateTimeSlots = (): string[] => {
@@ -346,6 +359,11 @@ export default function ScheduleGrid({
                   >
                     <div className="text-center">
                       <div className="font-semibold">{provider.name}</div>
+                      {provider.operatories && provider.operatories.length > 0 && (
+                        <div className="text-[10px] font-normal text-muted-foreground mt-0.5">
+                          {provider.operatories.join(', ')}
+                        </div>
+                      )}
                     </div>
                   </th>
                 ))}
@@ -381,8 +399,23 @@ export default function ScheduleGrid({
 
                     const hasBlock = !!(slot?.blockTypeId || slot?.blockLabel) && !slot?.isBreak;
                     const isEmpty = !hasBlock && !slot?.isBreak && !(isLunchTime && !slot?.staffingCode);
-                    const isDragOver =
+                    const isCellDragOver =
                       dragOverCell?.time === row.time && dragOverCell?.providerId === provider.id;
+
+                    // Determine if this cell's block is the one being dragged
+                    const blockInfo = hasBlock ? getBlockInfo(row.time, provider.id) : null;
+                    const isDraggingSource =
+                      !!dragState &&
+                      dragState.providerId === provider.id &&
+                      !!blockInfo &&
+                      blockInfo.startTime === dragState.time;
+
+                    // Conflict detection
+                    const conflictEntry = conflictMap.get(`${row.time}:${provider.id}`);
+                    const cellHasConflict = !!conflictEntry;
+                    const conflictTooltip = conflictEntry
+                      ? `Double-booked in: ${conflictEntry.operatories.join(', ')} — blocks: ${conflictEntry.blockLabels.join(', ')}`
+                      : undefined;
 
                     return (
                       <Fragment key={provider.id}>
@@ -391,11 +424,12 @@ export default function ScheduleGrid({
                             staffingCode={slot?.staffingCode}
                             providerColor={slot?.staffingCode ? provider.color : undefined}
                             isBreak={slot?.isBreak || (isLunchTime && !slot?.staffingCode)}
+                            isDrExam={slot?.staffingCode === 'D' && provider.role === 'HYGIENIST'}
                           />
                         </td>
                         <td className="p-0 border-b border-border">
                           <div
-                            className={`${isDragOver ? "ring-2 ring-accent ring-inset" : ""}`}
+                            data-testid={`block-cell-${row.time}-${provider.id}`}
                             draggable={hasBlock && !!onMoveBlock}
                             onDragStart={(e) => hasBlock && handleDragStart(e, row.time, provider.id)}
                             onDragOver={(e) => isEmpty && handleDragOver(e, row.time, provider.id)}
@@ -403,30 +437,29 @@ export default function ScheduleGrid({
                             onDrop={(e) => isEmpty && handleDrop(e, row.time, provider.id)}
                             onDragEnd={handleDragEnd}
                           >
-                            {(() => {
-                              const blockInfo = hasBlock ? getBlockInfo(row.time, provider.id) : null;
-                              return (
-                                <TimeSlotCell
-                                  blockLabel={slot?.blockLabel}
-                                  providerColor={slot?.blockLabel ? provider.color : undefined}
-                                  isBreak={slot?.isBreak || (isLunchTime && !slot?.blockLabel)}
-                                  onClick={
-                                    isInteractive
-                                      ? () => {
-                                          if (hasBlock) {
-                                            handleBlockCellClick(row.time, provider.id);
-                                          } else if (isEmpty) {
-                                            handleEmptyCellClick(row.time, provider.id);
-                                          }
-                                        }
-                                      : undefined
-                                  }
-                                  isClickable={isInteractive && (hasBlock || isEmpty)}
-                                  isBlockFirst={blockInfo?.isFirst || false}
-                                  isBlockLast={blockInfo?.isLast || false}
-                                />
-                              );
-                            })()}
+                            <TimeSlotCell
+                              blockLabel={slot?.blockLabel}
+                              providerColor={slot?.blockLabel ? provider.color : undefined}
+                              isBreak={slot?.isBreak || (isLunchTime && !slot?.blockLabel)}
+                              onClick={
+                                isInteractive
+                                  ? () => {
+                                      if (hasBlock) {
+                                        handleBlockCellClick(row.time, provider.id);
+                                      } else if (isEmpty) {
+                                        handleEmptyCellClick(row.time, provider.id);
+                                      }
+                                    }
+                                  : undefined
+                              }
+                              isClickable={isInteractive && (hasBlock || isEmpty)}
+                              isBlockFirst={blockInfo?.isFirst || false}
+                              isBlockLast={blockInfo?.isLast || false}
+                              isDragOver={isCellDragOver}
+                              isDragging={isDraggingSource}
+                              hasConflict={cellHasConflict}
+                              conflictTooltip={conflictTooltip}
+                            />
                           </div>
                         </td>
                       </Fragment>

@@ -3,13 +3,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import ScheduleGrid, { ProviderInput, TimeSlotOutput } from "@/components/schedule/ScheduleGrid";
 import ProductionSummary, { ProviderProductionSummary } from "@/components/schedule/ProductionSummary";
+import ProductionMixChart from "@/components/schedule/ProductionMixChart";
+import OpenDentalExportDialog from "@/components/schedule/OpenDentalExportDialog";
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { useScheduleStore } from "@/store/schedule-store";
@@ -20,6 +22,10 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { deleteOffice, generateSchedule } from "@/lib/local-storage";
 import { generateExcel, ExportInput, ExportDaySchedule } from "@/lib/export/excel";
 import type { BlockTypeInput } from "@/lib/engine/types";
+import { detectConflicts } from "@/lib/engine/stagger";
+import type { ConflictResult } from "@/lib/engine/stagger";
+import { scoreScheduleAlignment, DEFAULT_IDEAL_DAY_TEMPLATE } from "@/lib/engine/ideal-day";
+import type { AlignmentScore } from "@/lib/engine/ideal-day";
 
 export default function TemplateBuilderPage() {
   const params = useParams();
@@ -48,6 +54,7 @@ export default function TemplateBuilderPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ completed: 0, total: 0 });
+  const [showODExportDialog, setShowODExportDialog] = useState(false);
 
   // Fetch office data on mount
   useEffect(() => {
@@ -74,7 +81,7 @@ export default function TemplateBuilderPage() {
   const currentDaySchedule = generatedSchedules[activeDay];
 
   // Reactively compute production summaries from current slots
-  // NOTE: This useMemo MUST be above the early return to maintain consistent hook order
+  // NOTE: All useMemos MUST be above the early return to maintain consistent hook order
   const productionSummaries: ProviderProductionSummary[] = useMemo(() => {
     if (!currentDaySchedule || !currentOffice) return [];
     if (!currentDaySchedule.productionSummary || !Array.isArray(currentDaySchedule.productionSummary)) return [];
@@ -92,6 +99,40 @@ export default function TemplateBuilderPage() {
       return [];
     }
   }, [currentDaySchedule, currentOffice]);
+
+  // Conflicts for the currently visible day → passed to ScheduleGrid
+  const currentDayConflicts: ConflictResult[] = useMemo(() => {
+    if (!currentDaySchedule || !currentOffice?.providers?.length) return [];
+    try {
+      return detectConflicts(currentDaySchedule, currentOffice.providers);
+    } catch {
+      return [];
+    }
+  }, [currentDaySchedule, currentOffice]);
+
+  // Conflict counts per day → shown on day tabs
+  const conflictsPerDay = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (!currentOffice?.providers?.length) return counts;
+    for (const [day, schedule] of Object.entries(generatedSchedules)) {
+      try {
+        counts[day] = detectConflicts(schedule, currentOffice.providers).length;
+      } catch {
+        counts[day] = 0;
+      }
+    }
+    return counts;
+  }, [generatedSchedules, currentOffice]);
+
+  // Ideal Day alignment score → passed to ProductionSummary
+  const alignmentScore: AlignmentScore | undefined = useMemo(() => {
+    if (!currentDaySchedule) return undefined;
+    try {
+      return scoreScheduleAlignment(currentDaySchedule, DEFAULT_IDEAL_DAY_TEMPLATE);
+    } catch {
+      return undefined;
+    }
+  }, [currentDaySchedule]);
 
   if (officeLoading || !currentOffice) {
     return (
@@ -394,6 +435,25 @@ export default function TemplateBuilderPage() {
                 : "Export all generated schedules to Excel"}
             </TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowODExportDialog(true)}
+                  disabled={!currentDaySchedule}
+                >
+                  <FileJson className="w-4 h-4 mr-2" />
+                  Open Dental
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {!currentDaySchedule
+                ? "Generate a schedule first"
+                : "Export current day schedule for Open Dental import"}
+            </TooltipContent>
+          </Tooltip>
           <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary">
             {isGenerating && generatingDay ? (
               <>
@@ -590,6 +650,14 @@ export default function TemplateBuilderPage() {
                   {generatedSchedules[day] && (
                     <span className="ml-2 w-2 h-2 rounded-full bg-success" />
                   )}
+                  {(conflictsPerDay[day] ?? 0) > 0 && (
+                    <span
+                      className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600"
+                      title={`${conflictsPerDay[day]} double-booking conflict${conflictsPerDay[day] === 1 ? '' : 's'}`}
+                    >
+                      ⚠️{conflictsPerDay[day]}
+                    </span>
+                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -604,6 +672,7 @@ export default function TemplateBuilderPage() {
                         providers={providers}
                         blockTypes={blockTypes}
                         timeIncrement={timeIncrement}
+                        conflicts={activeDay === day ? currentDayConflicts : []}
                         onAddBlock={currentDaySchedule ? handleAddBlock : undefined}
                         onRemoveBlock={currentDaySchedule ? handleRemoveBlock : undefined}
                         onMoveBlock={currentDaySchedule ? handleMoveBlock : undefined}
@@ -617,11 +686,32 @@ export default function TemplateBuilderPage() {
           </Tabs>
         </div>
 
-        {/* Right Panel - Production Summary */}
-        <div className="w-80 flex-shrink-0 overflow-auto">
-          <ProductionSummary summaries={productionSummaries} />
+        {/* Right Panel - Production Summary + Mix */}
+        <div className="w-80 flex-shrink-0 overflow-auto space-y-6">
+          <ProductionSummary summaries={productionSummaries} alignmentScore={alignmentScore} />
+          {currentDaySchedule && (
+            <ProductionMixChart
+              schedule={currentDaySchedule}
+              blockTypes={blockTypes}
+              providers={fullProviders}
+            />
+          )}
         </div>
       </div>
+
+      {/* Open Dental Export Dialog */}
+      {currentDaySchedule && (
+        <OpenDentalExportDialog
+          open={showODExportDialog}
+          onOpenChange={setShowODExportDialog}
+          officeId={officeId}
+          officeName={currentOffice.name}
+          schedule={currentDaySchedule}
+          providers={fullProviders}
+          blockTypes={blockTypes}
+          timeIncrement={timeIncrement}
+        />
+      )}
     </div>
   );
 }

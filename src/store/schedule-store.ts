@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { GenerationResult, BlockTypeInput, ProviderInput } from '@/lib/engine/types';
 import { getSchedulesForOffice, saveSchedulesForOffice } from '@/lib/local-storage';
 import { calculateProductionSummary } from '@/lib/engine/calculator';
+import { detectConflicts } from '@/lib/engine/stagger';
 
 interface ScheduleState {
   generatedSchedules: Record<string, GenerationResult>; // keyed by dayOfWeek
@@ -55,7 +56,14 @@ function recalcProductionSummary(
     return calculateProductionSummary(provider, scheduledBlocks);
   });
 
-  return { ...schedule, productionSummary };
+  // Recalculate conflict warnings, preserving non-conflict warnings
+  const conflicts = detectConflicts(schedule, providers);
+  const nonConflictWarnings = (schedule.warnings ?? []).filter(w => !w.startsWith('Conflict at '));
+  const conflictWarnings = conflicts.map(
+    (c) => `Conflict at ${c.time}: provider ${c.providerId} is double-booked in ${c.operatories.join(' and ')}`
+  );
+
+  return { ...schedule, productionSummary, warnings: [...nonConflictWarnings, ...conflictWarnings] };
 }
 
 function persist(state: { generatedSchedules: Record<string, GenerationResult>; currentOfficeId: string | null }) {

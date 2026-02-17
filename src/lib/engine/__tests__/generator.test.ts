@@ -172,10 +172,10 @@ describe('generator', () => {
       // Should have at least one NP block
       expect(npSlots.length).toBeGreaterThan(0);
 
-      // NP blocks should be in doctor's column
+      // NP blocks should be in doctor's column with D or A staffing (A for first/last slots)
       npSlots.forEach(slot => {
         expect(slot.providerId).toBe('dr1');
-        expect(slot.staffingCode).toBe('D');
+        expect(['D', 'A']).toContain(slot.staffingCode);
       });
     });
 

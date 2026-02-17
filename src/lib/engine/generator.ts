@@ -64,11 +64,14 @@ export function getStaffingCode(role: 'DOCTOR' | 'HYGIENIST' | 'OTHER'): Staffin
 // Block categorization helpers — works with arbitrary block type labels
 // ---------------------------------------------------------------------------
 
-type BlockCategory = 'HP' | 'NP' | 'SRP' | 'ER' | 'MP' | 'RECARE' | 'PM' | 'NON_PROD' | 'OTHER';
+export type BlockCategory = 'HP' | 'NP' | 'SRP' | 'ER' | 'MP' | 'RECARE' | 'PM' | 'NON_PROD' | 'OTHER';
 
-/** Identify the "category" of a block type by its label */
-function categorize(bt: BlockTypeInput): BlockCategory {
-  const lbl = bt.label.toUpperCase();
+/**
+ * Identify the "category" of a block by its label string.
+ * Exported so production-mix and other modules can reuse without re-implementing.
+ */
+export function categorizeLabel(label: string): BlockCategory {
+  const lbl = label.toUpperCase();
   // Order matters — more specific first
   if (lbl.includes('SRP') || lbl.includes('AHT') || lbl.includes('PERIO SRP')) return 'SRP';
   if (lbl.includes('NON-PROD') || lbl === 'SEAT') return 'NON_PROD';
@@ -79,6 +82,11 @@ function categorize(bt: BlockTypeInput): BlockCategory {
   if (lbl.includes('RECARE') || lbl.includes('RECALL') || lbl.includes('PROPHY')) return 'RECARE';
   if (lbl.includes('PM') || lbl.includes('PERIO MAINT') || lbl.includes('DEBRIDE')) return 'PM';
   return 'OTHER';
+}
+
+/** Identify the "category" of a block type by its label */
+function categorize(bt: BlockTypeInput): BlockCategory {
+  return categorizeLabel(bt.label);
 }
 
 function blockAppliesToProvider(bt: BlockTypeInput, provider: ProviderInput): boolean {
@@ -141,10 +149,21 @@ function placeBlockInSlots(
   provider: ProviderInput,
   labelOverride?: string
 ): void {
-  for (const idx of range) {
+  const len = range.length;
+  for (let i = 0; i < len; i++) {
+    const idx = range[i];
     slots[idx].blockTypeId = blockType.id;
     slots[idx].blockLabel = labelOverride || blockType.label;
-    slots[idx].staffingCode = getStaffingCode(provider.role);
+
+    // For doctor blocks ≥ 3 slots: mark first and last as 'A' (assistant-only time)
+    // A → D → D → D → A models the real clinical workflow:
+    //   first slot: assistant seats patient, places topical anesthetic
+    //   last slot:  assistant does cleanup, post-op instructions
+    if (provider.role === 'DOCTOR' && len >= 3 && (i === 0 || i === len - 1)) {
+      slots[idx].staffingCode = 'A';
+    } else {
+      slots[idx].staffingCode = getStaffingCode(provider.role);
+    }
   }
 }
 
@@ -669,7 +688,7 @@ function fillRemainingDoctorSlots(
     
     // Shuffle and distribute blocks
     let safety = 0;
-    while (safety < 30) {
+    while (safety < 20) {
       safety++;
       
       // Pick a random block type based on weights
@@ -702,19 +721,7 @@ function fillRemainingDoctorSlots(
       
       placeBlockInSlots(slots, targetRange, selectedBlock, doc, makeLabel(selectedBlock));
     }
-
-    // Fill any remaining small gaps with MP
-    const mpBlock = mpBlocks[0];
-    if (mpBlock) {
-      for (const idx of ps.indices) {
-        const slot = slots[idx];
-        if (slot.blockTypeId === null && !slot.isBreak) {
-          slots[idx].blockTypeId = mpBlock.id;
-          slots[idx].blockLabel = makeLabel(mpBlock);
-          slots[idx].staffingCode = getStaffingCode(doc.role);
-        }
-      }
-    }
+    // NOTE: intentionally leave ~15% of slots empty for click-to-add
   }
 }
 
@@ -751,7 +758,7 @@ function fillRemainingHygienistSlots(
     
     // Shuffle and distribute blocks
     let safety = 0;
-    while (safety < 30) {
+    while (safety < 20) {
       safety++;
       
       // Pick a random block type based on weights
@@ -773,19 +780,7 @@ function fillRemainingHygienistSlots(
       
       placeBlockInSlots(slots, ranges[0], selectedBlock, hyg, makeLabel(selectedBlock));
     }
-
-    // Fill any remaining small gaps with Prophy/Recare
-    const recareBlock = recareBlocks[0] || getBlockForCategory('RECARE', blocksByCategory, hyg);
-    if (recareBlock) {
-      for (const idx of ps.indices) {
-        const slot = slots[idx];
-        if (slot.blockTypeId === null && !slot.isBreak) {
-          slots[idx].blockTypeId = recareBlock.id;
-          slots[idx].blockLabel = makeLabel(recareBlock);
-          slots[idx].staffingCode = getStaffingCode(hyg.role);
-        }
-      }
-    }
+    // NOTE: intentionally leave ~15% of slots empty for click-to-add
   }
 }
 

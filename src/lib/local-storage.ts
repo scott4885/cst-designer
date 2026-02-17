@@ -1,6 +1,8 @@
 import type { OfficeDetail, OfficeListItem, CreateOfficeInput } from './data-access';
+import { DEFAULT_OPERATORIES } from './operatory-utils';
 import type { GenerationResult } from './engine/types';
 import { generateSchedule as engineGenerateSchedule } from './engine/generator';
+import { detectConflicts } from './engine/stagger';
 import { defaultRules } from './mock-data';
 
 const OFFICES_KEY = 'schedule-template-designer:offices';
@@ -116,6 +118,7 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
     workingDays: data.workingDays,
     timeIncrement: data.timeIncrement,
     feeModel: data.feeModel,
+    operatories: data.operatories || DEFAULT_OPERATORIES,
     providers: (data.providers || []).map((provider) => ({
       ...provider,
       id: provider.id || generateId(),
@@ -194,6 +197,16 @@ export async function generateSchedule(officeId: string, days: string[]): Promis
       timeIncrement: office.timeIncrement,
       dayOfWeek: day,
     });
+
+    // Detect conflicts and add to warnings
+    const conflicts = detectConflicts(result, office.providers);
+    if (conflicts.length > 0) {
+      const conflictWarnings = conflicts.map(
+        (c) =>
+          `Conflict at ${c.time}: provider ${c.providerId} is double-booked in ${c.operatories.join(' and ')}`
+      );
+      result.warnings = [...(result.warnings ?? []), ...conflictWarnings];
+    }
 
     results.push(result);
   }
