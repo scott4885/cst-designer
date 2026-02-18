@@ -45,12 +45,51 @@ function writeStorage(blockTypes: LibraryBlockType[]): void {
   }
 }
 
+function readProviderOverrides(): Record<string, ProviderBlockTypeOverride[]> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(PROVIDER_OVERRIDES_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function writeProviderOverrides(overrides: Record<string, ProviderBlockTypeOverride[]>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(PROVIDER_OVERRIDES_KEY, JSON.stringify(overrides));
+  } catch (e) {
+    console.error('Failed to save provider overrides:', e);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Per-provider overrides: map from providerId → override values per block type label
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface ProviderBlockTypeOverride {
+  /** Block type label (e.g., "HP") — matches by label across all block types */
+  label: string;
+  /** Override minimum production amount */
+  minimumAmount?: number;
+  /** Override duration min */
+  durationMin?: number;
+  /** Override duration max */
+  durationMax?: number;
+}
+
+export const PROVIDER_OVERRIDES_KEY = 'appointment-library-provider-overrides';
+
 // ────────────────────────────────────────────────────────────────────────────
 // Store interface
 // ────────────────────────────────────────────────────────────────────────────
 
 export interface BlockTypeState {
   blockTypes: LibraryBlockType[];
+  /** Per-provider overrides: { [providerId]: ProviderBlockTypeOverride[] } */
+  providerOverrides: Record<string, ProviderBlockTypeOverride[]>;
 
   /** Load from localStorage (call once on client mount) */
   initFromStorage: () => void;
@@ -66,6 +105,12 @@ export interface BlockTypeState {
 
   /** Reset the library to the seeded defaults */
   resetToDefaults: () => void;
+
+  /** Set per-provider overrides for a specific provider */
+  setProviderOverrides: (providerId: string, overrides: ProviderBlockTypeOverride[]) => void;
+
+  /** Get block type effective values for a specific provider (merges defaults with overrides) */
+  getBlockTypesForProvider: (providerId: string) => LibraryBlockType[];
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -109,16 +154,18 @@ function validateBlockTypeData(
 
 export const useBlockTypeStore = create<BlockTypeState>((set, get) => ({
   blockTypes: seedDefaults(),
+  providerOverrides: {},
 
   initFromStorage: () => {
     const fromStorage = readStorage();
+    const overrides = readProviderOverrides();
     if (fromStorage) {
-      set({ blockTypes: fromStorage });
+      set({ blockTypes: fromStorage, providerOverrides: overrides });
     } else {
       // First visit: persist the defaults
       const defaults = seedDefaults();
       writeStorage(defaults);
-      set({ blockTypes: defaults });
+      set({ blockTypes: defaults, providerOverrides: overrides });
     }
   },
 
@@ -171,5 +218,30 @@ export const useBlockTypeStore = create<BlockTypeState>((set, get) => ({
     const defaults = seedDefaults();
     set({ blockTypes: defaults });
     writeStorage(defaults);
+  },
+
+  setProviderOverrides: (providerId, overrides) => {
+    const current = get().providerOverrides;
+    const updated = { ...current, [providerId]: overrides };
+    set({ providerOverrides: updated });
+    writeProviderOverrides(updated);
+  },
+
+  getBlockTypesForProvider: (providerId) => {
+    const { blockTypes, providerOverrides } = get();
+    const overrides = providerOverrides[providerId] || [];
+    if (overrides.length === 0) return blockTypes;
+
+    // Apply per-provider overrides on top of global defaults
+    return blockTypes.map(bt => {
+      const override = overrides.find(o => o.label.toLowerCase() === bt.label.toLowerCase());
+      if (!override) return bt;
+      return {
+        ...bt,
+        minimumAmount: override.minimumAmount ?? bt.minimumAmount,
+        durationMin: override.durationMin ?? bt.durationMin,
+        durationMax: override.durationMax ?? bt.durationMax,
+      };
+    });
   },
 }));

@@ -1006,6 +1006,24 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     durationMin: 60,
     durationMax: 90,
   },
+  {
+    id: 'srp-default',
+    label: 'SRP',
+    description: 'Scaling & Root Planing - greater than $300',
+    minimumAmount: 300,
+    appliesToRole: 'HYGIENIST',
+    durationMin: 60,
+    durationMax: 90,
+  },
+  {
+    id: 'npe-doc-default',
+    label: 'NP',
+    description: 'New Patient - comprehensive exam and records',
+    minimumAmount: 300,
+    appliesToRole: 'DOCTOR',
+    durationMin: 45,
+    durationMax: 60,
+  },
 ];
 
 export const defaultRules: ScheduleRules = {

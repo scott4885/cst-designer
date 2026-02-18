@@ -145,19 +145,48 @@ export default function TemplateBuilderPage() {
     );
   }
 
-  // Convert providers to ScheduleGrid format
-  const providers: ProviderInput[] =
-    currentOffice.providers?.map((p) => ({
-      id: p.id,
-      name: p.name,
-      role: p.role,
-      color: p.color,
-    })) || [];
+  // Convert providers to ScheduleGrid format - expand multi-op doctors into separate display columns
+  // Multi-op providers get virtual IDs: "${id}::${op}" so each op has its own column
+  const providers: ProviderInput[] = [];
+  for (const p of (currentOffice.providers || [])) {
+    const ops = p.operatories || [];
+    if (ops.length > 1) {
+      // Multi-op: create one display column per operatory with virtual ID
+      ops.forEach((op) => {
+        providers.push({
+          id: `${p.id}::${op}`,
+          name: p.name,
+          role: p.role,
+          color: p.color,
+          operatories: [op],
+        });
+      });
+    } else {
+      providers.push({
+        id: p.id,
+        name: p.name,
+        role: p.role,
+        color: p.color,
+        operatories: ops.length > 0 ? ops : ['OP1'],
+      });
+    }
+  }
 
   // Full provider data for store operations
   const fullProviders = currentOffice.providers || [];
-  const blockTypes = currentOffice.blockTypes || [];
+  // Use office-specific block types when available, otherwise undefined to let BlockPicker use the global library
+  const blockTypes = (currentOffice.blockTypes && currentOffice.blockTypes.length > 0)
+    ? currentOffice.blockTypes
+    : undefined;
+  const blockTypesForStore = currentOffice.blockTypes || [];
   const timeIncrement = currentOffice.timeIncrement || 10;
+
+  // Build set of multi-op provider IDs for virtual ID conversion
+  const multiOpProviderIds = new Set<string>(
+    (currentOffice.providers || [])
+      .filter(p => (p.operatories || []).length > 1)
+      .map(p => p.id)
+  );
 
   // Convert schedule to TimeSlotOutput format for ScheduleGrid
   const timeSlots: TimeSlotOutput[] = [];
@@ -168,8 +197,13 @@ export default function TemplateBuilderPage() {
       if (!slotsByTime[slot.time]) {
         slotsByTime[slot.time] = [];
       }
+      // For multi-op providers, use virtual provider ID to separate operatory columns
+      const displayProviderId = multiOpProviderIds.has(slot.providerId)
+        ? `${slot.providerId}::${slot.operatory}`
+        : slot.providerId;
+
       slotsByTime[slot.time].push({
-        providerId: slot.providerId,
+        providerId: displayProviderId,
         staffingCode: slot.staffingCode || undefined,
         blockLabel: slot.blockLabel || undefined,
         blockTypeId: slot.blockTypeId || undefined,
@@ -353,24 +387,27 @@ export default function TemplateBuilderPage() {
     }
   };
 
+  // Strip virtual multi-op suffix from provider ID to get the real ID
+  const getRealProviderId = (id: string) => id.includes('::') ? id.split('::')[0] : id;
+
   // Interactive schedule editing handlers
   const handleAddBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => {
-    placeBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypes);
+    placeBlockInDay(activeDay, time, getRealProviderId(providerId), blockType, durationSlots, fullProviders, blockTypesForStore);
     toast.success(`Added ${blockType.label} block`);
   };
 
   const handleRemoveBlock = (time: string, providerId: string) => {
-    removeBlockInDay(activeDay, time, providerId, fullProviders, blockTypes);
+    removeBlockInDay(activeDay, time, getRealProviderId(providerId), fullProviders, blockTypesForStore);
     toast.success("Block removed");
   };
 
   const handleMoveBlock = (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => {
-    moveBlockInDay(activeDay, fromTime, fromProviderId, toTime, toProviderId, fullProviders, blockTypes);
+    moveBlockInDay(activeDay, fromTime, getRealProviderId(fromProviderId), toTime, getRealProviderId(toProviderId), fullProviders, blockTypesForStore);
     toast.success("Block moved");
   };
 
   const handleUpdateBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => {
-    updateBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypes);
+    updateBlockInDay(activeDay, time, getRealProviderId(providerId), blockType, durationSlots, fullProviders, blockTypesForStore);
     toast.success(`Block updated to ${blockType.label}`);
   };
 
@@ -692,7 +729,7 @@ export default function TemplateBuilderPage() {
           {currentDaySchedule && (
             <ProductionMixChart
               schedule={currentDaySchedule}
-              blockTypes={blockTypes}
+              blockTypes={blockTypesForStore}
               providers={fullProviders}
             />
           )}
@@ -708,7 +745,7 @@ export default function TemplateBuilderPage() {
           officeName={currentOffice.name}
           schedule={currentDaySchedule}
           providers={fullProviders}
-          blockTypes={blockTypes}
+          blockTypes={blockTypesForStore}
           timeIncrement={timeIncrement}
         />
       )}

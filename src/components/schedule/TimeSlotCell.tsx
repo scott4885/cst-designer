@@ -77,6 +77,28 @@ export default function TimeSlotCell({
     );
   }
 
+  // Staffing code cell - extremely narrow, single char
+  if (staffingCode !== undefined && !blockLabel) {
+    return (
+      <div
+        className={`flex items-center justify-center w-7 min-h-[28px] px-0 py-1.5 ${
+          isBreak ? "bg-muted/40" : ""
+        }`}
+        style={providerColor && !isBreak ? {
+          backgroundColor: providerColor + "20",
+          borderLeft: `2px solid ${providerColor}`,
+        } : {}}
+      >
+        {staffingCode && !isBreak && (
+          <span className="text-[10px] font-bold text-foreground/80">{staffingCode}</span>
+        )}
+        {isDrExam && !isBreak && (
+          <span className="text-[8px] text-blue-600">Dr</span>
+        )}
+      </div>
+    );
+  }
+
   // Provider cell with data
   const cellStyle = providerColor
     ? {

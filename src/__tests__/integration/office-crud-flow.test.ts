@@ -34,7 +34,7 @@ describe('Office CRUD Flow Integration', () => {
         // Ignore if already deleted
       }
     }
-    await prisma.$disconnect();
+    if (prisma) await prisma.$disconnect();
   });
 
   it('should complete full CRUD cycle successfully', async () => {

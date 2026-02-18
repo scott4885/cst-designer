@@ -347,35 +347,63 @@ export default function ScheduleGrid({
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead className="sticky top-0 bg-surface z-20">
+              {/* Row 1: Operatory name header */}
+              <tr className="border-b border-border/50">
+                <th className="px-2 py-1 text-[10px] font-medium text-muted-foreground bg-surface w-20 text-left">
+                  Operatory
+                </th>
+                {providers.map((provider) => {
+                  const opName = provider.operatories?.[0] || '—';
+                  const staffCode = provider.role === 'DOCTOR' ? 'D' : provider.role === 'HYGIENIST' ? 'H' : 'A';
+                  return (
+                    <th
+                      key={`op-${provider.id}`}
+                      colSpan={2}
+                      className="px-2 py-1 text-center bg-surface"
+                      style={{ borderBottom: '2px solid var(--border)' }}
+                    >
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border"
+                          style={{ backgroundColor: provider.color + '20', borderColor: provider.color + '60', color: provider.color }}>
+                          {opName}
+                        </span>
+                        <span className="text-[10px] font-bold px-1 rounded bg-muted text-muted-foreground">
+                          {staffCode}
+                        </span>
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+              {/* Row 2: Provider name header */}
               <tr>
-                <th className="px-3 py-3 text-sm font-semibold text-foreground border-b-2 border-border bg-surface w-20">
+                <th className="px-3 py-2 text-sm font-semibold text-foreground border-b-2 border-border bg-surface w-20">
                   Time
                 </th>
                 {providers.map((provider) => (
                   <th
                     key={provider.id}
                     colSpan={2}
-                    className="px-3 py-3 text-sm font-semibold text-foreground border-b-2 border-border bg-surface"
+                    className="px-3 py-2 text-sm font-semibold text-foreground border-b-2 border-border bg-surface"
                   >
                     <div className="text-center">
-                      <div className="font-semibold">{provider.name}</div>
-                      {provider.operatories && provider.operatories.length > 0 && (
-                        <div className="text-[10px] font-normal text-muted-foreground mt-0.5">
-                          {provider.operatories.join(', ')}
-                        </div>
-                      )}
+                      <div className="font-semibold text-xs"
+                        style={{ color: provider.color }}>
+                        {provider.name}
+                      </div>
                     </div>
                   </th>
                 ))}
               </tr>
+              {/* Row 3: Staffing / Block type sub-headers */}
               <tr>
                 <th className="border-b border-border bg-surface"></th>
                 {providers.map((provider) => (
                   <Fragment key={provider.id}>
-                    <th className="px-3 py-2 text-xs text-muted-foreground border-b border-border bg-surface min-w-[100px]">
-                      Staffing
+                    <th className="px-1 py-1 text-[10px] text-muted-foreground border-b border-border bg-surface w-7 text-center">
+                      S
                     </th>
-                    <th className="px-3 py-2 text-xs text-muted-foreground border-b border-border bg-surface min-w-[150px]">
+                    <th className="px-3 py-1 text-[10px] text-muted-foreground border-b border-border bg-surface min-w-[150px]">
                       Block Type
                     </th>
                   </Fragment>

@@ -3,6 +3,7 @@ import { GenerationResult, BlockTypeInput, ProviderInput } from '@/lib/engine/ty
 import { getSchedulesForOffice, saveSchedulesForOffice } from '@/lib/local-storage';
 import { calculateProductionSummary } from '@/lib/engine/calculator';
 import { detectConflicts } from '@/lib/engine/stagger';
+import { parseAmountFromLabel } from '@/lib/engine/generator';
 
 interface ScheduleState {
   generatedSchedules: Record<string, GenerationResult>; // keyed by dayOfWeek
@@ -46,10 +47,13 @@ function recalcProductionSummary(
 
     const scheduledBlocks = blocks.map(block => {
       const bt = blockTypes.find(b => b.id === block.blockTypeId);
+      const amount = bt != null
+        ? (bt.minimumAmount ?? 0)
+        : parseAmountFromLabel(block.blockLabel);
       return {
         blockTypeId: block.blockTypeId,
         blockLabel: block.blockLabel,
-        amount: bt?.minimumAmount || 0,
+        amount,
       };
     });
 

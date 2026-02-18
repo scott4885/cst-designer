@@ -25,7 +25,8 @@ export default function BlockPicker({
   const ref = useRef<HTMLDivElement>(null);
   const libraryBlockTypes = useBlockTypeStore((s) => s.blockTypes);
 
-  // Use prop block types when provided; fall back to global library
+  // Use prop block types when provided; fall back to global library when prop is null/undefined
+  // Note: if propBlockTypes is an explicit empty array [], we don't fall back (no blocks = null render)
   const blockTypes = propBlockTypes ?? libraryBlockTypes;
 
   // Close on click outside

@@ -99,20 +99,39 @@ function blockAppliesToProvider(bt: BlockTypeInput, provider: ProviderInput): bo
 
 interface ProviderSlots {
   provider: ProviderInput;
-  /** Indices into the master slots array for this provider, in time order */
+  /** Indices into the master slots array for this provider+operatory, in time order */
   indices: number[];
+  operatory: string;
 }
 
+/** Build a map from "providerId::operatory" → ProviderSlots */
 function buildProviderSlotMap(slots: TimeSlotOutput[], providers: ProviderInput[]): Map<string, ProviderSlots> {
   const map = new Map<string, ProviderSlots>();
   for (const p of providers) {
-    map.set(p.id, { provider: p, indices: [] });
+    const ops = p.operatories.length > 0 ? p.operatories : ['OP1'];
+    for (const op of ops) {
+      const key = `${p.id}::${op}`;
+      map.set(key, { provider: p, indices: [], operatory: op });
+    }
   }
   for (let i = 0; i < slots.length; i++) {
-    const ps = map.get(slots[i].providerId);
+    const slot = slots[i];
+    const key = `${slot.providerId}::${slot.operatory}`;
+    const ps = map.get(key);
     if (ps) ps.indices.push(i);
   }
   return map;
+}
+
+/** Get all ProviderSlots entries for a given providerId (across all ops) */
+function getProviderOpSlots(psMap: Map<string, ProviderSlots>, providerId: string): ProviderSlots[] {
+  const result: ProviderSlots[] = [];
+  for (const [key, ps] of psMap) {
+    if (key.startsWith(`${providerId}::`)) {
+      result.push(ps);
+    }
+  }
+  return result;
 }
 
 /** Find contiguous available slot ranges for a provider */
@@ -318,23 +337,26 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
   const warnings: string[] = [];
   const slots: TimeSlotOutput[] = [];
 
-  // ─── Step 1: Create empty time slots for every provider ───
+  // ─── Step 1: Create empty time slots for every provider × operatory ───
   for (const provider of providers) {
     const timeSlots = generateTimeSlots(provider.workingStart, provider.workingEnd, timeIncrement);
+    // Multi-op: create a slot sequence for EACH operatory
+    const operatories = provider.operatories.length > 0 ? provider.operatories : ['OP1'];
 
-    for (const time of timeSlots) {
-      const operatory = provider.operatories[0] || 'OP1';
-      const isLunch = isLunchTime(time, provider.lunchStart, provider.lunchEnd);
+    for (const operatory of operatories) {
+      for (const time of timeSlots) {
+        const isLunch = isLunchTime(time, provider.lunchStart, provider.lunchEnd);
 
-      slots.push({
-        time,
-        providerId: provider.id,
-        operatory,
-        staffingCode: isLunch ? null : getStaffingCode(provider.role),
-        blockTypeId: null,
-        blockLabel: isLunch ? 'LUNCH' : null,
-        isBreak: isLunch
-      });
+        slots.push({
+          time,
+          providerId: provider.id,
+          operatory,
+          staffingCode: isLunch ? null : getStaffingCode(provider.role),
+          blockTypeId: null,
+          blockLabel: isLunch ? 'LUNCH' : null,
+          isBreak: isLunch
+        });
+      }
     }
   }
 
@@ -352,14 +374,20 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
     blocksByCategory.get(cat)!.push(bt);
   }
 
-  // ─── Step 2: Place DOCTOR blocks (Rock-Sand-Water order) ───
+  // ─── Step 2: Place DOCTOR blocks across ALL operatories ───
   for (const doc of doctors) {
-    placeDoctorBlocks(slots, psMap, doc, blocksByCategory, rules, timeIncrement, warnings);
+    const opSlots = getProviderOpSlots(psMap, doc.id);
+    for (const ps of opSlots) {
+      placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings);
+    }
   }
 
-  // ─── Step 3: Place HYGIENIST blocks (SRP morning, PM, Recare filling) ───
+  // ─── Step 3: Place HYGIENIST blocks across all operatories ───
   for (let i = 0; i < hygienists.length; i++) {
-    placeHygienistBlocks(slots, psMap, hygienists[i], i, hygienists.length, blocksByCategory, rules, timeIncrement, warnings);
+    const opSlots = getProviderOpSlots(psMap, hygienists[i].id);
+    for (const ps of opSlots) {
+      placeHygienistBlocks(slots, ps, hygienists[i], i, hygienists.length, blocksByCategory, rules, timeIncrement, warnings);
+    }
   }
 
   // ─── Step 4: Fill ANY remaining gaps ───
@@ -388,14 +416,13 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
 
 function placeDoctorBlocks(
   slots: TimeSlotOutput[],
-  psMap: Map<string, ProviderSlots>,
+  ps: ProviderSlots,
   doc: ProviderInput,
   blocksByCategory: Map<string, BlockTypeInput[]>,
   rules: ScheduleRules,
   timeIncrement: number,
   warnings: string[]
 ): void {
-  const ps = psMap.get(doc.id)!;
   const targets = calculateProductionTargets(doc);
 
   // Resolve block types for each category
@@ -562,16 +589,41 @@ function placeDoctorBlocks(
     }
   }
 
-  // 2k. Production check — if total < 75% target, add more MP blocks
+  // 2k. Goal-driven gap fill — work backwards from target to select best block type
+  // Sort available blocks by production per slot (descending) to maximize efficiency
   let safety = 0;
-  while (totalScheduled < targets.target75 && mpBlock && safety < 10) {
+  while (totalScheduled < targets.target75 && safety < 15) {
     safety++;
-    const slotsNeeded = Math.ceil(mpBlock.durationMin / timeIncrement);
+    const gap = targets.target75 - totalScheduled;
+
+    // Pick the block type that best fills the remaining gap
+    // Prefer HP if gap is large, MP if medium, ER/NP if small
+    const candidateBlocks: { block: BlockTypeInput; priority: number }[] = [];
+    
+    if (hpBlocks.length > 0 && gap >= (hpBlocks[0].minimumAmount || 800)) {
+      hpBlocks.forEach(b => candidateBlocks.push({ block: b, priority: 3 }));
+    }
+    if (mpBlock && gap >= (mpBlock.minimumAmount || 200)) {
+      candidateBlocks.push({ block: mpBlock, priority: 2 });
+    }
+    if (erBlock && gap >= (erBlock.minimumAmount || 100)) {
+      candidateBlocks.push({ block: erBlock, priority: 1 });
+    }
+    if (candidateBlocks.length === 0 && mpBlock) {
+      candidateBlocks.push({ block: mpBlock, priority: 0 });
+    }
+    if (candidateBlocks.length === 0) break;
+
+    // Use highest-priority block (ties broken by production value)
+    candidateBlocks.sort((a, b) => b.priority - a.priority || (b.block.minimumAmount || 0) - (a.block.minimumAmount || 0));
+    const selected = candidateBlocks[0].block;
+
+    const slotsNeeded = Math.ceil(selected.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     if (ranges.length === 0) break;
 
-    const amount = mpBlock.minimumAmount || mpMinPerBlock;
-    placeBlockInSlots(slots, ranges[0], mpBlock, doc, makeLabel(mpBlock, amount));
+    const amount = selected.minimumAmount || mpMinPerBlock;
+    placeBlockInSlots(slots, ranges[0], selected, doc, makeLabel(selected, amount));
     totalScheduled += amount;
   }
 
@@ -586,7 +638,7 @@ function placeDoctorBlocks(
 
 function placeHygienistBlocks(
   slots: TimeSlotOutput[],
-  psMap: Map<string, ProviderSlots>,
+  ps: ProviderSlots,
   hyg: ProviderInput,
   hygIndex: number,
   totalHygienists: number,
@@ -595,8 +647,6 @@ function placeHygienistBlocks(
   timeIncrement: number,
   warnings: string[]
 ): void {
-  const ps = psMap.get(hyg.id)!;
-
   const srpBlock = getBlockForCategory('SRP', blocksByCategory, hyg);
   const pmBlock = getBlockForCategory('PM', blocksByCategory, hyg);
   const recareBlock = getBlockForCategory('RECARE', blocksByCategory, hyg);
@@ -669,8 +719,20 @@ function fillRemainingDoctorSlots(
   timeIncrement: number
 ): void {
   for (const doc of doctors) {
-    const ps = psMap.get(doc.id)!;
-    
+    const opSlotsList = getProviderOpSlots(psMap, doc.id);
+    for (const ps of opSlotsList) {
+      fillDocOpSlots(slots, ps, doc, blocksByCategory, timeIncrement);
+    }
+  }
+}
+
+function fillDocOpSlots(
+  slots: TimeSlotOutput[],
+  ps: ProviderSlots,
+  doc: ProviderInput,
+  blocksByCategory: Map<string, BlockTypeInput[]>,
+  timeIncrement: number
+): void {
     // Get all available block types for this doctor
     const hpBlocks = getAllBlocksForCategory('HP', blocksByCategory, doc);
     const mpBlocks = getAllBlocksForCategory('MP', blocksByCategory, doc);
@@ -722,7 +784,6 @@ function fillRemainingDoctorSlots(
       placeBlockInSlots(slots, targetRange, selectedBlock, doc, makeLabel(selectedBlock));
     }
     // NOTE: intentionally leave ~15% of slots empty for click-to-add
-  }
 }
 
 function fillRemainingHygienistSlots(
@@ -733,7 +794,20 @@ function fillRemainingHygienistSlots(
   timeIncrement: number
 ): void {
   for (const hyg of hygienists) {
-    const ps = psMap.get(hyg.id)!;
+    const opSlotsList = getProviderOpSlots(psMap, hyg.id);
+    for (const ps of opSlotsList) {
+      fillHygOpSlots(slots, ps, hyg, blocksByCategory, timeIncrement);
+    }
+  }
+}
+
+function fillHygOpSlots(
+  slots: TimeSlotOutput[],
+  ps: ProviderSlots,
+  hyg: ProviderInput,
+  blocksByCategory: Map<string, BlockTypeInput[]>,
+  timeIncrement: number
+): void {
     
     // Get all available block types for this hygienist
     const recareBlocks = getAllBlocksForCategory('RECARE', blocksByCategory, hyg);
@@ -781,11 +855,11 @@ function fillRemainingHygienistSlots(
       placeBlockInSlots(slots, ranges[0], selectedBlock, hyg, makeLabel(selectedBlock));
     }
     // NOTE: intentionally leave ~15% of slots empty for click-to-add
-  }
 }
 
 // ---------------------------------------------------------------------------
 // Doctor Matrixing — D/A codes and hygiene exam markers
+// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 
 function addDoctorMatrixing(
@@ -799,7 +873,8 @@ function addDoctorMatrixing(
 
   // For each hygienist, find blocks mid-way through where doctor does exam
   for (const hyg of hygienists) {
-    const ps = psMap.get(hyg.id)!;
+    const opSlotsList = getProviderOpSlots(psMap, hyg.id);
+    for (const ps of opSlotsList) {
     const hygSlots = ps.indices;
 
     // Find the start of each block in hygienist's schedule
@@ -837,6 +912,7 @@ function addDoctorMatrixing(
         slots[hygSlots[examPos]].staffingCode = 'D';
       }
     }
+    } // end for opSlotsList
   }
 }
 
@@ -844,38 +920,50 @@ function addDoctorMatrixing(
 // Production Summary
 // ---------------------------------------------------------------------------
 
+/** Parse the dollar amount from a block label like "HP>$1200" */
+export function parseAmountFromLabel(label: string): number {
+  const match = label.match(/>?\$(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
 function calculateAllProductionSummaries(
   slots: TimeSlotOutput[],
   providers: ProviderInput[],
   blockTypes: BlockTypeInput[]
 ): ProviderProductionSummary[] {
   return providers.map(provider => {
+    // Include all slots for this provider (including multi-op slots)
     const providerSlots = slots.filter(s => s.providerId === provider.id && s.blockTypeId !== null && !s.isBreak);
 
-    // Group consecutive slots by blockTypeId to identify distinct blocks
-    const blocks: { blockTypeId: string; blockLabel: string; slotCount: number }[] = [];
-    let currentBlockTypeId: string | null = null;
+    // Group consecutive slots by (blockTypeId, operatory) to identify distinct blocks
+    const blocks: { blockTypeId: string; blockLabel: string; slotCount: number; operatory: string }[] = [];
+    let currentKey: string | null = null;
 
     for (const slot of providerSlots) {
-      if (slot.blockTypeId !== currentBlockTypeId) {
+      const key = `${slot.blockTypeId}::${slot.operatory}`;
+      if (key !== currentKey) {
         blocks.push({
           blockTypeId: slot.blockTypeId!,
           blockLabel: slot.blockLabel || '',
-          slotCount: 1
+          slotCount: 1,
+          operatory: slot.operatory,
         });
-        currentBlockTypeId = slot.blockTypeId;
+        currentKey = key;
       } else {
         blocks[blocks.length - 1].slotCount++;
       }
     }
 
-    // Convert to scheduled block format
+    // Convert to scheduled block format — use block label amount as fallback
     const scheduledBlocks = blocks.map(block => {
       const blockType = blockTypes.find(bt => bt.id === block.blockTypeId);
+      const amount = blockType != null
+        ? (blockType.minimumAmount ?? 0)
+        : parseAmountFromLabel(block.blockLabel);
       return {
         blockTypeId: block.blockTypeId,
         blockLabel: block.blockLabel,
-        amount: blockType?.minimumAmount || 0
+        amount,
       };
     });
 
