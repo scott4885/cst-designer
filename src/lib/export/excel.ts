@@ -51,7 +51,7 @@ export async function generateExcel(input: ExportInput): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
 
   // Set workbook properties
-  workbook.creator = 'Schedule Template Designer';
+  workbook.creator = 'Custom Schedule Template';
   workbook.created = new Date();
   workbook.modified = new Date();
   workbook.subject = `Customized Schedule Template - ${input.officeName}`;

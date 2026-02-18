@@ -18,7 +18,7 @@ export default function Dashboard() {
 
   // Set page title
   useEffect(() => {
-    document.title = "Schedule Template Designer";
+    document.title = "Custom Schedule Template";
   }, []);
 
   // Fetch offices on mount

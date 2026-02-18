@@ -24,6 +24,13 @@ export default function BlockPicker({
 }: BlockPickerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const libraryBlockTypes = useBlockTypeStore((s) => s.blockTypes);
+  const initFromStorage = useBlockTypeStore((s) => s.initFromStorage);
+
+  // Ensure the global library is hydrated from localStorage so the picker
+  // always shows the same block types as the Appointment Library page.
+  useEffect(() => {
+    initFromStorage();
+  }, [initFromStorage]);
 
   // Use prop block types when provided; fall back to global library when prop is null/undefined
   // Note: if propBlockTypes is an explicit empty array [], we don't fall back (no blocks = null render)

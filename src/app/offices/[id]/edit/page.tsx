@@ -37,6 +37,15 @@ const editOfficeSchema = z.object({
       enabledBlockTypeIds: z.array(z.string()).optional(),
     })
   ).min(1, "Add at least one provider"),
+  scheduleRules: z.object({
+    npModel: z.enum(["DOCTOR_ONLY", "HYGIENIST_ONLY", "EITHER"]),
+    npBlocksPerDay: z.number().min(1).max(5),
+    srpBlocksPerDay: z.number().min(0).max(5),
+    hpPlacement: z.enum(["MORNING", "AFTERNOON", "ANY"]),
+    doubleBooking: z.boolean(),
+    matrixing: z.boolean(),
+    emergencyHandling: z.enum(["DEDICATED", "FLEX", "ACCESS_BLOCKS"]),
+  }).optional(),
 });
 
 type EditOfficeFormData = z.infer<typeof editOfficeSchema>;
@@ -66,6 +75,15 @@ export default function EditOfficePage() {
     defaultValues: {
       name: "",
       providers: [],
+      scheduleRules: {
+        npModel: "DOCTOR_ONLY",
+        npBlocksPerDay: 2,
+        srpBlocksPerDay: 2,
+        hpPlacement: "MORNING",
+        doubleBooking: true,
+        matrixing: true,
+        emergencyHandling: "ACCESS_BLOCKS",
+      },
     },
   });
 
@@ -106,6 +124,7 @@ export default function EditOfficePage() {
   // Populate form when office loads
   useEffect(() => {
     if (currentOffice) {
+      const rules = (currentOffice as any).rules;
       reset({
         name: currentOffice.name,
         providers: currentOffice.providers?.map(p => ({
@@ -122,6 +141,15 @@ export default function EditOfficePage() {
           seesNewPatients: p.seesNewPatients !== false,
           enabledBlockTypeIds: p.enabledBlockTypeIds || [],
         })) || [],
+        scheduleRules: {
+          npModel: rules?.npModel || "DOCTOR_ONLY",
+          npBlocksPerDay: rules?.npBlocksPerDay ?? 2,
+          srpBlocksPerDay: rules?.srpBlocksPerDay ?? 2,
+          hpPlacement: rules?.hpPlacement || "MORNING",
+          doubleBooking: rules?.doubleBooking ?? true,
+          matrixing: rules?.matrixing ?? true,
+          emergencyHandling: rules?.emergencyHandling || "ACCESS_BLOCKS",
+        },
       });
     }
   }, [currentOffice, reset]);
@@ -140,6 +168,8 @@ export default function EditOfficePage() {
       seesNewPatients: true,
       enabledBlockTypeIds: [],
     });
+    // Scroll to bottom after adding
+    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
   };
 
   const onSubmit = async (data: EditOfficeFormData) => {
@@ -155,9 +185,20 @@ export default function EditOfficePage() {
         id: provider.id || generateId(),
       }));
 
+      const rules = data.scheduleRules ? {
+        npModel: data.scheduleRules.npModel,
+        npBlocksPerDay: data.scheduleRules.npBlocksPerDay,
+        srpBlocksPerDay: data.scheduleRules.srpBlocksPerDay,
+        hpPlacement: data.scheduleRules.hpPlacement,
+        doubleBooking: data.scheduleRules.doubleBooking,
+        matrixing: data.scheduleRules.matrixing,
+        emergencyHandling: data.scheduleRules.emergencyHandling,
+      } : undefined;
+
       const updatedOffice = await updateOffice(officeId, {
         name: data.name,
         providers,
+        ...(rules ? { rules } : {}),
       });
 
       if (!updatedOffice) {
@@ -424,6 +465,126 @@ export default function EditOfficePage() {
                 </div>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        {/* Schedule Rules */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Schedule Rules</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>New Patient Model</Label>
+                <Select
+                  onValueChange={(value) => setValue("scheduleRules.npModel", value as any)}
+                  defaultValue={watch("scheduleRules.npModel") || "DOCTOR_ONLY"}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DOCTOR_ONLY">Doctor Only</SelectItem>
+                    <SelectItem value="HYGIENIST_ONLY">Hygienist Only</SelectItem>
+                    <SelectItem value="EITHER">Either</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>HP Placement</Label>
+                <Select
+                  onValueChange={(value) => setValue("scheduleRules.hpPlacement", value as any)}
+                  defaultValue={watch("scheduleRules.hpPlacement") || "MORNING"}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MORNING">Morning</SelectItem>
+                    <SelectItem value="AFTERNOON">Afternoon</SelectItem>
+                    <SelectItem value="ANY">Any</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>NP Blocks Per Day</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={5}
+                  {...register("scheduleRules.npBlocksPerDay", { valueAsNumber: true })}
+                  placeholder="2"
+                />
+              </div>
+              <div>
+                <Label>SRP Blocks Per Day</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={5}
+                  {...register("scheduleRules.srpBlocksPerDay", { valueAsNumber: true })}
+                  placeholder="2"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Emergency Handling</Label>
+              <Select
+                onValueChange={(value) => setValue("scheduleRules.emergencyHandling", value as any)}
+                defaultValue={watch("scheduleRules.emergencyHandling") || "ACCESS_BLOCKS"}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACCESS_BLOCKS">Access Blocks</SelectItem>
+                  <SelectItem value="DEDICATED">Dedicated</SelectItem>
+                  <SelectItem value="FLEX">Flex</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center space-x-3">
+                <Switch
+                  id="edit-double-booking"
+                  key={`double-booking-${watch("scheduleRules.doubleBooking")}`}
+                  checked={watch("scheduleRules.doubleBooking") === true}
+                  onCheckedChange={(checked) => setValue("scheduleRules.doubleBooking", checked, { shouldDirty: true })}
+                />
+                <div>
+                  <Label htmlFor="edit-double-booking" className="cursor-pointer font-medium">
+                    Allow Double Booking
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    When enabled, doctors can be scheduled across multiple operatories simultaneously.
+                    When disabled, a single-column schedule is generated.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Switch
+                  id="edit-matrixing"
+                  key={`matrixing-${watch("scheduleRules.matrixing")}`}
+                  checked={watch("scheduleRules.matrixing") === true}
+                  onCheckedChange={(checked) => setValue("scheduleRules.matrixing", checked, { shouldDirty: true })}
+                />
+                <div>
+                  <Label htmlFor="edit-matrixing" className="cursor-pointer font-medium">
+                    Use Matrixing (D/A Codes)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    When enabled, dentist schedules will include assistant (A) and doctor-exam (D) staffing codes for hygiene blocks.
+                  </p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

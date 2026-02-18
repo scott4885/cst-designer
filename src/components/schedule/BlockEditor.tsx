@@ -3,36 +3,64 @@
 import { useState, useEffect, useRef } from "react";
 import { Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { BlockTypeInput } from "@/lib/engine/types";
+import { useBlockTypeStore } from "@/store/block-type-store";
 
 interface BlockEditorProps {
-  blockTypes: BlockTypeInput[];
+  /** Office-specific block types. When undefined/empty, falls back to the global Appointment Library. */
+  blockTypes?: BlockTypeInput[];
   providerRole: "DOCTOR" | "HYGIENIST";
   currentBlockTypeId: string;
   currentSlotCount: number;
+  /** Current per-block production override (null = use block type default) */
+  currentCustomProductionAmount?: number | null;
   timeIncrement: number;
-  onUpdate: (blockType: BlockTypeInput, durationSlots: number) => void;
+  onUpdate: (blockType: BlockTypeInput, durationSlots: number, customProductionAmount?: number | null) => void;
   onDelete: () => void;
   onClose: () => void;
 }
 
 export default function BlockEditor({
-  blockTypes,
+  blockTypes: propBlockTypes,
   providerRole,
   currentBlockTypeId,
   currentSlotCount,
+  currentCustomProductionAmount,
   timeIncrement,
   onUpdate,
   onDelete,
   onClose,
 }: BlockEditorProps) {
   const ref = useRef<HTMLDivElement>(null);
+
+  // Fall back to global library when no office-specific block types are provided (Issue 1 fix)
+  const libraryBlockTypes = useBlockTypeStore((s) => s.blockTypes);
+  const blockTypes: BlockTypeInput[] = (propBlockTypes && propBlockTypes.length > 0)
+    ? propBlockTypes
+    : libraryBlockTypes;
+
   const [selectedBlockTypeId, setSelectedBlockTypeId] = useState(currentBlockTypeId);
   const [slotCount, setSlotCount] = useState(currentSlotCount);
+  const [customAmount, setCustomAmount] = useState<string>(
+    currentCustomProductionAmount != null
+      ? String(currentCustomProductionAmount)
+      : ""
+  );
 
   const applicableBlocks = blockTypes.filter(
     (bt) => bt.appliesToRole === providerRole || bt.appliesToRole === "BOTH"
   );
+
+  // If the current block type ID isn't in the applicable list, include it anyway
+  // so the editor can display and apply it
+  const currentBtInList = applicableBlocks.find((bt) => bt.id === selectedBlockTypeId);
+  const allRelevantBlocks = currentBtInList
+    ? applicableBlocks
+    : [
+        ...blockTypes.filter((bt) => bt.id === selectedBlockTypeId),
+        ...applicableBlocks,
+      ];
 
   const selectedBlock = blockTypes.find((bt) => bt.id === selectedBlockTypeId);
   const currentBlock = blockTypes.find((bt) => bt.id === currentBlockTypeId);
@@ -56,12 +84,32 @@ export default function BlockEditor({
     };
   }, [onClose]);
 
+  const resolvedAmount = customAmount !== "" ? Number(customAmount) : (selectedBlock?.minimumAmount ?? null);
+
   const handleApply = () => {
     const bt = blockTypes.find((b) => b.id === selectedBlockTypeId);
-    if (bt) {
-      onUpdate(bt, slotCount);
-    }
+    if (!bt) return;
+
+    const customProductionAmount = customAmount !== ""
+      ? Number(customAmount)
+      : (bt.minimumAmount ?? null);
+
+    onUpdate(bt, slotCount, customProductionAmount);
   };
+
+  // Determine if anything changed (for enabling Apply button)
+  // Case 1: user typed a new non-empty value different from the stored (or default) amount
+  const typedAmountChanged = customAmount !== "" && Number(customAmount) !== (currentCustomProductionAmount ?? selectedBlock?.minimumAmount ?? 0);
+  // Case 2: user cleared the field to reset a custom amount back toward the default
+  const clearedCustomAmount =
+    customAmount === "" &&
+    currentCustomProductionAmount != null &&
+    currentCustomProductionAmount !== (selectedBlock?.minimumAmount ?? null);
+  const amountChanged = typedAmountChanged || clearedCustomAmount;
+  const hasChanges =
+    selectedBlockTypeId !== currentBlockTypeId ||
+    slotCount !== currentSlotCount ||
+    amountChanged;
 
   const durationMinutes = slotCount * timeIncrement;
 
@@ -91,10 +139,12 @@ export default function BlockEditor({
               const bt = blockTypes.find((b) => b.id === e.target.value);
               if (bt) {
                 setSlotCount(Math.ceil(bt.durationMin / timeIncrement));
+                // Reset custom amount to the new block type's default
+                setCustomAmount("");
               }
             }}
           >
-            {applicableBlocks.map((bt) => (
+            {allRelevantBlocks.map((bt) => (
               <option key={bt.id} value={bt.id}>
                 {bt.label}
                 {bt.minimumAmount ? ` (>$${bt.minimumAmount})` : ""}
@@ -124,17 +174,40 @@ export default function BlockEditor({
           </div>
         </div>
 
-        {/* Production minimum */}
-        {selectedBlock?.minimumAmount ? (
-          <div>
-            <label className="text-xs text-muted-foreground font-medium block mb-1">
-              Production Minimum
-            </label>
-            <div className="text-sm font-semibold text-foreground">
-              ${selectedBlock.minimumAmount.toLocaleString()}
-            </div>
+        {/* Production minimum — editable per-block override (Issue 6) */}
+        <div>
+          <label className="text-xs text-muted-foreground font-medium block mb-1">
+            Production Minimum ($)
+            <span className="ml-1 text-[10px] text-accent">(per-block override)</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min={0}
+              value={customAmount}
+              onChange={(e) => setCustomAmount(e.target.value)}
+              placeholder={String(selectedBlock?.minimumAmount ?? 0)}
+              className="h-8 text-sm"
+            />
+            {customAmount !== "" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs text-muted-foreground"
+                onClick={() => setCustomAmount("")}
+                title="Reset to default"
+              >
+                Reset
+              </Button>
+            )}
           </div>
-        ) : null}
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Library default: ${selectedBlock?.minimumAmount?.toLocaleString() ?? 0}
+            {customAmount !== "" && Number(customAmount) !== (selectedBlock?.minimumAmount ?? 0) && (
+              <span className="ml-1 text-accent font-medium">→ custom: ${Number(customAmount).toLocaleString()}</span>
+            )}
+          </p>
+        </div>
 
         {/* Action buttons */}
         <div className="flex items-center justify-between pt-2 border-t border-border">
@@ -154,7 +227,7 @@ export default function BlockEditor({
             <Button
               size="sm"
               onClick={handleApply}
-              disabled={selectedBlockTypeId === currentBlockTypeId && slotCount === currentSlotCount}
+              disabled={!hasChanges}
             >
               Apply
             </Button>

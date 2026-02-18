@@ -278,7 +278,7 @@ export default function AppointmentLibraryPage() {
 
   // Initialize from localStorage on mount
   useEffect(() => {
-    document.title = "Appointment Library - Schedule Template Designer";
+    document.title = "Appointment Library - Custom Schedule Template";
     initFromStorage();
   }, [initFromStorage]);
 

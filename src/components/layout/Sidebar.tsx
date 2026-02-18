@@ -23,8 +23,8 @@ export default function Sidebar() {
             <span className="text-accent font-bold text-lg">S</span>
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-foreground">Schedule</h1>
-            <p className="text-xs text-muted-foreground">Template Designer</p>
+            <h1 className="text-sm font-semibold text-foreground">CST</h1>
+            <p className="text-xs text-muted-foreground">Custom Schedule Template</p>
           </div>
         </div>
       </Link>

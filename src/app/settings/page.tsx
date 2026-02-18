@@ -18,7 +18,7 @@ export default function SettingsPage() {
 
   // Load settings from localStorage on mount
   useEffect(() => {
-    document.title = "Settings - Schedule Template Designer";
+    document.title = "Settings - Custom Schedule Template";
     
     const stored = localStorage.getItem("app-settings");
     if (stored) {

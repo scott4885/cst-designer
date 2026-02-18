@@ -49,6 +49,10 @@ export interface TimeSlotOutput {
   blockTypeId: string | null;
   blockLabel: string | null;
   isBreak: boolean;
+  /** Unique ID shared by all slots of the same placed block instance (prevents adjacent same-type blocks from merging) */
+  blockInstanceId?: string | null;
+  /** Per-block override of the production minimum (overrides blockType.minimumAmount for this specific placed block) */
+  customProductionAmount?: number | null;
 }
 
 export interface GenerationResult {

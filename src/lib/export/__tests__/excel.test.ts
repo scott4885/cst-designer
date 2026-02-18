@@ -217,7 +217,7 @@ describe('Excel Export', () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as any);
     
-    expect(workbook.creator).toBe('Schedule Template Designer');
+    expect(workbook.creator).toBe('Custom Schedule Template');
     expect(workbook.subject).toBe('Customized Schedule Template - Smile Cascade');
   });
 

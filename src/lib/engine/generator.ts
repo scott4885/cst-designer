@@ -219,6 +219,22 @@ const DEFAULT_BLOCKS: Record<string, Omit<BlockTypeInput, 'id'>> = {
   RECARE: { label: 'Recare', description: 'Recall/Prophy', minimumAmount: 150, appliesToRole: 'HYGIENIST', durationMin: 60 },
 };
 
+/**
+ * Fallback IDs that MATCH the global Appointment Library (defaultBlockTypes in mock-data.ts).
+ * This ensures generated slots can always be found and edited via the BlockEditor.
+ * Pattern: "{label-slug}-default"   (previously was "default-{category}" which caused mismatches)
+ */
+const FALLBACK_IDS: Record<string, string> = {
+  HP:       'hp-default',
+  NP:       'np-cons-default',
+  MP:       'mp-default',
+  ER:       'er-default',
+  NON_PROD: 'non-prod-default',
+  SRP:      'srp-default',
+  PM:       'pm-default',
+  RECARE:   'recare-default',
+};
+
 function getBlockForCategory(
   category: BlockCategory,
   blocksByCategory: Map<string, BlockTypeInput[]>,
@@ -229,9 +245,10 @@ function getBlockForCategory(
   if (applicable.length > 0) return applicable[0];
 
   // Fallback: create a synthetic default if we have a default definition
+  // IDs match the global Appointment Library so BlockEditor can find them by id
   const def = DEFAULT_BLOCKS[category];
   if (def && (def.appliesToRole === 'BOTH' || def.appliesToRole === provider.role)) {
-    return { id: `default-${category.toLowerCase()}`, ...def };
+    return { id: FALLBACK_IDS[category], ...def };
   }
   return null;
 }
@@ -247,7 +264,7 @@ function getAllBlocksForCategory(
 
   const def = DEFAULT_BLOCKS[category];
   if (def && (def.appliesToRole === 'BOTH' || def.appliesToRole === provider.role)) {
-    return [{ id: `default-${category.toLowerCase()}`, ...def }];
+    return [{ id: FALLBACK_IDS[category], ...def }];
   }
   return [];
 }
@@ -340,8 +357,12 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
   // ─── Step 1: Create empty time slots for every provider × operatory ───
   for (const provider of providers) {
     const timeSlots = generateTimeSlots(provider.workingStart, provider.workingEnd, timeIncrement);
-    // Multi-op: create a slot sequence for EACH operatory
-    const operatories = provider.operatories.length > 0 ? provider.operatories : ['OP1'];
+    // Multi-op: create a slot sequence for EACH operatory.
+    // When doubleBooking is disabled, doctors only use their FIRST operatory (single-column schedule).
+    let allOperatories = provider.operatories.length > 0 ? provider.operatories : ['OP1'];
+    const operatories = (!rules.doubleBooking && provider.role === 'DOCTOR')
+      ? [allOperatories[0]]
+      : allOperatories;
 
     for (const operatory of operatories) {
       for (const time of timeSlots) {

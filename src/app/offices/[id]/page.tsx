@@ -146,28 +146,40 @@ export default function TemplateBuilderPage() {
   }
 
   // Convert providers to ScheduleGrid format - expand multi-op doctors into separate display columns
-  // Multi-op providers get virtual IDs: "${id}::${op}" so each op has its own column
+  // Multi-op providers get virtual IDs: "${id}::${op}" so each op has its own column.
+  // When doubleBooking=false, doctors only get ONE column (their first operatory) since the
+  // generator only creates slots for a single operatory in that case.
+  const doubleBookingEnabled = currentOffice.rules?.doubleBooking !== false;
   const providers: ProviderInput[] = [];
   for (const p of (currentOffice.providers || [])) {
     const ops = p.operatories || [];
-    if (ops.length > 1) {
+    const isDoctor = p.role === 'DOCTOR';
+    // For non-double-booked doctors, only show 1 column regardless of operatory count
+    const displayOps = (!doubleBookingEnabled && isDoctor) ? ops.slice(0, 1) : ops;
+    if (displayOps.length > 1) {
       // Multi-op: create one display column per operatory with virtual ID
-      ops.forEach((op) => {
+      displayOps.forEach((op) => {
         providers.push({
           id: `${p.id}::${op}`,
           name: p.name,
           role: p.role,
           color: p.color,
           operatories: [op],
+          workingStart: p.workingStart,
+          workingEnd: p.workingEnd,
         });
       });
     } else {
+      const singleOp = displayOps.length > 0 ? displayOps[0] : (ops[0] || 'OP1');
       providers.push({
-        id: p.id,
+        // Use virtual ID with operatory when provider has multiple ops but we're showing one
+        id: (ops.length > 1 && !doubleBookingEnabled && isDoctor) ? `${p.id}::${singleOp}` : p.id,
         name: p.name,
         role: p.role,
         color: p.color,
-        operatories: ops.length > 0 ? ops : ['OP1'],
+        operatories: [singleOp],
+        workingStart: p.workingStart,
+        workingEnd: p.workingEnd,
       });
     }
   }
@@ -181,10 +193,17 @@ export default function TemplateBuilderPage() {
   const blockTypesForStore = currentOffice.blockTypes || [];
   const timeIncrement = currentOffice.timeIncrement || 10;
 
-  // Build set of multi-op provider IDs for virtual ID conversion
+  // Build set of multi-op provider IDs for virtual ID conversion.
+  // When doubleBooking=false, doctors with multiple ops are treated as single-op for display purposes.
   const multiOpProviderIds = new Set<string>(
     (currentOffice.providers || [])
-      .filter(p => (p.operatories || []).length > 1)
+      .filter(p => {
+        const hasMultipleOps = (p.operatories || []).length > 1;
+        if (!hasMultipleOps) return false;
+        // Doctors with doubleBooking=false only show 1 column, but their slots still use virtual ID
+        // because the generator assigns slots to the first operatory specifically.
+        return true;
+      })
       .map(p => p.id)
   );
 
@@ -208,6 +227,8 @@ export default function TemplateBuilderPage() {
         blockLabel: slot.blockLabel || undefined,
         blockTypeId: slot.blockTypeId || undefined,
         isBreak: slot.isBreak,
+        blockInstanceId: slot.blockInstanceId ?? null,
+        customProductionAmount: slot.customProductionAmount ?? null,
       });
     });
 
@@ -387,27 +408,29 @@ export default function TemplateBuilderPage() {
     }
   };
 
-  // Strip virtual multi-op suffix from provider ID to get the real ID
-  const getRealProviderId = (id: string) => id.includes('::') ? id.split('::')[0] : id;
-
   // Interactive schedule editing handlers
+  // Note: store functions now accept virtual provider IDs ("realId::OP") for multi-op providers
   const handleAddBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => {
-    placeBlockInDay(activeDay, time, getRealProviderId(providerId), blockType, durationSlots, fullProviders, blockTypesForStore);
-    toast.success(`Added ${blockType.label} block`);
+    const placed = placeBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypesForStore);
+    if (placed) {
+      toast.success(`${blockType.label} block added`);
+    } else {
+      toast.error("Could not place block — slot not found or outside work hours");
+    }
   };
 
   const handleRemoveBlock = (time: string, providerId: string) => {
-    removeBlockInDay(activeDay, time, getRealProviderId(providerId), fullProviders, blockTypesForStore);
+    removeBlockInDay(activeDay, time, providerId, fullProviders, blockTypesForStore);
     toast.success("Block removed");
   };
 
   const handleMoveBlock = (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => {
-    moveBlockInDay(activeDay, fromTime, getRealProviderId(fromProviderId), toTime, getRealProviderId(toProviderId), fullProviders, blockTypesForStore);
+    moveBlockInDay(activeDay, fromTime, fromProviderId, toTime, toProviderId, fullProviders, blockTypesForStore);
     toast.success("Block moved");
   };
 
-  const handleUpdateBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => {
-    updateBlockInDay(activeDay, time, getRealProviderId(providerId), blockType, durationSlots, fullProviders, blockTypesForStore);
+  const handleUpdateBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number, customProductionAmount?: number | null) => {
+    updateBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypesForStore, customProductionAmount);
     toast.success(`Block updated to ${blockType.label}`);
   };
 
@@ -600,12 +623,15 @@ export default function TemplateBuilderPage() {
                     </Link>
                   </div>
                   <div className="space-y-2">
-                    {providers.length === 0 ? (
+                    {(currentOffice.providers || []).length === 0 ? (
                       <p className="text-sm text-muted-foreground italic">
                         No providers configured
                       </p>
                     ) : (
-                      providers.map((provider) => (
+                      // Deduplicate by provider ID so multi-op providers appear only once
+                      Array.from(
+                        new Map((currentOffice.providers || []).map(p => [p.id, p])).values()
+                      ).map((provider) => (
                         <div key={provider.id} className="flex items-center gap-2">
                           <div
                             className="w-3 h-3 rounded-full"
@@ -613,7 +639,14 @@ export default function TemplateBuilderPage() {
                           />
                           <div>
                             <p className="text-sm font-medium">{provider.name}</p>
-                            <p className="text-xs text-muted-foreground">{provider.role}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {provider.role}
+                              {(provider.operatories || []).length > 0 && (
+                                <span className="ml-1 text-muted-foreground/60">
+                                  · {provider.operatories!.join(', ')}
+                                </span>
+                              )}
+                            </p>
                           </div>
                         </div>
                       ))

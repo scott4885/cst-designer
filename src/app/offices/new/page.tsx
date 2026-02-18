@@ -64,13 +64,18 @@ const OPERATORIES = ["OP1", "OP2", "OP3", "OP4", "OP5", "HYG1", "HYG2", "HYG3", 
 const PROVIDER_COLORS = ["#ec8a1b", "#87bcf3", "#f4de37", "#44f2ce", "#ff6b9d", "#9b59b6"];
 
 const DEFAULT_PROCEDURES = [
-  { name: "Crown prep + buildup", duration: 60, role: "Doctor" as const },
-  { name: "Medium production/fillings", duration: 40, role: "Doctor" as const },
-  { name: "NP consult", duration: 40, role: "Doctor" as const },
-  { name: "Emergency (ER)", duration: 25, role: "Doctor" as const },
+  // Doctor procedures — mirrors the global Appointment Library defaults
+  { name: "HP", duration: 60, role: "Doctor" as const },
+  { name: "Crown Prep", duration: 60, role: "Doctor" as const },
+  { name: "MP", duration: 40, role: "Doctor" as const },
+  { name: "NP CONS", duration: 40, role: "Doctor" as const },
+  { name: "NON-PROD", duration: 25, role: "Doctor" as const },
+  { name: "ER", duration: 25, role: "Doctor" as const },
+  // Hygienist procedures
   { name: "Recare", duration: 55, role: "Hygienist" as const },
-  { name: "Perio Maintenance (PM)", duration: 60, role: "Hygienist" as const },
+  { name: "PM", duration: 60, role: "Hygienist" as const },
   { name: "SRP", duration: 75, role: "Hygienist" as const },
+  { name: "NPE", duration: 60, role: "Hygienist" as const },
 ];
 
 function inferMinimumAmount(name: string): number {
@@ -292,7 +297,7 @@ function NewOfficeForm() {
 
   // Set page title
   useEffect(() => {
-    document.title = "New Office - Schedule Template Designer";
+    document.title = "New Office - Custom Schedule Template";
   }, []);
 
   return (
@@ -657,17 +662,31 @@ function NewOfficeForm() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label>Enable Double Booking</Label>
+                  <div>
+                    <Label className="cursor-pointer font-medium">Enable Double Booking</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      When enabled, doctors are scheduled across multiple operatories simultaneously.
+                      When disabled, a single-column schedule is generated per doctor.
+                    </p>
+                  </div>
                   <Switch
-                    onCheckedChange={(checked) => setValue("scheduleRules.doubleBooking", checked)}
+                    id="new-double-booking"
+                    checked={watch("scheduleRules.doubleBooking") === true}
+                    onCheckedChange={(checked) => setValue("scheduleRules.doubleBooking", checked, { shouldDirty: true })}
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label>Enable Matrixing</Label>
+                  <div>
+                    <Label className="cursor-pointer font-medium">Enable Matrixing (D/A Codes)</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      When enabled, dentist schedules include assistant (A) and doctor-exam (D) staffing codes for hygiene blocks.
+                    </p>
+                  </div>
                   <Switch
-                    defaultChecked
-                    onCheckedChange={(checked) => setValue("scheduleRules.matrixing", checked)}
+                    id="new-matrixing"
+                    checked={watch("scheduleRules.matrixing") !== false}
+                    onCheckedChange={(checked) => setValue("scheduleRules.matrixing", checked, { shouldDirty: true })}
                   />
                 </div>
               </CardContent>

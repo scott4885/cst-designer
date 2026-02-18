@@ -20,6 +20,8 @@ interface TimeSlotCellProps {
   conflictTooltip?: string;
   // Dr. Exam indicator (hygienist column with doctor staffing code)
   isDrExam?: boolean;
+  /** When true, this slot falls outside the provider's scheduled work hours — renders with gray background */
+  isOutsideHours?: boolean;
 }
 
 export default function TimeSlotCell({
@@ -37,6 +39,7 @@ export default function TimeSlotCell({
   hasConflict = false,
   conflictTooltip,
   isDrExam = false,
+  isOutsideHours = false,
 }: TimeSlotCellProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -46,6 +49,16 @@ export default function TimeSlotCell({
       <div className="time-slot-cell bg-surface font-medium text-muted-foreground sticky left-0 z-10 text-xs px-2 py-1.5 whitespace-nowrap">
         {time}
       </div>
+    );
+  }
+
+  // Outside provider work hours — gray, non-interactive
+  if (isOutsideHours) {
+    return (
+      <div
+        className="provider-cell px-2 py-1.5 min-h-[28px] bg-muted/60 cursor-not-allowed"
+        title="Outside provider's scheduled hours"
+      />
     );
   }
 

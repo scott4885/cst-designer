@@ -13,6 +13,52 @@ export interface ProviderInput {
   role: string;
   color: string;
   operatories?: string[];
+  /** "07:00" 24-hour format — used to gray out slots outside this provider's shift */
+  workingStart?: string;
+  workingEnd?: string;
+}
+
+/** Convert "HH:MM" 24-hour string to minutes since midnight */
+function hhmToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/**
+ * Convert a display time string to minutes since midnight.
+ * Handles both "07:30" (24-hour) and "7:30 AM" / "7:30 PM" (12-hour AM/PM) formats.
+ */
+function displayTimeToMinutes(t: string): number {
+  // 12-hour AM/PM format: "7:30 AM", "12:00 PM", "1:00 PM", etc.
+  const ampmMatch = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampmMatch) {
+    let h = parseInt(ampmMatch[1], 10);
+    const m = parseInt(ampmMatch[2], 10);
+    const period = ampmMatch[3].toUpperCase();
+    if (period === 'AM' && h === 12) h = 0;
+    if (period === 'PM' && h !== 12) h += 12;
+    return h * 60 + m;
+  }
+  // 24-hour format: "07:30"
+  const hhmmMatch = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (hhmmMatch) {
+    return parseInt(hhmmMatch[1], 10) * 60 + parseInt(hhmmMatch[2], 10);
+  }
+  return -1; // unparseable
+}
+
+/**
+ * Returns true when `rowTime` is outside the provider's scheduled shift.
+ * Accepts both "07:30" (24-hour) and "7:30 AM" / "7:30 PM" (12-hour AM/PM) formats.
+ * Used to render a gray "unavailable" background for those cells.
+ */
+function isOutsideProviderHours(rowTime: string, provider: ProviderInput): boolean {
+  if (!provider.workingStart || !provider.workingEnd) return false;
+  const t = displayTimeToMinutes(rowTime);
+  if (t === -1) return false; // unparseable — don't gray out
+  const start = hhmToMinutes(provider.workingStart);
+  const end = hhmToMinutes(provider.workingEnd);
+  return t < start || t >= end;
 }
 
 export interface TimeSlotOutput {
@@ -23,6 +69,10 @@ export interface TimeSlotOutput {
     blockLabel?: string;
     blockTypeId?: string;
     isBreak?: boolean;
+    /** Unique instance ID — enables multiple adjacent same-type blocks to stay distinct */
+    blockInstanceId?: string | null;
+    /** Per-block production minimum override */
+    customProductionAmount?: number | null;
   }[];
 }
 
@@ -35,7 +85,7 @@ interface ScheduleGridProps {
   onAddBlock?: (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => void;
   onRemoveBlock?: (time: string, providerId: string) => void;
   onMoveBlock?: (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => void;
-  onUpdateBlock?: (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => void;
+  onUpdateBlock?: (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number, customProductionAmount?: number | null) => void;
 }
 
 // Drag state
@@ -49,7 +99,7 @@ interface DragState {
 export default function ScheduleGrid({
   slots,
   providers,
-  blockTypes = [],
+  blockTypes,
   timeIncrement = 10,
   conflicts = [],
   onAddBlock,
@@ -57,6 +107,9 @@ export default function ScheduleGrid({
   onMoveBlock,
   onUpdateBlock,
 }: ScheduleGridProps) {
+  // blockTypes may be undefined (fall back to global library in BlockPicker/BlockEditor)
+  // or an explicit array of office-specific types
+  const effectiveBlockTypes = blockTypes ?? [];
 
   // Block picker state (click-to-add)
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -70,6 +123,7 @@ export default function ScheduleGrid({
     blockTypeId: string;
     blockLabel: string;
     slotCount: number;
+    customProductionAmount: number | null;
   } | null>(null);
 
   // Drag state
@@ -126,7 +180,7 @@ export default function ScheduleGrid({
       if (slots.length === 0) return null;
 
       // Find this provider's slots across all time rows
-      const providerSlotData: { time: string; blockTypeId?: string; blockLabel?: string; isBreak?: boolean }[] = [];
+      const providerSlotData: { time: string; blockTypeId?: string; blockLabel?: string; blockInstanceId?: string | null; customProductionAmount?: number | null; isBreak?: boolean }[] = [];
       for (const row of timeSlots) {
         const slot = row.slots.find((s) => s.providerId === providerId);
         if (slot) {
@@ -141,19 +195,32 @@ export default function ScheduleGrid({
       const slot = providerSlotData[idx];
       if (!slot.blockTypeId) return null;
 
-      // Count contiguous slots with same blockTypeId
+      // Count contiguous slots belonging to the SAME block instance.
+      // When blockInstanceId is available, use it to avoid merging adjacent blocks of the same type
+      // placed as separate instances (Issue 5 fix).
+      const isSameBlock = (i: number) => {
+        const s = providerSlotData[i];
+        if (slot.blockInstanceId && s.blockInstanceId) {
+          return s.blockInstanceId === slot.blockInstanceId;
+        }
+        // Fall back to blockTypeId matching for legacy slots without instanceId
+        return s.blockTypeId === slot.blockTypeId;
+      };
+
       let start = idx;
-      while (start > 0 && providerSlotData[start - 1].blockTypeId === slot.blockTypeId) {
+      while (start > 0 && isSameBlock(start - 1)) {
         start--;
       }
       let end = idx;
-      while (end < providerSlotData.length - 1 && providerSlotData[end + 1].blockTypeId === slot.blockTypeId) {
+      while (end < providerSlotData.length - 1 && isSameBlock(end + 1)) {
         end++;
       }
 
       return {
         blockTypeId: slot.blockTypeId,
         blockLabel: slot.blockLabel || "",
+        blockInstanceId: slot.blockInstanceId ?? null,
+        customProductionAmount: slot.customProductionAmount ?? null,
         slotCount: end - start + 1,
         isFirst: idx === start,
         isLast: idx === end,
@@ -166,12 +233,14 @@ export default function ScheduleGrid({
   // Handle clicking an empty cell
   const handleEmptyCellClick = useCallback(
     (time: string, providerId: string) => {
-      if (!onAddBlock || blockTypes.length === 0) return;
+      if (!onAddBlock) return;
+      // Allow opening the picker even when no office-specific blockTypes are set;
+      // BlockPicker will fall back to the global Appointment Library.
       setPickerPosition({ time, providerId });
       setPickerOpen(true);
       setEditorOpen(false);
     },
-    [onAddBlock, blockTypes.length]
+    [onAddBlock]
   );
 
   // Handle clicking an occupied cell
@@ -187,6 +256,7 @@ export default function ScheduleGrid({
         blockTypeId: info.blockTypeId,
         blockLabel: info.blockLabel,
         slotCount: info.slotCount,
+        customProductionAmount: info.customProductionAmount,
       });
       setEditorOpen(true);
       setPickerOpen(false);
@@ -208,9 +278,9 @@ export default function ScheduleGrid({
 
   // Handle block edit
   const handleBlockUpdate = useCallback(
-    (blockType: BlockTypeInput, durationSlots: number) => {
+    (blockType: BlockTypeInput, durationSlots: number, customProductionAmount?: number | null) => {
       if (!editorPosition || !onUpdateBlock) return;
-      onUpdateBlock(editorPosition.time, editorPosition.providerId, blockType, durationSlots);
+      onUpdateBlock(editorPosition.time, editorPosition.providerId, blockType, durationSlots, customProductionAmount);
       setEditorOpen(false);
       setEditorPosition(null);
     },
@@ -312,10 +382,10 @@ export default function ScheduleGrid({
 
   return (
     <div className="space-y-4">
-      {/* Block Picker (click-to-add) */}
+      {/* Block Picker (click-to-add) — always falls back to global Appointment Library */}
       {pickerOpen && pickerPosition && (
         <BlockPicker
-          blockTypes={blockTypes}
+          blockTypes={undefined}
           providerRole={getProviderRole(pickerPosition.providerId) as "DOCTOR" | "HYGIENIST"}
           onSelect={handleBlockSelected}
           onClose={() => {
@@ -329,10 +399,11 @@ export default function ScheduleGrid({
       {/* Block Editor (click-to-edit) */}
       {editorOpen && editorPosition && (
         <BlockEditor
-          blockTypes={blockTypes}
+          blockTypes={effectiveBlockTypes.length > 0 ? effectiveBlockTypes : undefined}
           providerRole={getProviderRole(editorPosition.providerId) as "DOCTOR" | "HYGIENIST"}
           currentBlockTypeId={editorPosition.blockTypeId}
           currentSlotCount={editorPosition.slotCount}
+          currentCustomProductionAmount={editorPosition.customProductionAmount}
           timeIncrement={timeIncrement}
           onUpdate={handleBlockUpdate}
           onDelete={handleBlockDelete}
@@ -427,6 +498,8 @@ export default function ScheduleGrid({
 
                     const hasBlock = !!(slot?.blockTypeId || slot?.blockLabel) && !slot?.isBreak;
                     const isEmpty = !hasBlock && !slot?.isBreak && !(isLunchTime && !slot?.staffingCode);
+                    // Gray-out slots that fall outside this provider's scheduled work hours
+                    const outsideHours = isOutsideProviderHours(row.time, provider);
                     const isCellDragOver =
                       dragOverCell?.time === row.time && dragOverCell?.providerId === provider.id;
 
@@ -458,19 +531,20 @@ export default function ScheduleGrid({
                         <td className="p-0 border-b border-border">
                           <div
                             data-testid={`block-cell-${row.time}-${provider.id}`}
-                            draggable={hasBlock && !!onMoveBlock}
-                            onDragStart={(e) => hasBlock && handleDragStart(e, row.time, provider.id)}
-                            onDragOver={(e) => isEmpty && handleDragOver(e, row.time, provider.id)}
+                            draggable={hasBlock && !!onMoveBlock && !outsideHours}
+                            onDragStart={(e) => hasBlock && !outsideHours && handleDragStart(e, row.time, provider.id)}
+                            onDragOver={(e) => isEmpty && !outsideHours && handleDragOver(e, row.time, provider.id)}
                             onDragLeave={handleDragLeave}
-                            onDrop={(e) => isEmpty && handleDrop(e, row.time, provider.id)}
+                            onDrop={(e) => isEmpty && !outsideHours && handleDrop(e, row.time, provider.id)}
                             onDragEnd={handleDragEnd}
                           >
                             <TimeSlotCell
                               blockLabel={slot?.blockLabel}
                               providerColor={slot?.blockLabel ? provider.color : undefined}
                               isBreak={slot?.isBreak || (isLunchTime && !slot?.blockLabel)}
+                              isOutsideHours={outsideHours && !slot?.blockLabel && !slot?.isBreak}
                               onClick={
-                                isInteractive
+                                isInteractive && !outsideHours
                                   ? () => {
                                       if (hasBlock) {
                                         handleBlockCellClick(row.time, provider.id);
@@ -480,7 +554,7 @@ export default function ScheduleGrid({
                                     }
                                   : undefined
                               }
-                              isClickable={isInteractive && (hasBlock || isEmpty)}
+                              isClickable={isInteractive && !outsideHours && (hasBlock || isEmpty)}
                               isBlockFirst={blockInfo?.isFirst || false}
                               isBlockLast={blockInfo?.isLast || false}
                               isDragOver={isCellDragOver}

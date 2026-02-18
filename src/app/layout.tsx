@@ -8,8 +8,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Schedule Template Designer",
-  description: "Custom dental schedule template generator",
+  title: "Custom Schedule Template",
+  description: "Custom dental schedule template designer (CST)",
 };
 
 export default function RootLayout({
