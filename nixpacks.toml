@@ -1,15 +1,21 @@
 [variables]
 NODE_ENV = "production"
+DATABASE_URL = "file:/app/data/schedules.db"
+PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING = "1"
 
 [phases.setup]
-nixPkgs = ["nodejs_20", "npm-9_x"]
+nixPkgs = ["nodejs_20", "npm-9_x", "python3", "gcc", "gnumake"]
 
 [phases.install]
 cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = [
+  "mkdir -p /app/data",
+  "npx prisma generate",
+  "npx prisma migrate deploy",
+  "npm run build"
+]
 
 [start]
 cmd = "npm run start"
-
