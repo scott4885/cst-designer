@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { GenerationResult, BlockTypeInput, ProviderInput } from '@/lib/engine/types';
-import { getSchedulesForOffice, saveSchedulesForOffice } from '@/lib/local-storage';
 import { calculateProductionSummary } from '@/lib/engine/calculator';
 import { detectConflicts } from '@/lib/engine/stagger';
 import { parseAmountFromLabel } from '@/lib/engine/generator';
@@ -125,11 +124,7 @@ function recalcProductionSummary(
   return { ...schedule, productionSummary, warnings: [...nonConflictWarnings, ...conflictWarnings] };
 }
 
-function persist(state: { generatedSchedules: Record<string, GenerationResult>; currentOfficeId: string | null }) {
-  if (state.currentOfficeId) {
-    saveSchedulesForOffice(state.currentOfficeId, Object.values(state.generatedSchedules));
-  }
-}
+// Schedules are kept in Zustand memory only (no localStorage persistence needed with DB backend)
 
 export const useScheduleStore = create<ScheduleState>((set, get) => ({
   generatedSchedules: {},
@@ -147,9 +142,6 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     });
 
     const resolvedOfficeId = officeId || get().currentOfficeId;
-    if (resolvedOfficeId) {
-      saveSchedulesForOffice(resolvedOfficeId, schedules);
-    }
 
     set({
       generatedSchedules: schedulesMap,
@@ -165,23 +157,12 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
   },
 
   loadSchedulesForOffice: async (officeId: string) => {
-    try {
-      const schedules = getSchedulesForOffice(officeId);
-      const schedulesMap: Record<string, GenerationResult> = {};
-      schedules.forEach((schedule) => {
-        schedulesMap[schedule.dayOfWeek] = schedule;
-      });
-      set({
-        currentOfficeId: officeId,
-        generatedSchedules: schedulesMap,
-      });
-    } catch (error) {
-      console.error('Failed to load schedules for office:', error);
-      set({
-        generatedSchedules: {},
-        currentOfficeId: officeId
-      });
-    }
+    // Schedules are generated on-demand via API; just track the office ID
+    const currentId = get().currentOfficeId;
+    set({
+      currentOfficeId: officeId,
+      generatedSchedules: currentId === officeId ? get().generatedSchedules : {},
+    });
   },
 
   placeBlockInDay: (day, time, providerId, blockType, durationSlots, providers, blockTypes) => {
@@ -240,7 +221,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
 
     const newSchedules = { ...state.generatedSchedules, [day]: updated };
     set({ generatedSchedules: newSchedules });
-    persist({ generatedSchedules: newSchedules, currentOfficeId: state.currentOfficeId });
+    // schedules persisted in-memory only
     return true;
   },
 
@@ -315,7 +296,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
 
     const newSchedules = { ...state.generatedSchedules, [day]: updated };
     set({ generatedSchedules: newSchedules });
-    persist({ generatedSchedules: newSchedules, currentOfficeId: state.currentOfficeId });
+    // schedules persisted in-memory only
   },
 
   moveBlockInDay: (day, fromTime, fromProviderId, toTime, toProviderId, providers, blockTypes) => {
@@ -429,7 +410,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
 
     const newSchedules = { ...state.generatedSchedules, [day]: updated };
     set({ generatedSchedules: newSchedules });
-    persist({ generatedSchedules: newSchedules, currentOfficeId: state.currentOfficeId });
+    // schedules persisted in-memory only
   },
 
   updateBlockInDay: (day, time, providerId, newBlockType, newDurationSlots, providers, blockTypes, customProductionAmount) => {
@@ -522,6 +503,6 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
 
     const newSchedules = { ...state.generatedSchedules, [day]: updated };
     set({ generatedSchedules: newSchedules });
-    persist({ generatedSchedules: newSchedules, currentOfficeId: state.currentOfficeId });
+    // schedules persisted in-memory only
   },
 }));

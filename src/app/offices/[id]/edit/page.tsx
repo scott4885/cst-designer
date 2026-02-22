@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { updateOffice } from "@/lib/local-storage";
+// updateOffice uses API route
 import type { BlockTypeInput } from "@/lib/engine/types";
 
 // Form schema for editing
@@ -27,6 +27,7 @@ const editOfficeSchema = z.object({
       name: z.string().min(1, "Provider name is required"),
       role: z.enum(["DOCTOR", "HYGIENIST", "OTHER"]),
       operatories: z.array(z.string()).min(1, "Select at least one operatory"),
+      columns: z.number().min(1).max(3).optional(),
       workingStart: z.string(),
       workingEnd: z.string(),
       lunchStart: z.string().optional(),
@@ -132,6 +133,7 @@ export default function EditOfficePage() {
           name: p.name,
           role: p.role,
           operatories: p.operatories || ["OP1"],
+          columns: (p as any).columns ?? 1,
           workingStart: p.workingStart || "07:00",
           workingEnd: p.workingEnd || "18:00",
           lunchStart: p.lunchStart || "13:00",
@@ -159,6 +161,7 @@ export default function EditOfficePage() {
       name: "",
       role: "DOCTOR",
       operatories: ["OP1"],
+      columns: 1,
       workingStart: "07:00",
       workingEnd: "18:00",
       lunchStart: "13:00",
@@ -195,13 +198,17 @@ export default function EditOfficePage() {
         emergencyHandling: data.scheduleRules.emergencyHandling,
       } : undefined;
 
-      const updatedOffice = await updateOffice(officeId, {
-        name: data.name,
-        providers,
-        ...(rules ? { rules } : {}),
+      const res = await fetch(`/api/offices/${officeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          providers,
+          ...(rules ? { rules } : {}),
+        }),
       });
 
-      if (!updatedOffice) {
+      if (!res.ok) {
         throw new Error("Failed to update office");
       }
 
@@ -462,6 +469,28 @@ export default function EditOfficePage() {
                       Select at least one operatory
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <Label>Columns / Ops</Label>
+                  <Select
+                    onValueChange={(value) =>
+                      setValue(`providers.${index}.columns`, parseInt(value), { shouldDirty: true })
+                    }
+                    value={String(watchProviders?.[index]?.columns ?? 1)}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Column</SelectItem>
+                      <SelectItem value="2">2 Columns</SelectItem>
+                      <SelectItem value="3">3 Columns</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Multi-column: schedule spans all assigned ops simultaneously
+                  </p>
                 </div>
               </div>
             ))}

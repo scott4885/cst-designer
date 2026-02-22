@@ -3,6 +3,7 @@ export interface ProviderInput {
   name: string;
   role: 'DOCTOR' | 'HYGIENIST' | 'OTHER';
   operatories: string[];
+  columns?: number;     // Number of simultaneous ops (1=single, 2+=multi-column). Defaults to 1.
   workingStart: string; // "07:00"
   workingEnd: string;   // "18:00"
   lunchStart?: string;  // "13:00"

@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { getSettings } from "@/lib/settings";
-import { createOffice } from "@/lib/local-storage";
+// createOffice uses API route
 
 // Form schema
 const officeSchema = z.object({
@@ -256,16 +256,22 @@ function NewOfficeForm() {
       });
 
       const settings = getSettings();
-      const newOffice = await createOffice({
-        name: data.name,
-        dpmsSystem: data.dpms.toUpperCase().replace(" ", "_"),
-        workingDays,
-        timeIncrement: settings.timeIncrement,
-        feeModel: "UCR",
-        providers,
-        blockTypes,
-        rules,
+      const res = await fetch('/api/offices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          dpmsSystem: data.dpms.toUpperCase().replace(" ", "_"),
+          workingDays,
+          timeIncrement: settings.timeIncrement,
+          feeModel: "UCR",
+          providers,
+          blockTypes,
+          rules,
+        }),
       });
+      if (!res.ok) throw new Error('Failed to create office');
+      const newOffice = await res.json();
 
       toast.success("Office created successfully!");
       router.push(`/offices/${newOffice.id}`);

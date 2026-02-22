@@ -1,166 +1,82 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
-// SQLite doesn't support enums or JSON, so we use String types
-// Application code will validate these values
-
 model Office {
-  id            String   @id @default(uuid())
+  id            String   @id @default(cuid())
   name          String
-  dpmsSystem    String   @map("dpms_system") // DENTRIX | OPEN_DENTAL | EAGLESOFT | DENTICON
-  workingDays   String   @map("working_days") // JSON array of day strings
-  timeIncrement Int      @default(10) @map("time_increment")
-  feeModel      String   @map("fee_model") // UCR | PPO | MIXED
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  providers         Provider[]
-  blockTypes        BlockType[]
-  procedures        Procedure[]
-  scheduleTemplates ScheduleTemplate[]
-  scheduleRules     ScheduleRule[]
-
-  @@map("offices")
+  dpmsSystem    String   @default("OPEN_DENTAL")
+  workingDays   String   @default("[]")
+  timeIncrement Int      @default(10)
+  feeModel      String   @default("UCR")
+  operatories   String   @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  providers     Provider[]
+  blockTypes    BlockType[]
+  rules         ScheduleRule?
+  templates     ScheduleTemplate[]
 }
 
 model Provider {
-  id           String   @id @default(uuid())
-  officeId     String   @map("office_id")
-  name         String
-  providerId   String   @map("provider_id")
-  role         String   // DOCTOR | HYGIENIST
-  operatories  String   // JSON array of strings
-  workingDays  String   @map("working_days") // JSON array of day strings
-  workingStart String   @map("working_start")
-  workingEnd   String   @map("working_end")
-  lunchStart   String?  @map("lunch_start")
-  lunchEnd     String?  @map("lunch_end")
-  dailyGoal    Float    @map("daily_goal")
-  hourlyRate   Float?   @map("hourly_rate")
-  color        String   @default("#6b9bd1")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  office      Office       @relation(fields: [officeId], references: [id], onDelete: Cascade)
-  rampUpGoals RampUpGoal[]
-  timeSlots   TimeSlot[]
-
-  @@index([officeId])
-  @@map("providers")
-}
-
-model RampUpGoal {
-  id         String   @id @default(uuid())
-  providerId String   @map("provider_id")
-  startDate  DateTime @map("start_date")
-  endDate    DateTime @map("end_date")
-  dailyGoal  Float    @map("daily_goal")
-
-  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-
-  @@index([providerId])
-  @@map("ramp_up_goals")
+  id              String  @id @default(cuid())
+  officeId        String
+  name            String
+  role            String
+  operatories     String  @default("[]")
+  columns         Int     @default(1)
+  workingStart    String  @default("07:00")
+  workingEnd      String  @default("18:00")
+  lunchStart      String  @default("13:00")
+  lunchEnd        String  @default("14:00")
+  dailyGoal       Float   @default(0)
+  color           String  @default("#666")
+  seesNewPatients Boolean @default(true)
+  office          Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }
 
 model BlockType {
-  id            String   @id @default(uuid())
-  officeId      String   @map("office_id")
+  id            String  @id @default(cuid())
+  officeId      String
   label         String
-  description   String?
-  minimumAmount Float?   @map("minimum_amount")
-  appliesToRole String   @map("applies_to_role") // DOCTOR | HYGIENIST | BOTH
-  durationMin   Int      @map("duration_min")
-  durationMax   Int?     @map("duration_max")
-  color         String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  office    Office     @relation(fields: [officeId], references: [id], onDelete: Cascade)
-  timeSlots TimeSlot[]
-
-  @@index([officeId])
-  @@map("block_types")
-}
-
-model Procedure {
-  id            String   @id @default(uuid())
-  officeId      String   @map("office_id")
-  name          String
-  duration      Int
-  appliesToRole String   @map("applies_to_role") // DOCTOR | HYGIENIST
-  typicalFee    Float?   @map("typical_fee")
-
-  office Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
-
-  @@index([officeId])
-  @@map("procedures")
-}
-
-model ScheduleTemplate {
-  id                 String   @id @default(uuid())
-  officeId           String   @map("office_id")
-  version            Int      @default(1)
-  effectiveDate      DateTime? @map("effective_date")
-  status             String   @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
-  generatedBy        String   @default("MANUAL") @map("generated_by") // MANUAL | AI | RULE_BASED
-  generationMetadata String?  @map("generation_metadata") // JSON string
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  office       Office        @relation(fields: [officeId], references: [id], onDelete: Cascade)
-  daySchedules DaySchedule[]
-
-  @@index([officeId])
-  @@map("schedule_templates")
-}
-
-model DaySchedule {
-  id         String  @id @default(uuid())
-  templateId String  @map("template_id")
-  dayOfWeek  String  @map("day_of_week") // MONDAY | TUESDAY | etc.
-  variant    String?
-
-  template  ScheduleTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  timeSlots TimeSlot[]
-
-  @@index([templateId])
-  @@map("day_schedules")
-}
-
-model TimeSlot {
-  id            String  @id @default(uuid())
-  dayScheduleId String  @map("day_schedule_id")
-  time          String
-  providerId    String? @map("provider_id")
-  operatory     String?
-  staffingCode  String? @map("staffing_code") // D | A | H
-  blockTypeId   String? @map("block_type_id")
-  blockLabel    String? @map("block_label")
-  isBreak       Boolean @default(false) @map("is_break")
-
-  daySchedule DaySchedule @relation(fields: [dayScheduleId], references: [id], onDelete: Cascade)
-  provider    Provider?   @relation(fields: [providerId], references: [id])
-  blockType   BlockType?  @relation(fields: [blockTypeId], references: [id])
-
-  @@index([dayScheduleId])
-  @@index([providerId])
-  @@map("time_slots")
+  description   String  @default("")
+  minimumAmount Float   @default(0)
+  appliesToRole String
+  durationMin   Int     @default(30)
+  durationMax   Int     @default(30)
+  color         String  @default("#666")
+  isHygieneType Boolean @default(false)
+  office        Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }
 
 model ScheduleRule {
-  id        String @id @default(uuid())
-  officeId  String @map("office_id")
-  ruleType  String @map("rule_type") // NP_MODEL | HP_PLACEMENT | etc.
-  ruleValue String @map("rule_value") // JSON string
+  id                String  @id @default(cuid())
+  officeId          String  @unique
+  npModel           String  @default("DOCTOR_ONLY")
+  npBlocksPerDay    Int     @default(2)
+  srpBlocksPerDay   Int     @default(2)
+  hpPlacement       String  @default("MORNING")
+  doubleBooking     Boolean @default(false)
+  matrixing         Boolean @default(true)
+  emergencyHandling String  @default("ACCESS_BLOCKS")
+  office            Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
+}
 
-  office Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
-
-  @@index([officeId])
-  @@map("schedule_rules")
+model ScheduleTemplate {
+  id           String   @id @default(cuid())
+  officeId     String
+  name         String
+  dayOfWeek    String
+  slotsJson    String   @default("[]")
+  summaryJson  String   @default("[]")
+  warningsJson String   @default("[]")
+  isActive     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  office       Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }

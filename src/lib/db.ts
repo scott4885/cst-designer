@@ -1,6 +1,14 @@
-/**
- * Prisma client removed: app uses browser localStorage for persistence.
- * This file is kept as a placeholder to avoid breaking imports if any remain.
- */
+import { PrismaClient } from "@/generated/prisma";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
-export const prisma = null as any;
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+
+function createPrismaClient() {
+  const url = process.env.DATABASE_URL || "file:./data/schedules.db";
+  const adapter = new PrismaBetterSqlite3({ url });
+  return new PrismaClient({ adapter });
+}
+
+export const prisma = globalForPrisma.prisma || createPrismaClient();
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

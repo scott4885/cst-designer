@@ -134,6 +134,20 @@ function getProviderOpSlots(psMap: Map<string, ProviderSlots>, providerId: strin
   return result;
 }
 
+/** Mirror placed blocks from a source ProviderSlots to a target ProviderSlots (same provider, different op) */
+function mirrorBlocks(slots: TimeSlotOutput[], source: ProviderSlots, target: ProviderSlots): void {
+  const len = Math.min(source.indices.length, target.indices.length);
+  for (let i = 0; i < len; i++) {
+    const srcSlot = slots[source.indices[i]];
+    if (srcSlot.blockTypeId && !srcSlot.isBreak) {
+      const tgtIdx = target.indices[i];
+      slots[tgtIdx].blockTypeId = srcSlot.blockTypeId;
+      slots[tgtIdx].blockLabel = srcSlot.blockLabel;
+      slots[tgtIdx].staffingCode = srcSlot.staffingCode;
+    }
+  }
+}
+
 /** Find contiguous available slot ranges for a provider */
 function findAvailableRanges(
   slots: TimeSlotOutput[],
@@ -396,10 +410,25 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
   }
 
   // ─── Step 2: Place DOCTOR blocks across ALL operatories ───
+  // Multi-column doctors (columns > 1): generate blocks on primary op, then mirror to all assigned ops
   for (const doc of doctors) {
     const opSlots = getProviderOpSlots(psMap, doc.id);
-    for (const ps of opSlots) {
-      placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings);
+    const isMultiColumn = (doc.columns ?? 1) > 1 && opSlots.length > 1;
+
+    if (isMultiColumn) {
+      // Generate blocks only on the PRIMARY operatory
+      const primaryPs = opSlots[0];
+      placeDoctorBlocks(slots, primaryPs, doc, blocksByCategory, rules, timeIncrement, warnings);
+      // Mirror placed blocks to all OTHER operatories simultaneously
+      for (let oi = 1; oi < opSlots.length; oi++) {
+        const secondaryPs = opSlots[oi];
+        mirrorBlocks(slots, primaryPs, secondaryPs);
+      }
+    } else {
+      // Single-column: place independently per operatory
+      for (const ps of opSlots) {
+        placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings);
+      }
     }
   }
 

@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { OfficeData } from '@/lib/mock-data';
-import { getOffices, getOfficeById, saveOffices } from '@/lib/local-storage';
 
 interface OfficeState {
   currentOffice: OfficeData | null;
@@ -16,18 +15,19 @@ export const useOfficeStore = create<OfficeState>((set) => ({
   currentOffice: null,
   offices: [],
   isLoading: false,
-  
+
   setCurrentOffice: (office: OfficeData | null) => set({ currentOffice: office }),
-  
+
   setOffices: (offices: OfficeData[]) => {
-    saveOffices(offices as any);
     set({ offices });
   },
-  
+
   fetchOffices: async () => {
     set({ isLoading: true });
     try {
-      const offices = (await getOffices()) as OfficeData[];
+      const res = await fetch('/api/offices');
+      if (!res.ok) throw new Error('Failed to fetch offices');
+      const offices = await res.json();
       set({ offices, isLoading: false });
     } catch (error) {
       console.error('Error fetching offices:', error);
@@ -35,21 +35,20 @@ export const useOfficeStore = create<OfficeState>((set) => ({
       throw error;
     }
   },
-  
+
   fetchOffice: async (id: string) => {
     set({ isLoading: true });
     try {
-      const office = await getOfficeById(id);
-      if (!office) {
-        throw new Error('Failed to fetch office');
-      }
+      const res = await fetch(`/api/offices/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch office');
+      const office = await res.json();
       const providerCount = office.providers?.length || 0;
-      const totalDailyGoal = office.providers?.reduce((sum, p) => sum + (p.dailyGoal || 0), 0) || 0;
+      const totalDailyGoal = office.providers?.reduce((sum: number, p: any) => sum + (p.dailyGoal || 0), 0) || 0;
       const currentOffice: OfficeData = {
         ...(office as unknown as OfficeData),
         providerCount,
         totalDailyGoal,
-        updatedAt: (office as any).updatedAt || new Date().toISOString(),
+        updatedAt: office.updatedAt || new Date().toISOString(),
       };
       set({ currentOffice, isLoading: false });
     } catch (error) {

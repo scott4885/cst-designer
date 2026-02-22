@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import ScheduleGrid, { ProviderInput, TimeSlotOutput } from "@/components/schedule/ScheduleGrid";
 import ProductionSummary, { ProviderProductionSummary } from "@/components/schedule/ProductionSummary";
 import ProductionMixChart from "@/components/schedule/ProductionMixChart";
+import ConflictPanel from "@/components/schedule/ConflictPanel";
+import VersionPanel from "@/components/schedule/VersionPanel";
 import OpenDentalExportDialog from "@/components/schedule/OpenDentalExportDialog";
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
@@ -19,7 +21,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { deleteOffice, generateSchedule } from "@/lib/local-storage";
+// CRUD operations go through API routes (Prisma backend)
 import { generateExcel, ExportInput, ExportDaySchedule } from "@/lib/export/excel";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import { detectConflicts } from "@/lib/engine/stagger";
@@ -259,8 +261,14 @@ export default function TemplateBuilderPage() {
 
     setGenerating(true);
     try {
-      const schedules = await generateSchedule(officeId, [activeDay]);
-      setSchedules(schedules, officeId);
+      const res = await fetch(`/api/offices/${officeId}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: [activeDay] }),
+      });
+      if (!res.ok) throw new Error('Failed to generate schedule');
+      const data = await res.json();
+      setSchedules(data.schedules, officeId);
       toast.success(`Schedule generated for ${activeDay}!`);
     } catch (error) {
       console.error("Error generating schedule:", error);
@@ -286,7 +294,14 @@ export default function TemplateBuilderPage() {
 
         await new Promise(resolve => setTimeout(resolve, 0));
 
-        const schedules = await generateSchedule(officeId, [day]);
+        const genRes = await fetch(`/api/offices/${officeId}/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ days: [day] }),
+        });
+        if (!genRes.ok) throw new Error(`Failed to generate ${day}`);
+        const genData = await genRes.json();
+        const schedules = genData.schedules;
         allSchedules.push(...schedules);
         setSchedules(allSchedules, officeId);
 
@@ -311,8 +326,8 @@ export default function TemplateBuilderPage() {
   const handleDeleteOffice = async () => {
     setIsDeleting(true);
     try {
-      const deleted = await deleteOffice(officeId);
-      if (!deleted) throw new Error("Failed to delete office");
+      const res = await fetch(`/api/offices/${officeId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("Failed to delete office");
       toast.success("Office deleted");
       router.push("/");
     } catch (error) {
@@ -766,6 +781,18 @@ export default function TemplateBuilderPage() {
               providers={fullProviders}
             />
           )}
+          <ConflictPanel
+            schedule={currentDaySchedule || null}
+            providers={fullProviders}
+          />
+          <VersionPanel
+            officeId={officeId}
+            activeDay={activeDay}
+            currentSchedule={currentDaySchedule || null}
+            onLoadVersion={(schedule) => {
+              setSchedules([...Object.values(generatedSchedules).filter(s => s.dayOfWeek !== schedule.dayOfWeek), schedule], officeId);
+            }}
+          />
         </div>
       </div>
 
