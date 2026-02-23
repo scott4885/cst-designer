@@ -2,7 +2,7 @@ FROM node:20-slim AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y python3 make g++ openssl && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-# --ignore-scripts skips postinstall (prisma generate) — schema not copied yet
+# Skip postinstall (prisma generate fails before schema is copied)
 RUN npm ci --ignore-scripts
 
 FROM node:20-slim AS builder
@@ -13,7 +13,8 @@ COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL=file:/tmp/seed.db
-# Now schema is present — run generate explicitly
+# Schema is present now — compile native modules and generate prisma client
+RUN npm rebuild better-sqlite3
 RUN npx prisma generate
 RUN npx prisma migrate deploy
 RUN npm run build
