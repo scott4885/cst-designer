@@ -243,7 +243,7 @@ export default function EditOfficePage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={handleBack}>
+        <Button variant="ghost" size="icon" onClick={handleBack} className="min-h-[44px] min-w-[44px]">
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
@@ -280,7 +280,7 @@ export default function EditOfficePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Providers</CardTitle>
-            <Button type="button" onClick={addProvider} size="sm" className="gap-2">
+            <Button type="button" onClick={addProvider} size="sm" className="gap-2 min-h-[44px]">
               <Plus className="w-4 h-4" />
               Add Provider
             </Button>
