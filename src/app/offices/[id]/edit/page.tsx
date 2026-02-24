@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -30,6 +31,7 @@ const editOfficeSchema = z.object({
       columns: z.number().min(1).max(3).optional(),
       workingStart: z.string(),
       workingEnd: z.string(),
+      lunchEnabled: z.boolean(),
       lunchStart: z.string().optional(),
       lunchEnd: z.string().optional(),
       dailyGoal: z.number().min(0),
@@ -47,6 +49,7 @@ const editOfficeSchema = z.object({
     matrixing: z.boolean(),
     emergencyHandling: z.enum(["DEDICATED", "FLEX", "ACCESS_BLOCKS"]),
   }).optional(),
+  schedulingRules: z.string().optional(),
 });
 
 type EditOfficeFormData = z.infer<typeof editOfficeSchema>;
@@ -128,6 +131,7 @@ export default function EditOfficePage() {
       const rules = (currentOffice as any).rules;
       reset({
         name: currentOffice.name,
+        schedulingRules: (currentOffice as any).schedulingRules || '',
         providers: currentOffice.providers?.map(p => ({
           id: p.id,
           name: p.name,
@@ -135,9 +139,10 @@ export default function EditOfficePage() {
           operatories: p.operatories || ["OP1"],
           columns: (p as any).columns ?? 1,
           workingStart: p.workingStart || "07:00",
-          workingEnd: p.workingEnd || "18:00",
-          lunchStart: p.lunchStart || "13:00",
-          lunchEnd: p.lunchEnd || "14:00",
+          workingEnd: p.workingEnd || "16:00",
+          lunchEnabled: (p as any).lunchEnabled !== false,
+          lunchStart: p.lunchStart || "12:00",
+          lunchEnd: p.lunchEnd || "13:00",
           dailyGoal: p.dailyGoal || 5000,
           color: p.color || "#666",
           seesNewPatients: p.seesNewPatients !== false,
@@ -163,9 +168,10 @@ export default function EditOfficePage() {
       operatories: ["OP1"],
       columns: 1,
       workingStart: "07:00",
-      workingEnd: "18:00",
-      lunchStart: "13:00",
-      lunchEnd: "14:00",
+      workingEnd: "16:00",
+      lunchEnabled: true,
+      lunchStart: "12:00",
+      lunchEnd: "13:00",
       dailyGoal: 5000,
       color: PROVIDER_COLORS[providerFields.length % PROVIDER_COLORS.length],
       seesNewPatients: true,
@@ -205,6 +211,7 @@ export default function EditOfficePage() {
           name: data.name,
           providers,
           ...(rules ? { rules } : {}),
+          schedulingRules: data.schedulingRules || '',
         }),
       });
 
@@ -420,13 +427,34 @@ export default function EditOfficePage() {
                     <p className="text-xs text-muted-foreground mt-1">e.g. 7:00 AM – 5:00 PM</p>
                   </div>
                   <div>
-                    <Label>Lunch Break</Label>
-                    <div className="flex gap-2">
-                      <Input type="time" {...register(`providers.${index}.lunchStart`)} />
-                      <span className="self-center">to</span>
-                      <Input type="time" {...register(`providers.${index}.lunchEnd`)} />
+                    <div className="flex items-center justify-between mb-1">
+                      <Label>Lunch Break</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {watchProviders?.[index]?.lunchEnabled !== false ? "Enabled" : "Disabled"}
+                        </span>
+                        <Switch
+                          checked={watchProviders?.[index]?.lunchEnabled !== false}
+                          onCheckedChange={(checked) =>
+                            setValue(`providers.${index}.lunchEnabled`, checked, { shouldDirty: true })
+                          }
+                        />
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
+                    {watchProviders?.[index]?.lunchEnabled !== false ? (
+                      <>
+                        <div className="flex gap-2">
+                          <Input type="time" {...register(`providers.${index}.lunchStart`)} />
+                          <span className="self-center">to</span>
+                          <Input type="time" {...register(`providers.${index}.lunchEnd`)} />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1 italic">
+                        No lunch break — full day schedule
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -614,6 +642,23 @@ export default function EditOfficePage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Office-Specific Scheduling Rules */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Office-Specific Scheduling Rules</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              {...register("schedulingRules")}
+              className="min-h-[200px] font-mono text-sm"
+              placeholder="Enter office-specific scheduling rules..."
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Supports markdown. Use headings, lists, and comments to document custom rules.
+            </p>
           </CardContent>
         </Card>
 

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useCallback, useMemo, Fragment } from "react";
+import { useState, useCallback, useMemo, useEffect, Fragment } from "react";
+import { ZoomIn, ZoomOut, ChevronsLeftRight, ChevronsRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import TimeSlotCell from "./TimeSlotCell";
 import BlockPicker from "./BlockPicker";
 import BlockEditor from "./BlockEditor";
@@ -96,6 +98,15 @@ interface DragState {
   blockLabel: string;
 }
 
+// Row height zoom levels (px per 10-min slot)
+const ROW_HEIGHT_LEVELS = [24, 32, 40, 48, 56];
+const DEFAULT_ROW_HEIGHT = 32;
+const LS_ROW_HEIGHT_KEY = "schedule-row-height";
+
+// Column width modes
+const COL_WIDTH_COMPACT = 120;
+const COL_WIDTH_EXPANDED = 220;
+
 export default function ScheduleGrid({
   slots,
   providers,
@@ -111,11 +122,49 @@ export default function ScheduleGrid({
   // or an explicit array of office-specific types
   const effectiveBlockTypes = blockTypes ?? [];
 
-  // Block picker state (click-to-add)
+  // ─── Zoom & column width state ────────────────────────────────────────────
+  const [rowHeight, setRowHeight] = useState<number>(DEFAULT_ROW_HEIGHT);
+  const [columnsExpanded, setColumnsExpanded] = useState(false);
+
+  // Load rowHeight from localStorage on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem(LS_ROW_HEIGHT_KEY);
+    if (stored) {
+      const parsed = parseInt(stored, 10);
+      if (ROW_HEIGHT_LEVELS.includes(parsed)) {
+        setRowHeight(parsed);
+      }
+    }
+  }, []);
+
+  // Persist rowHeight changes to localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(LS_ROW_HEIGHT_KEY, String(rowHeight));
+  }, [rowHeight]);
+
+  const zoomIn = useCallback(() => {
+    setRowHeight((h) => {
+      const idx = ROW_HEIGHT_LEVELS.indexOf(h);
+      return idx < ROW_HEIGHT_LEVELS.length - 1 ? ROW_HEIGHT_LEVELS[idx + 1] : h;
+    });
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setRowHeight((h) => {
+      const idx = ROW_HEIGHT_LEVELS.indexOf(h);
+      return idx > 0 ? ROW_HEIGHT_LEVELS[idx - 1] : h;
+    });
+  }, []);
+
+  const colWidth = columnsExpanded ? COL_WIDTH_EXPANDED : COL_WIDTH_COMPACT;
+
+  // ─── Block picker state (click-to-add) ────────────────────────────────────
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerPosition, setPickerPosition] = useState<{ time: string; providerId: string } | null>(null);
 
-  // Block editor state (click-to-edit)
+  // ─── Block editor state (click-to-edit) ───────────────────────────────────
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorPosition, setEditorPosition] = useState<{
     time: string;
@@ -126,7 +175,7 @@ export default function ScheduleGrid({
     customProductionAmount: number | null;
   } | null>(null);
 
-  // Drag state
+  // ─── Drag state ───────────────────────────────────────────────────────────
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragOverCell, setDragOverCell] = useState<{ time: string; providerId: string } | null>(null);
 
@@ -234,8 +283,6 @@ export default function ScheduleGrid({
   const handleEmptyCellClick = useCallback(
     (time: string, providerId: string) => {
       if (!onAddBlock) return;
-      // Allow opening the picker even when no office-specific blockTypes are set;
-      // BlockPicker will fall back to the global Appointment Library.
       setPickerPosition({ time, providerId });
       setPickerOpen(true);
       setEditorOpen(false);
@@ -352,7 +399,7 @@ export default function ScheduleGrid({
     [providers]
   );
 
-  // Empty state
+  // ─── Empty states ─────────────────────────────────────────────────────────
   if (providers.length === 0) {
     return (
       <div className="flex items-center justify-center h-96 border border-border rounded-lg bg-surface/30">
@@ -379,9 +426,12 @@ export default function ScheduleGrid({
   }
 
   const isInteractive = !!(onAddBlock || onRemoveBlock || onMoveBlock || onUpdateBlock);
+  const zoomLevelIdx = ROW_HEIGHT_LEVELS.indexOf(rowHeight);
+  const canZoomIn = zoomLevelIdx < ROW_HEIGHT_LEVELS.length - 1;
+  const canZoomOut = zoomLevelIdx > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Block Picker (click-to-add) — always falls back to global Appointment Library */}
       {pickerOpen && pickerPosition && (
         <BlockPicker
@@ -414,13 +464,81 @@ export default function ScheduleGrid({
         />
       )}
 
-      <div className="schedule-grid border border-border rounded-lg overflow-hidden max-h-[700px] overflow-y-auto">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead className="sticky top-0 bg-surface z-20">
+      {/* ─── Controls bar ──────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 px-1 py-1 bg-muted/30 rounded-md border border-border/50">
+        {/* Column width controls */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground hidden sm:inline">Columns:</span>
+          <Button
+            size="sm"
+            variant={!columnsExpanded ? "secondary" : "ghost"}
+            className="h-7 px-2 text-xs"
+            onClick={() => setColumnsExpanded(false)}
+            title="Compact column view"
+          >
+            <ChevronsRight className="w-3 h-3 mr-1" />
+            Compact
+          </Button>
+          <Button
+            size="sm"
+            variant={columnsExpanded ? "secondary" : "ghost"}
+            className="h-7 px-2 text-xs"
+            onClick={() => setColumnsExpanded(true)}
+            title="Expanded column view"
+          >
+            <ChevronsLeftRight className="w-3 h-3 mr-1" />
+            Expanded
+          </Button>
+        </div>
+
+        {/* Zoom controls */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground hidden sm:inline">Zoom:</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            onClick={zoomOut}
+            disabled={!canZoomOut}
+            title="Zoom out (smaller rows)"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </Button>
+          <span className="text-xs text-muted-foreground w-10 text-center tabular-nums">
+            {rowHeight}px
+          </span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            onClick={zoomIn}
+            disabled={!canZoomIn}
+            title="Zoom in (taller rows)"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* ─── Schedule Grid ─────────────────────────────────────────────────── */}
+      {/* Outer container: vertical scroll with max height, horizontal scroll inside */}
+      <div
+        className="schedule-grid border border-border rounded-lg overflow-hidden"
+        style={{ maxHeight: "calc(100vh - 280px)", minHeight: "400px" }}
+      >
+        <div className="overflow-y-auto overflow-x-auto h-full">
+          <table
+            className="border-collapse"
+            style={{ tableLayout: "fixed", minWidth: `${80 + providers.length * (colWidth + 28)}px` }}
+          >
+            <thead className="sticky top-0 z-20">
               {/* Row 1: Operatory name header */}
               <tr className="border-b border-border/50">
-                <th className="px-2 py-1 text-[10px] font-medium text-muted-foreground bg-surface w-20 text-left">
+                {/* Sticky time column header */}
+                <th
+                  className="px-2 py-1 text-[10px] font-medium text-muted-foreground bg-surface text-left border-b border-border/50 sticky left-0 z-30"
+                  style={{ width: 80, minWidth: 80 }}
+                >
                   Operatory
                 </th>
                 {providers.map((provider) => {
@@ -431,11 +549,13 @@ export default function ScheduleGrid({
                       key={`op-${provider.id}`}
                       colSpan={2}
                       className="px-2 py-1 text-center bg-surface"
-                      style={{ borderBottom: '2px solid var(--border)' }}
+                      style={{ borderBottom: '2px solid var(--border)', minWidth: colWidth + 28 }}
                     >
                       <div className="flex items-center justify-center gap-1.5">
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border"
-                          style={{ backgroundColor: provider.color + '20', borderColor: provider.color + '60', color: provider.color }}>
+                        <span
+                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border"
+                          style={{ backgroundColor: provider.color + '20', borderColor: provider.color + '60', color: provider.color }}
+                        >
                           {opName}
                         </span>
                         <span className="text-[10px] font-bold px-1 rounded bg-muted text-muted-foreground">
@@ -448,7 +568,10 @@ export default function ScheduleGrid({
               </tr>
               {/* Row 2: Provider name header */}
               <tr>
-                <th className="px-3 py-2 text-sm font-semibold text-foreground border-b-2 border-border bg-surface w-20">
+                <th
+                  className="px-3 py-2 text-sm font-semibold text-foreground border-b-2 border-border bg-surface sticky left-0 z-30"
+                  style={{ width: 80, minWidth: 80 }}
+                >
                   Time
                 </th>
                 {providers.map((provider) => (
@@ -456,11 +579,14 @@ export default function ScheduleGrid({
                     key={provider.id}
                     colSpan={2}
                     className="px-3 py-2 text-sm font-semibold text-foreground border-b-2 border-border bg-surface"
+                    style={{ minWidth: colWidth + 28 }}
                   >
                     <div className="text-center">
-                      <div className="font-semibold text-xs"
-                        style={{ color: provider.color }}>
+                      <div className="font-semibold text-xs" style={{ color: provider.color }}>
                         {provider.name}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                        {provider.role}
                       </div>
                     </div>
                   </th>
@@ -468,13 +594,19 @@ export default function ScheduleGrid({
               </tr>
               {/* Row 3: Staffing / Block type sub-headers */}
               <tr>
-                <th className="border-b border-border bg-surface"></th>
+                <th
+                  className="border-b border-border bg-surface sticky left-0 z-30"
+                  style={{ width: 80, minWidth: 80 }}
+                />
                 {providers.map((provider) => (
                   <Fragment key={provider.id}>
-                    <th className="px-1 py-1 text-[10px] text-muted-foreground border-b border-border bg-surface w-7 text-center">
+                    <th className="px-1 py-1 text-[10px] text-muted-foreground border-b border-border bg-surface text-center" style={{ width: 28, minWidth: 28 }}>
                       S
                     </th>
-                    <th className="px-3 py-1 text-[10px] text-muted-foreground border-b border-border bg-surface min-w-[150px]">
+                    <th
+                      className="px-3 py-1 text-[10px] text-muted-foreground border-b border-border bg-surface"
+                      style={{ minWidth: colWidth }}
+                    >
                       Block Type
                     </th>
                   </Fragment>
@@ -483,8 +615,16 @@ export default function ScheduleGrid({
             </thead>
             <tbody>
               {timeSlots.map((row, rowIdx) => (
-                <tr key={rowIdx} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-0 border-b border-border">
+                <tr
+                  key={rowIdx}
+                  className="hover:bg-muted/30 transition-colors"
+                  style={{ height: rowHeight }}
+                >
+                  {/* Sticky time cell */}
+                  <td
+                    className="p-0 border-b border-border sticky left-0 z-10 bg-surface"
+                    style={{ width: 80, minWidth: 80 }}
+                  >
                     <TimeSlotCell time={row.time} />
                   </td>
                   {providers.map((provider) => {
@@ -520,7 +660,7 @@ export default function ScheduleGrid({
 
                     return (
                       <Fragment key={provider.id}>
-                        <td className="p-0 border-b border-border">
+                        <td className="p-0 border-b border-border" style={{ width: 28, minWidth: 28 }}>
                           <TimeSlotCell
                             staffingCode={slot?.staffingCode}
                             providerColor={slot?.staffingCode ? provider.color : undefined}
@@ -528,7 +668,7 @@ export default function ScheduleGrid({
                             isDrExam={slot?.staffingCode === 'D' && provider.role === 'HYGIENIST'}
                           />
                         </td>
-                        <td className="p-0 border-b border-border">
+                        <td className="p-0 border-b border-border" style={{ minWidth: colWidth }}>
                           <div
                             data-testid={`block-cell-${row.time}-${provider.id}`}
                             draggable={hasBlock && !!onMoveBlock && !outsideHours}

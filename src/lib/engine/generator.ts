@@ -90,6 +90,8 @@ function categorize(bt: BlockTypeInput): BlockCategory {
 }
 
 function blockAppliesToProvider(bt: BlockTypeInput, provider: ProviderInput): boolean {
+  // Hygiene-typed blocks must never be placed in Doctor columns
+  if (provider.role === 'DOCTOR' && bt.isHygieneType) return false;
   return bt.appliesToRole === 'BOTH' || bt.appliesToRole === provider.role;
 }
 
@@ -288,9 +290,9 @@ function getAllBlocksForCategory(
 // ---------------------------------------------------------------------------
 
 function getLunchMidpoint(provider: ProviderInput): number {
-  if (!provider.lunchStart || !provider.lunchEnd) {
-    // Default: assume lunch at 13:00
-    return 13 * 60;
+  // When lunch is disabled, use noon as the morning/afternoon boundary
+  if (provider.lunchEnabled === false || !provider.lunchStart || !provider.lunchEnd) {
+    return 12 * 60;
   }
   return toMinutes(provider.lunchStart);
 }
@@ -378,9 +380,14 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
       ? [allOperatories[0]]
       : allOperatories;
 
+    // When lunchEnabled is explicitly false, treat no slots as lunch breaks
+    const lunchActive = provider.lunchEnabled !== false;
+
     for (const operatory of operatories) {
       for (const time of timeSlots) {
-        const isLunch = isLunchTime(time, provider.lunchStart, provider.lunchEnd);
+        const isLunch = lunchActive
+          ? isLunchTime(time, provider.lunchStart, provider.lunchEnd)
+          : false;
 
         slots.push({
           time,
@@ -1014,6 +1021,7 @@ function calculateAllProductionSummaries(
         blockTypeId: block.blockTypeId,
         blockLabel: block.blockLabel,
         amount,
+        minimumAmount: blockType?.minimumAmount ?? 0,
       };
     });
 

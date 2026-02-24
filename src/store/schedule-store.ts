@@ -98,16 +98,16 @@ function recalcProductionSummary(
 
     const scheduledBlocks = blocks.map(block => {
       // Use per-block override if set; otherwise look up the block type default
+      const bt = blockTypes.find(b => b.id === block.blockTypeId);
       const amount = block.customProductionAmount != null
         ? block.customProductionAmount
-        : (() => {
-            const bt = blockTypes.find(b => b.id === block.blockTypeId);
-            return bt != null ? (bt.minimumAmount ?? 0) : parseAmountFromLabel(block.blockLabel);
-          })();
+        : (bt != null ? (bt.minimumAmount ?? 0) : parseAmountFromLabel(block.blockLabel));
       return {
         blockTypeId: block.blockTypeId,
         blockLabel: block.blockLabel,
         amount,
+        // Pass through minimumAmount so calculateProductionSummary can compute highProductionScheduled
+        minimumAmount: bt?.minimumAmount ?? 0,
       };
     });
 

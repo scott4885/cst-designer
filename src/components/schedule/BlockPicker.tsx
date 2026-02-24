@@ -57,12 +57,15 @@ export default function BlockPicker({
   }, [onClose]);
 
   // Filter block types by provider role - include ALL matching blocks
-  const applicableBlocks = blockTypes.filter(
-    (bt) =>
+  // Hygiene-typed blocks (SRP, PM, Prophy) are never shown for Doctor columns
+  const applicableBlocks = blockTypes.filter((bt) => {
+    if (providerRole === "DOCTOR" && bt.isHygieneType) return false;
+    return (
       bt.appliesToRole === providerRole ||
       bt.appliesToRole === "BOTH" ||
       bt.appliesToRole?.toUpperCase() === providerRole
-  );
+    );
+  });
 
   if (applicableBlocks.length === 0) {
     return null;

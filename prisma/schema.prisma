@@ -8,19 +8,20 @@ datasource db {
 }
 
 model Office {
-  id            String   @id @default(cuid())
-  name          String
-  dpmsSystem    String   @default("OPEN_DENTAL")
-  workingDays   String   @default("[]")
-  timeIncrement Int      @default(10)
-  feeModel      String   @default("UCR")
-  operatories   String   @default("[]")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  providers     Provider[]
-  blockTypes    BlockType[]
-  rules         ScheduleRule?
-  templates     ScheduleTemplate[]
+  id               String   @id @default(cuid())
+  name             String
+  dpmsSystem       String   @default("OPEN_DENTAL")
+  workingDays      String   @default("[]")
+  timeIncrement    Int      @default(10)
+  feeModel         String   @default("UCR")
+  operatories      String   @default("[]")
+  schedulingRules  String   @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  providers        Provider[]
+  blockTypes       BlockType[]
+  rules            ScheduleRule?
+  templates        ScheduleTemplate[]
 }
 
 model Provider {
@@ -31,9 +32,10 @@ model Provider {
   operatories     String  @default("[]")
   columns         Int     @default(1)
   workingStart    String  @default("07:00")
-  workingEnd      String  @default("18:00")
-  lunchStart      String  @default("13:00")
-  lunchEnd        String  @default("14:00")
+  workingEnd      String  @default("16:00")
+  lunchStart      String  @default("12:00")
+  lunchEnd        String  @default("13:00")
+  lunchEnabled    Boolean @default(true)
   dailyGoal       Float   @default(0)
   color           String  @default("#666")
   seesNewPatients Boolean @default(true)

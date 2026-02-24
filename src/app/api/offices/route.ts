@@ -93,6 +93,7 @@ export async function POST(request: Request) {
       providers,
       blockTypes,
       rules,
+      schedulingRules: body.schedulingRules || '',
     });
 
     return NextResponse.json(newOffice, { status: 201 });

@@ -99,7 +99,7 @@ export function distributeBlockMinimums(
  */
 export function calculateProductionSummary(
   provider: ProviderInput,
-  scheduledBlocks: { blockTypeId: string; blockLabel: string; amount: number }[]
+  scheduledBlocks: { blockTypeId: string; blockLabel: string; amount: number; minimumAmount?: number }[]
 ): ProviderProductionSummary {
   const target75 = calculateTarget75(provider.dailyGoal);
 
@@ -123,6 +123,11 @@ export function calculateProductionSummary(
   // Calculate total scheduled production
   const actualScheduled = blocks.reduce((sum, b) => sum + b.amount, 0);
 
+  // Calculate high production scheduled (blocks with minimumAmount >= $1000)
+  const highProductionScheduled = scheduledBlocks
+    .filter(b => (b.minimumAmount ?? 0) >= 1000)
+    .reduce((sum, b) => sum + b.amount, 0);
+
   // Determine status
   let status: 'MET' | 'UNDER' | 'OVER' = 'MET';
   if (actualScheduled < target75 * 0.95) {
@@ -137,6 +142,7 @@ export function calculateProductionSummary(
     dailyGoal: provider.dailyGoal,
     target75,
     actualScheduled,
+    highProductionScheduled,
     status,
     blocks
   };

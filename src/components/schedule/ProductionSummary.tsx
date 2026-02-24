@@ -13,6 +13,8 @@ export interface ProviderProductionSummary {
   dailyGoal: number;
   target75: number;
   actualScheduled: number;
+  /** Sum of only blocks with minimumAmount >= $1000 */
+  highProductionScheduled: number;
 }
 
 interface ProductionSummaryProps {
@@ -31,6 +33,33 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
     }).format(amount);
   };
 
+  /** Returns the HP percentage color class based on 75% target threshold */
+  const getHPColor = (hpAmount: number, dailyGoal: number) => {
+    if (dailyGoal === 0) return "text-muted-foreground";
+    const pct = (hpAmount / dailyGoal) * 100;
+    if (pct >= 75) return "text-green-600 dark:text-green-400";
+    if (pct >= 50) return "text-amber-600 dark:text-amber-400";
+    return "text-red-600 dark:text-red-400";
+  };
+
+  const getHPProgressColor = (hpAmount: number, dailyGoal: number) => {
+    if (dailyGoal === 0) return "[&>[data-slot=progress-indicator]]:bg-muted-foreground";
+    const pct = (hpAmount / dailyGoal) * 100;
+    if (pct >= 75) return "[&>[data-slot=progress-indicator]]:bg-green-500";
+    if (pct >= 50) return "[&>[data-slot=progress-indicator]]:bg-amber-500";
+    return "[&>[data-slot=progress-indicator]]:bg-red-500";
+  };
+
+  const getHPBadge = (hpAmount: number, dailyGoal: number) => {
+    if (dailyGoal === 0) return null;
+    const pct = (hpAmount / dailyGoal) * 100;
+    if (pct >= 75)
+      return <Badge className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400">✓ Met</Badge>;
+    if (pct >= 50)
+      return <Badge className="bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400">⚠ Partial</Badge>;
+    return <Badge className="bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400">✕ Below</Badge>;
+  };
+
   const getStatusBadge = (actual: number, target: number) => {
     if (actual >= target) {
       return <Badge className="bg-success/20 text-success border-success/30">✓ Met</Badge>;
@@ -44,6 +73,7 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
   const totalDailyGoal = summaries.reduce((sum, s) => sum + s.dailyGoal, 0);
   const totalTarget = summaries.reduce((sum, s) => sum + s.target75, 0);
   const totalActual = summaries.reduce((sum, s) => sum + s.actualScheduled, 0);
+  const totalHP = summaries.reduce((sum, s) => sum + (s.highProductionScheduled ?? 0), 0);
 
   if (summaries.length === 0) {
     return (
@@ -65,37 +95,76 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
       <h3 className="text-lg font-semibold text-foreground">Production Summary</h3>
 
       {/* Per Provider */}
-      {summaries.map((summary, index) => (
-        <Card key={index}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: summary.providerColor }}
-              />
-              <CardTitle className="text-sm">{summary.providerName}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Daily Goal:</span>
-              <span className="font-semibold">{formatCurrency(summary.dailyGoal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">75% Target:</span>
-              <span className="font-semibold">{formatCurrency(summary.target75)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Actual Scheduled:</span>
-              <span className="font-semibold">{formatCurrency(summary.actualScheduled)}</span>
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-muted-foreground">Status:</span>
-              {getStatusBadge(summary.actualScheduled, summary.target75)}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      {summaries.map((summary, index) => {
+        const hp = summary.highProductionScheduled ?? 0;
+        const hpPct = summary.dailyGoal > 0 ? Math.round((hp / summary.dailyGoal) * 100) : 0;
+        const hpBarPct = Math.min(hpPct, 100);
+
+        return (
+          <Card key={index}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: summary.providerColor }}
+                />
+                <CardTitle className="text-sm">{summary.providerName}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Daily Goal:</span>
+                <span className="font-semibold">{formatCurrency(summary.dailyGoal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Actual Scheduled:</span>
+                <span className="font-semibold">{formatCurrency(summary.actualScheduled)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Status:</span>
+                {getStatusBadge(summary.actualScheduled, summary.target75)}
+              </div>
+
+              {/* High Production section */}
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-foreground/80">
+                    High Production <span className="font-normal text-muted-foreground">(Target: 75%)</span>
+                  </span>
+                  {getHPBadge(hp, summary.dailyGoal)}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={`text-base font-bold tabular-nums ${getHPColor(hp, summary.dailyGoal)}`}>
+                    {formatCurrency(hp)}
+                  </span>
+                  <span className={`text-sm font-semibold tabular-nums ${getHPColor(hp, summary.dailyGoal)}`}>
+                    {hpPct}%
+                  </span>
+                </div>
+                {/* Progress bar with 75% target marker */}
+                <div className="relative">
+                  <Progress
+                    value={hpBarPct}
+                    className={`h-2.5 ${getHPProgressColor(hp, summary.dailyGoal)}`}
+                  />
+                  {/* 75% target marker line */}
+                  <div
+                    className="absolute top-0 h-2.5 w-0.5 bg-foreground/50 rounded-full"
+                    style={{ left: "75%" }}
+                    title="75% target"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <span className="text-[10px] text-muted-foreground" style={{ marginRight: "calc(25% - 12px)" }}>
+                    75% ↑
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
 
       {/* Office Total */}
       {summaries.length > 0 && (
@@ -105,22 +174,53 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Total Office</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Daily Goal:</span>
                 <span className="font-semibold">{formatCurrency(totalDailyGoal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">75% Target:</span>
-                <span className="font-semibold">{formatCurrency(totalTarget)}</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-muted-foreground">Actual Scheduled:</span>
                 <span className="font-semibold">{formatCurrency(totalActual)}</span>
               </div>
-              <div className="flex justify-between items-center pt-2">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Status:</span>
                 {getStatusBadge(totalActual, totalTarget)}
+              </div>
+
+              {/* Total High Production */}
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-foreground/80">
+                    High Production <span className="font-normal text-muted-foreground">(Target: 75%)</span>
+                  </span>
+                  {getHPBadge(totalHP, totalDailyGoal)}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={`text-base font-bold tabular-nums ${getHPColor(totalHP, totalDailyGoal)}`}>
+                    {formatCurrency(totalHP)}
+                  </span>
+                  <span className={`text-sm font-semibold tabular-nums ${getHPColor(totalHP, totalDailyGoal)}`}>
+                    {totalDailyGoal > 0 ? Math.round((totalHP / totalDailyGoal) * 100) : 0}%
+                  </span>
+                </div>
+                <div className="relative">
+                  <Progress
+                    value={Math.min(totalDailyGoal > 0 ? Math.round((totalHP / totalDailyGoal) * 100) : 0, 100)}
+                    className={`h-2.5 ${getHPProgressColor(totalHP, totalDailyGoal)}`}
+                  />
+                  <div
+                    className="absolute top-0 h-2.5 w-0.5 bg-foreground/50 rounded-full"
+                    style={{ left: "75%" }}
+                    title="75% target"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <span className="text-[10px] text-muted-foreground" style={{ marginRight: "calc(25% - 12px)" }}>
+                    75% ↑
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>

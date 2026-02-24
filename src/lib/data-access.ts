@@ -32,6 +32,7 @@ export interface OfficeDetail {
   blockTypes: BlockTypeInput[];
   rules: ScheduleRules;
   totalDailyGoal: number;
+  schedulingRules: string;
 }
 
 export interface CreateOfficeInput {
@@ -44,6 +45,7 @@ export interface CreateOfficeInput {
   providers?: ProviderInput[];
   blockTypes?: BlockTypeInput[];
   rules?: ScheduleRules;
+  schedulingRules?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,8 +61,9 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     columns: p.columns ?? 1,
     workingStart: p.workingStart,
     workingEnd: p.workingEnd,
-    lunchStart: p.lunchStart || undefined,
-    lunchEnd: p.lunchEnd || undefined,
+    lunchStart: p.lunchEnabled !== false && p.lunchStart ? p.lunchStart : undefined,
+    lunchEnd: p.lunchEnabled !== false && p.lunchEnd ? p.lunchEnd : undefined,
+    lunchEnabled: p.lunchEnabled !== false,
     dailyGoal: p.dailyGoal,
     color: p.color,
     seesNewPatients: p.seesNewPatients,
@@ -74,6 +77,8 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     appliesToRole: b.appliesToRole as BlockTypeInput['appliesToRole'],
     durationMin: b.durationMin,
     durationMax: b.durationMax || undefined,
+    isHygieneType: b.isHygieneType ?? false,
+    color: b.color || undefined,
   }));
 
   const r = office.rules;
@@ -103,6 +108,7 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     blockTypes,
     rules,
     totalDailyGoal,
+    schedulingRules: (office as any).schedulingRules || '',
   };
 }
 
@@ -162,6 +168,7 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
       timeIncrement: data.timeIncrement,
       feeModel: data.feeModel,
       operatories: JSON.stringify(data.operatories || DEFAULT_OPERATORIES),
+      schedulingRules: data.schedulingRules || '',
       providers: {
         create: (data.providers || []).map((p) => ({
           name: p.name,
@@ -170,8 +177,9 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
           columns: (p as any).columns ?? 1,
           workingStart: p.workingStart,
           workingEnd: p.workingEnd,
-          lunchStart: p.lunchStart || '13:00',
-          lunchEnd: p.lunchEnd || '14:00',
+          lunchEnabled: p.lunchEnabled !== false,
+          lunchStart: p.lunchEnabled !== false ? (p.lunchStart || '12:00') : '',
+          lunchEnd: p.lunchEnabled !== false ? (p.lunchEnd || '13:00') : '',
           dailyGoal: p.dailyGoal,
           color: p.color,
           seesNewPatients: p.seesNewPatients !== false,
@@ -221,6 +229,7 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
       ...(data.timeIncrement !== undefined && { timeIncrement: data.timeIncrement }),
       ...(data.feeModel !== undefined && { feeModel: data.feeModel }),
       ...(data.operatories !== undefined && { operatories: JSON.stringify(data.operatories) }),
+      ...(data.schedulingRules !== undefined && { schedulingRules: data.schedulingRules }),
     },
   });
 
@@ -236,8 +245,9 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
         columns: (p as any).columns ?? 1,
         workingStart: p.workingStart,
         workingEnd: p.workingEnd,
-        lunchStart: p.lunchStart || '13:00',
-        lunchEnd: p.lunchEnd || '14:00',
+        lunchEnabled: p.lunchEnabled !== false,
+        lunchStart: p.lunchEnabled !== false ? (p.lunchStart || '12:00') : '',
+        lunchEnd: p.lunchEnabled !== false ? (p.lunchEnd || '13:00') : '',
         dailyGoal: p.dailyGoal,
         color: p.color,
         seesNewPatients: p.seesNewPatients !== false,

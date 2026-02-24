@@ -12,9 +12,9 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   timeIncrement: 10,
   defaultStartTime: "07:00",
-  defaultEndTime: "18:00",
-  defaultLunchStart: "13:00",
-  defaultLunchEnd: "14:00",
+  defaultEndTime: "16:00",
+  defaultLunchStart: "12:00",
+  defaultLunchEnd: "13:00",
   autoSaveSchedules: true,
   showProductionWarnings: true,
   theme: "system",

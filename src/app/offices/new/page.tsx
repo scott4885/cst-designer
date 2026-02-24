@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +18,25 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { getSettings } from "@/lib/settings";
 // createOffice uses API route
+
+const DEFAULT_SCHEDULING_RULES = `# Office Scheduling Rules
+
+## Standard Rules
+- Default appointment duration: 10-minute increments
+- High Production appointments should be placed in the morning when possible
+- New Patient exams: limit to 2 per doctor per day
+- Emergency/same-day slots: reserve 1 slot per morning and afternoon
+
+## Provider-Specific Rules
+<!-- Add provider-specific rules here -->
+<!-- Example: "Dr. Smith cannot be scheduled in Operatory 4 after 12:00 PM" -->
+
+## Appointment Sequencing
+<!-- Example: "Leave 20 minutes after each crown prep" -->
+
+## Other Notes
+<!-- Add any other office-specific scheduling notes here -->
+`;
 
 // Form schema
 const officeSchema = z.object({
@@ -32,6 +52,7 @@ const officeSchema = z.object({
         start: z.string(),
         end: z.string(),
       }),
+      lunchEnabled: z.boolean(),
       lunchBreak: z.object({
         start: z.string(),
         end: z.string(),
@@ -55,6 +76,7 @@ const officeSchema = z.object({
     doubleBooking: z.boolean(),
     matrixing: z.boolean(),
   }),
+  schedulingRules: z.string().optional(),
 });
 
 type OfficeFormData = z.infer<typeof officeSchema>;
@@ -115,23 +137,13 @@ function NewOfficeForm() {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    const params = new URLSearchParams(searchParams.toString());
+    // Use window.history.replaceState directly to avoid Next.js re-rendering
+    // the Suspense boundary (which would wipe form state).
+    const params = new URLSearchParams(window.location.search);
     params.set("tab", tab);
-    router.replace(`?${params.toString()}`, { scroll: false });
+    window.history.replaceState(null, '', `?${params.toString()}`);
   };
 
-  // Keyboard shortcut: Cmd/Ctrl+S to submit
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        handleSubmit(onSubmit)();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const {
     register,
@@ -155,6 +167,7 @@ function NewOfficeForm() {
         doubleBooking: false,
         matrixing: true,
       },
+      schedulingRules: DEFAULT_SCHEDULING_RULES,
     },
   });
 
@@ -187,6 +200,7 @@ function NewOfficeForm() {
       role: "Doctor",
       operatories: ["OP1"],
       workingHours: { start: s.defaultStartTime, end: s.defaultEndTime },
+      lunchEnabled: true,
       lunchBreak: { start: s.defaultLunchStart, end: s.defaultLunchEnd },
       dailyGoal: 5000,
       color: PROVIDER_COLORS[providerFields.length % PROVIDER_COLORS.length],
@@ -207,9 +221,10 @@ function NewOfficeForm() {
         role: (p.role === "Doctor" ? "DOCTOR" : "HYGIENIST") as "DOCTOR" | "HYGIENIST",
         operatories: p.operatories || ["OP1"],
         workingStart: p.workingHours?.start || "07:00",
-        workingEnd: p.workingHours?.end || "18:00",
-        lunchStart: p.lunchBreak?.start || "13:00",
-        lunchEnd: p.lunchBreak?.end || "14:00",
+        workingEnd: p.workingHours?.end || "16:00",
+        lunchEnabled: p.lunchEnabled !== false,
+        lunchStart: p.lunchEnabled !== false ? (p.lunchBreak?.start || "12:00") : "",
+        lunchEnd: p.lunchEnabled !== false ? (p.lunchBreak?.end || "13:00") : "",
         dailyGoal: p.dailyGoal || 0,
         color: p.color || "#666",
       }));
@@ -268,6 +283,7 @@ function NewOfficeForm() {
           providers,
           blockTypes,
           rules,
+          schedulingRules: data.schedulingRules || "",
         }),
       });
       if (!res.ok) throw new Error('Failed to create office');
@@ -282,6 +298,18 @@ function NewOfficeForm() {
       setIsSubmitting(false);
     }
   };
+
+  // Keyboard shortcut: Cmd/Ctrl+S to submit (placed here so handleSubmit/onSubmit are in scope)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSubmit(onSubmit)();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSubmit]);
 
   // Warn on browser navigation away with unsaved changes
   useEffect(() => {
@@ -494,16 +522,37 @@ function NewOfficeForm() {
                           <span className="self-center">to</span>
                           <Input type="time" {...register(`providers.${index}.workingHours.end`)} />
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">e.g. 7:00 AM – 5:00 PM</p>
+                        <p className="text-xs text-muted-foreground mt-1">e.g. 7:00 AM – 4:00 PM</p>
                       </div>
                       <div>
-                        <Label>Lunch Break</Label>
-                        <div className="flex gap-2">
-                          <Input type="time" {...register(`providers.${index}.lunchBreak.start`)} />
-                          <span className="self-center">to</span>
-                          <Input type="time" {...register(`providers.${index}.lunchBreak.end`)} />
+                        <div className="flex items-center justify-between mb-1">
+                          <Label>Lunch Break</Label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {watchProviders?.[index]?.lunchEnabled !== false ? "Enabled" : "Disabled"}
+                            </span>
+                            <Switch
+                              checked={watchProviders?.[index]?.lunchEnabled !== false}
+                              onCheckedChange={(checked) =>
+                                setValue(`providers.${index}.lunchEnabled`, checked, { shouldDirty: true })
+                              }
+                            />
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
+                        {watchProviders?.[index]?.lunchEnabled !== false ? (
+                          <>
+                            <div className="flex gap-2">
+                              <Input type="time" {...register(`providers.${index}.lunchBreak.start`)} />
+                              <span className="self-center">to</span>
+                              <Input type="time" {...register(`providers.${index}.lunchBreak.end`)} />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted-foreground mt-1 italic">
+                            No lunch break — full day schedule
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -695,6 +744,22 @@ function NewOfficeForm() {
                     onCheckedChange={(checked) => setValue("scheduleRules.matrixing", checked, { shouldDirty: true })}
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Office-Specific Scheduling Rules</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  {...register("schedulingRules")}
+                  className="min-h-[240px] font-mono text-sm"
+                  placeholder="Enter office-specific scheduling rules..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Supports markdown. Use headings, lists, and comments to document custom rules.
+                </p>
               </CardContent>
             </Card>
 

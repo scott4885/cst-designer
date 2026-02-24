@@ -52,6 +52,7 @@ export default function TemplateBuilderPage() {
   } = useScheduleStore();
 
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [generatingDay, setGeneratingDay] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -95,6 +96,7 @@ export default function TemplateBuilderPage() {
         dailyGoal: Number(summary.dailyGoal) || 0,
         target75: Number(summary.target75) || 0,
         actualScheduled: Number(summary.actualScheduled) || 0,
+        highProductionScheduled: Number(summary.highProductionScheduled) || 0,
       }));
     } catch {
       console.error("Error computing production summaries");
@@ -771,28 +773,60 @@ export default function TemplateBuilderPage() {
           </Tabs>
         </div>
 
-        {/* Right Panel - Production Summary + Mix */}
-        <div className="w-80 flex-shrink-0 overflow-auto space-y-6">
-          <ProductionSummary summaries={productionSummaries} alignmentScore={alignmentScore} />
-          {currentDaySchedule && (
-            <ProductionMixChart
-              schedule={currentDaySchedule}
-              blockTypes={blockTypesForStore}
-              providers={fullProviders}
-            />
+        {/* Right Panel - Production Summary + Mix (collapsible) */}
+        <div
+          className={`transition-all duration-300 flex-shrink-0 ${
+            rightPanelCollapsed ? "w-10" : "w-80 xl:w-96"
+          }`}
+        >
+          {rightPanelCollapsed ? (
+            <div className="flex flex-col items-center gap-2 pt-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setRightPanelCollapsed(false)}
+                className="w-10 h-10"
+                title="Expand production panel"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-auto space-y-6 h-full">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Production</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setRightPanelCollapsed(true)}
+                  className="h-7 w-7"
+                  title="Collapse production panel"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+              <ProductionSummary summaries={productionSummaries} alignmentScore={alignmentScore} />
+              {currentDaySchedule && (
+                <ProductionMixChart
+                  schedule={currentDaySchedule}
+                  blockTypes={blockTypesForStore}
+                  providers={fullProviders}
+                />
+              )}
+              <ConflictPanel
+                schedule={currentDaySchedule || null}
+                providers={fullProviders}
+              />
+              <VersionPanel
+                officeId={officeId}
+                activeDay={activeDay}
+                currentSchedule={currentDaySchedule || null}
+                onLoadVersion={(schedule) => {
+                  setSchedules([...Object.values(generatedSchedules).filter(s => s.dayOfWeek !== schedule.dayOfWeek), schedule], officeId);
+                }}
+              />
+            </div>
           )}
-          <ConflictPanel
-            schedule={currentDaySchedule || null}
-            providers={fullProviders}
-          />
-          <VersionPanel
-            officeId={officeId}
-            activeDay={activeDay}
-            currentSchedule={currentDaySchedule || null}
-            onLoadVersion={(schedule) => {
-              setSchedules([...Object.values(generatedSchedules).filter(s => s.dayOfWeek !== schedule.dayOfWeek), schedule], officeId);
-            }}
-          />
         </div>
       </div>
 

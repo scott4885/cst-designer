@@ -60,6 +60,7 @@ export async function PUT(
       providers: body.providers,
       blockTypes: body.blockTypes,
       rules: body.rules,
+      schedulingRules: body.schedulingRules,
     });
 
     if (!updatedOffice) {

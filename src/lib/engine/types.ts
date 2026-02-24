@@ -5,9 +5,10 @@ export interface ProviderInput {
   operatories: string[];
   columns?: number;     // Number of simultaneous ops (1=single, 2+=multi-column). Defaults to 1.
   workingStart: string; // "07:00"
-  workingEnd: string;   // "18:00"
-  lunchStart?: string;  // "13:00"
-  lunchEnd?: string;    // "14:00"
+  workingEnd: string;   // "16:00"
+  lunchStart?: string;  // "12:00"
+  lunchEnd?: string;    // "13:00"
+  lunchEnabled?: boolean; // defaults to true; when false, no lunch break rendered
   dailyGoal: number;
   color: string;
   seesNewPatients?: boolean;          // defaults to true
@@ -22,6 +23,8 @@ export interface BlockTypeInput {
   appliesToRole: 'DOCTOR' | 'HYGIENIST' | 'BOTH';
   durationMin: number;  // minutes
   durationMax?: number;
+  isHygieneType?: boolean; // when true, never auto-place in Doctor columns
+  color?: string;
 }
 
 export interface ScheduleRules {
@@ -69,6 +72,8 @@ export interface ProviderProductionSummary {
   dailyGoal: number;
   target75: number;
   actualScheduled: number;
+  /** Sum of blocks where minimumAmount >= 1000 (High Production metric) */
+  highProductionScheduled?: number;
   status: 'MET' | 'UNDER' | 'OVER';
   blocks: { label: string; amount: number; count: number }[];
 }
