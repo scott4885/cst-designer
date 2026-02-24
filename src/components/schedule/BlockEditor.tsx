@@ -174,6 +174,50 @@ export default function BlockEditor({
           </div>
         </div>
 
+        {/* D/A Time breakdown — informational display */}
+        {selectedBlock && ((selectedBlock.dTimeMin ?? 0) > 0 || (selectedBlock.aTimeMin ?? 0) > 0) && (
+          <div className="rounded-md bg-muted/40 border border-border px-3 py-2">
+            <div className="text-xs text-muted-foreground font-medium mb-1.5 flex items-center gap-1">
+              <span>D/A Time Split</span>
+              <span className="text-[9px] text-muted-foreground/60 ml-1">(doctor/assistant time)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {(selectedBlock.dTimeMin ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                  <span>D</span>
+                  <span>{selectedBlock.dTimeMin}min</span>
+                </span>
+              )}
+              {(selectedBlock.aTimeMin ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  <span>A</span>
+                  <span>{selectedBlock.aTimeMin}min</span>
+                </span>
+              )}
+              <span className="text-[10px] text-muted-foreground">
+                = {(selectedBlock.dTimeMin ?? 0) + (selectedBlock.aTimeMin ?? 0)}min hands-on+assist
+              </span>
+            </div>
+            {(selectedBlock.dTimeMin ?? 0) > 0 && (selectedBlock.aTimeMin ?? 0) > 0 && (
+              <div className="mt-1.5 h-2 flex rounded-sm overflow-hidden">
+                <div
+                  className="bg-blue-500"
+                  style={{ width: `${Math.round(((selectedBlock.dTimeMin ?? 0) / ((selectedBlock.dTimeMin ?? 0) + (selectedBlock.aTimeMin ?? 0))) * 100)}%` }}
+                  title={`D-time: ${selectedBlock.dTimeMin}min`}
+                />
+                <div
+                  className="bg-emerald-500"
+                  style={{ width: `${Math.round(((selectedBlock.aTimeMin ?? 0) / ((selectedBlock.dTimeMin ?? 0) + (selectedBlock.aTimeMin ?? 0))) * 100)}%` }}
+                  title={`A-time: ${selectedBlock.aTimeMin}min`}
+                />
+              </div>
+            )}
+            <p className="text-[9px] text-muted-foreground mt-1 leading-tight">
+              D = Doctor hands-on time. A = Assistant-managed time (doctor can be in another chair).
+            </p>
+          </div>
+        )}
+
         {/* Production minimum — editable per-block override (Issue 6) */}
         <div>
           <label className="text-xs text-muted-foreground font-medium block mb-1">

@@ -457,7 +457,7 @@ function NewOfficeForm() {
                       </Button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Name</Label>
                         <Input {...register(`providers.${index}.name`)} placeholder="Dr. John Doe" />
@@ -488,7 +488,7 @@ function NewOfficeForm() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Daily Goal ($)</Label>
                         <Input

@@ -8,6 +8,7 @@ import BlockPicker from "./BlockPicker";
 import BlockEditor from "./BlockEditor";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import type { ConflictResult } from "@/lib/engine/stagger";
+import type { DTimeConflict } from "@/lib/engine/da-time";
 
 export interface ProviderInput {
   id: string;
@@ -84,6 +85,8 @@ interface ScheduleGridProps {
   blockTypes?: BlockTypeInput[];
   timeIncrement?: number;
   conflicts?: ConflictResult[];
+  /** D-time conflicts: when same doctor has hands-on time overlapping across columns */
+  dTimeConflicts?: DTimeConflict[];
   onAddBlock?: (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => void;
   onRemoveBlock?: (time: string, providerId: string) => void;
   onMoveBlock?: (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => void;
@@ -113,6 +116,7 @@ export default function ScheduleGrid({
   blockTypes,
   timeIncrement = 10,
   conflicts = [],
+  dTimeConflicts = [],
   onAddBlock,
   onRemoveBlock,
   onMoveBlock,
@@ -187,6 +191,92 @@ export default function ScheduleGrid({
     }
     return map;
   }, [conflicts]);
+
+  // Build blockType lookup by ID (must come before dTimeConflictInstanceIds)
+  const blockTypeById = useMemo(() => {
+    const map = new Map<string, BlockTypeInput>();
+    for (const bt of (blockTypes ?? [])) {
+      map.set(bt.id, bt);
+    }
+    return map;
+  }, [blockTypes]);
+
+  // Build D-time conflict set: Set of blockInstanceIds that have D-time overlapping with another block
+  // This is computed by cross-referencing conflict times with block instance start times.
+  const dTimeConflictInstanceIds = useMemo(() => {
+    if (dTimeConflicts.length === 0 || slots.length === 0) return new Set<string>();
+
+    // Build a map: "providerId:blockInstanceId" → earliest slot time for that instance
+    const instanceStartTimes = new Map<string, number>(); // key: instanceId, value: minutes
+    const instanceByProvider = new Map<string, Map<string, number>>(); // providerId → instanceId → startMin
+
+    for (const row of slots) {
+      for (const slot of row.slots) {
+        if (!slot.blockTypeId || !slot.blockInstanceId || slot.isBreak) continue;
+        const realProviderId = slot.providerId.includes('::')
+          ? slot.providerId.slice(0, slot.providerId.lastIndexOf('::'))
+          : slot.providerId;
+
+        // Parse the time (slot times are 24h "HH:MM" format)
+        const timeParts = row.time.match(/^(\d{1,2}):(\d{2})$/);
+        const timeMin = timeParts
+          ? parseInt(timeParts[1], 10) * 60 + parseInt(timeParts[2], 10)
+          : -1;
+        if (timeMin < 0) continue;
+
+        const existing = instanceStartTimes.get(slot.blockInstanceId);
+        if (existing === undefined || timeMin < existing) {
+          instanceStartTimes.set(slot.blockInstanceId, timeMin);
+        }
+
+        const pMap = instanceByProvider.get(realProviderId) ?? new Map<string, number>();
+        const pExisting = pMap.get(slot.blockInstanceId);
+        if (pExisting === undefined || timeMin < pExisting) {
+          pMap.set(slot.blockInstanceId, timeMin);
+        }
+        instanceByProvider.set(realProviderId, pMap);
+      }
+    }
+
+    const conflictingIds = new Set<string>();
+
+    for (const conflict of dTimeConflicts) {
+      const conflictMin = (() => {
+        const m = conflict.time.match(/^(\d{1,2}):(\d{2})$/);
+        return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : -1;
+      })();
+      if (conflictMin < 0) continue;
+
+      const pMap = instanceByProvider.get(conflict.providerId);
+      if (!pMap) continue;
+
+      // Find all blocks for this provider where D-time covers the conflict time
+      for (const [instanceId, startMin] of pMap) {
+        // Find the blockTypeId for this instance from slots
+        let blockTypeId: string | undefined;
+        outer: for (const row of slots) {
+          for (const s of row.slots) {
+            if (s.blockInstanceId === instanceId) {
+              blockTypeId = s.blockTypeId ?? undefined;
+              break outer;
+            }
+          }
+        }
+        if (!blockTypeId) continue;
+
+        const bt = blockTypeById.get(blockTypeId);
+        const dTimeMin = bt?.dTimeMin ?? 0;
+        const dEndMin = startMin + (dTimeMin > 0 ? dTimeMin : (bt?.durationMin ?? 30));
+
+        // D-time is active from startMin to dEndMin; check if conflict time falls in that range
+        if (conflictMin >= startMin && conflictMin < dEndMin) {
+          conflictingIds.add(instanceId);
+        }
+      }
+    }
+
+    return conflictingIds;
+  }, [dTimeConflicts, slots, blockTypeById]);
 
   // Generate default time slots
   const generateTimeSlots = (): string[] => {
@@ -472,7 +562,7 @@ export default function ScheduleGrid({
           <Button
             size="sm"
             variant={!columnsExpanded ? "secondary" : "ghost"}
-            className="h-9 min-h-[44px] px-2 text-xs"
+            className="min-h-[44px] px-2 text-xs"
             onClick={() => setColumnsExpanded(false)}
             title="Compact column view"
           >
@@ -482,7 +572,7 @@ export default function ScheduleGrid({
           <Button
             size="sm"
             variant={columnsExpanded ? "secondary" : "ghost"}
-            className="h-9 min-h-[44px] px-2 text-xs"
+            className="min-h-[44px] px-2 text-xs"
             onClick={() => setColumnsExpanded(true)}
             title="Expanded column view"
           >
@@ -497,7 +587,7 @@ export default function ScheduleGrid({
           <Button
             size="icon"
             variant="ghost"
-            className="h-9 w-9 min-h-[44px] min-w-[44px]"
+            className="min-h-[44px] min-w-[44px]"
             onClick={zoomOut}
             disabled={!canZoomOut}
             title="Zoom out (smaller rows)"
@@ -510,7 +600,7 @@ export default function ScheduleGrid({
           <Button
             size="icon"
             variant="ghost"
-            className="h-9 w-9 min-h-[44px] min-w-[44px]"
+            className="min-h-[44px] min-w-[44px]"
             onClick={zoomIn}
             disabled={!canZoomIn}
             title="Zoom in (taller rows)"
@@ -656,12 +746,33 @@ export default function ScheduleGrid({
                       !!blockInfo &&
                       blockInfo.startTime === dragState.time;
 
-                    // Conflict detection
+                    // Conflict detection (hard double-booking)
                     const conflictEntry = conflictMap.get(`${row.time}:${provider.id}`);
                     const cellHasConflict = !!conflictEntry;
                     const conflictTooltip = conflictEntry
                       ? `Double-booked in: ${conflictEntry.operatories.join(', ')} — blocks: ${conflictEntry.blockLabels.join(', ')}`
                       : undefined;
+
+                    // D-time conflict detection: check if this block instance is in the D-time conflict set
+                    const isFirstCell = blockInfo?.isFirst || false;
+                    let hasDTimeConflict = false;
+                    let dTimeConflictTooltip: string | undefined;
+                    let cellDTimeMin = 0;
+                    let cellATimeMin = 0;
+
+                    if (hasBlock && slot?.blockTypeId) {
+                      const bt = blockTypeById.get(slot.blockTypeId);
+                      if (bt && isFirstCell) {
+                        cellDTimeMin = bt.dTimeMin ?? 0;
+                        cellATimeMin = bt.aTimeMin ?? 0;
+                      }
+
+                      // Show D-time conflict on the first cell of any conflicting block
+                      if (isFirstCell && slot.blockInstanceId && dTimeConflictInstanceIds.has(slot.blockInstanceId)) {
+                        hasDTimeConflict = true;
+                        dTimeConflictTooltip = `D-time overlap: doctor has hands-on time in another column at the same time. Consider staggering start times.`;
+                      }
+                    }
 
                     return (
                       <Fragment key={provider.id}>
@@ -700,12 +811,15 @@ export default function ScheduleGrid({
                                   : undefined
                               }
                               isClickable={isInteractive && !outsideHours && (hasBlock || isEmpty)}
-                              isBlockFirst={blockInfo?.isFirst || false}
+                              isBlockFirst={isFirstCell}
                               isBlockLast={blockInfo?.isLast || false}
                               isDragOver={isCellDragOver}
                               isDragging={isDraggingSource}
                               hasConflict={cellHasConflict}
-                              conflictTooltip={conflictTooltip}
+                              conflictTooltip={conflictTooltip ?? dTimeConflictTooltip}
+                              dTimeMin={cellDTimeMin}
+                              aTimeMin={cellATimeMin}
+                              hasDTimeConflict={hasDTimeConflict}
                             />
                           </div>
                         </td>

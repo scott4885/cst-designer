@@ -21,10 +21,14 @@ export interface BlockTypeInput {
   description?: string;
   minimumAmount?: number;
   appliesToRole: 'DOCTOR' | 'HYGIENIST' | 'BOTH';
-  durationMin: number;  // minutes
+  durationMin: number;  // minutes (total = dTimeMin + aTimeMin when both set)
   durationMax?: number;
   isHygieneType?: boolean; // when true, never auto-place in Doctor columns
   color?: string;
+  /** D-time (Doctor-active time): minutes the doctor is physically hands-on. 0 = not set. */
+  dTimeMin?: number;
+  /** A-time (Assistant-managed time): minutes the assistant manages the chair. 0 = not set. */
+  aTimeMin?: number;
 }
 
 export interface ScheduleRules {

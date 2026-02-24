@@ -6,9 +6,11 @@
  * - Provider double-booked without multi-column setup
  * - Production below daily goal
  * - Missing lunch breaks
+ * - D-time overlaps (doctor hands-on time conflict across columns)
  */
 
-import type { TimeSlotOutput, ProviderInput, GenerationResult, ProviderProductionSummary } from './types';
+import type { TimeSlotOutput, ProviderInput, GenerationResult, ProviderProductionSummary, BlockTypeInput } from './types';
+import { detectDTimeConflicts } from './da-time';
 
 export type ConflictSeverity = 'error' | 'warning' | 'info';
 export type ConflictCategory =
@@ -35,7 +37,8 @@ export interface ScheduleConflict {
  */
 export function detectAllConflicts(
   schedule: GenerationResult,
-  providers: ProviderInput[]
+  providers: ProviderInput[],
+  blockTypes: BlockTypeInput[] = []
 ): ScheduleConflict[] {
   const conflicts: ScheduleConflict[] = [];
   let idCounter = 0;
@@ -155,6 +158,23 @@ export function detectAllConflicts(
         message: `${provider.name} has no lunch break scheduled`,
         providerId: provider.id,
         providerName: provider.name,
+      });
+    }
+  }
+
+  // 5. D-time conflicts: doctor hands-on time overlapping across columns (warning level)
+  if (blockTypes.length > 0) {
+    const dTimeConflicts = detectDTimeConflicts(schedule, providers, blockTypes);
+    for (const c of dTimeConflicts) {
+      conflicts.push({
+        id: nextId(),
+        severity: 'warning',
+        category: 'DOUBLE_BOOKING',
+        message: `⚡ D-time overlap: ${c.providerName} has hands-on time in ${c.operatories.join(' and ')} at ${c.time}`,
+        time: c.time,
+        providerId: c.providerId,
+        providerName: c.providerName,
+        details: `Blocks: ${c.blockLabels.join(', ')}. Doctor is scheduled for hands-on (D-time) in multiple chairs simultaneously. Consider staggering start times so A-time in one chair overlaps with D-time in the next.`,
       });
     }
   }

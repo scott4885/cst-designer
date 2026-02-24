@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { ChevronDown, ChevronUp, AlertCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { GenerationResult, ProviderInput } from "@/lib/engine/types";
+import type { GenerationResult, ProviderInput, BlockTypeInput } from "@/lib/engine/types";
 import {
   detectAllConflicts,
   getProductionTotals,
@@ -14,16 +14,18 @@ import {
 interface ConflictPanelProps {
   schedule: GenerationResult | null;
   providers: ProviderInput[];
+  /** Block types — used for D-time conflict detection */
+  blockTypes?: BlockTypeInput[];
   onSlotClick?: (time: string, providerId: string) => void;
 }
 
-export default function ConflictPanel({ schedule, providers, onSlotClick }: ConflictPanelProps) {
+export default function ConflictPanel({ schedule, providers, blockTypes = [], onSlotClick }: ConflictPanelProps) {
   const [expanded, setExpanded] = useState(true);
 
   const conflicts = useMemo(() => {
     if (!schedule) return [];
-    return detectAllConflicts(schedule, providers);
-  }, [schedule, providers]);
+    return detectAllConflicts(schedule, providers, blockTypes);
+  }, [schedule, providers, blockTypes]);
 
   const productionTotals = useMemo(() => {
     if (!schedule?.productionSummary) return null;

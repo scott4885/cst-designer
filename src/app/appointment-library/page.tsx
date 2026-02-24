@@ -39,6 +39,10 @@ interface BlockTypeFormData {
   durationMax: string;
   minimumAmount: string;
   color: string;
+  /** D-time (Doctor-active time) in minutes */
+  dTimeMin: string;
+  /** A-time (Assistant-managed time) in minutes */
+  aTimeMin: string;
 }
 
 const EMPTY_FORM: BlockTypeFormData = {
@@ -49,6 +53,8 @@ const EMPTY_FORM: BlockTypeFormData = {
   durationMax: "",
   minimumAmount: "",
   color: "#6366f1",
+  dTimeMin: "",
+  aTimeMin: "",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -112,6 +118,16 @@ function BlockTypeForm({ initial = EMPTY_FORM, onSave, onCancel, isSubmitting, m
       if (isNaN(amt) || amt < 0) {
         newErrors.minimumAmount = "Must be a non-negative number";
       }
+    }
+
+    if (form.dTimeMin) {
+      const d = Number(form.dTimeMin);
+      if (isNaN(d) || d < 0) newErrors.dTimeMin = "Must be non-negative";
+    }
+
+    if (form.aTimeMin) {
+      const a = Number(form.aTimeMin);
+      if (isNaN(a) || a < 0) newErrors.aTimeMin = "Must be non-negative";
     }
 
     setErrors(newErrors);
@@ -200,6 +216,65 @@ function BlockTypeForm({ initial = EMPTY_FORM, onSave, onCancel, isSubmitting, m
           />
           {errors.durationMax && <p className="text-xs text-destructive">{errors.durationMax}</p>}
         </div>
+      </div>
+
+      {/* D/A Time Split */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-1.5">
+          D/A Time Split
+          <span className="text-[10px] font-normal text-muted-foreground">(optional — for double-booking logic)</span>
+        </Label>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="bt-dtime" className="flex items-center gap-1">
+              <span className="inline-block w-4 h-4 rounded bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">D</span>
+              D-time (min)
+            </Label>
+            <Input
+              id="bt-dtime"
+              type="number"
+              min={0}
+              value={form.dTimeMin}
+              onChange={(e) => set("dTimeMin", e.target.value)}
+              placeholder="Doctor hands-on"
+              aria-invalid={!!errors.dTimeMin}
+            />
+            {errors.dTimeMin && <p className="text-xs text-destructive">{errors.dTimeMin}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="bt-atime" className="flex items-center gap-1">
+              <span className="inline-block w-4 h-4 rounded bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">A</span>
+              A-time (min)
+            </Label>
+            <Input
+              id="bt-atime"
+              type="number"
+              min={0}
+              value={form.aTimeMin}
+              onChange={(e) => set("aTimeMin", e.target.value)}
+              placeholder="Assistant managed"
+              aria-invalid={!!errors.aTimeMin}
+            />
+            {errors.aTimeMin && <p className="text-xs text-destructive">{errors.aTimeMin}</p>}
+          </div>
+        </div>
+        {form.dTimeMin && form.aTimeMin && Number(form.dTimeMin) > 0 && Number(form.aTimeMin) > 0 && (
+          <div className="flex items-center gap-2 mt-1">
+            <div className="flex-1 h-2 flex rounded-sm overflow-hidden bg-muted">
+              <div
+                className="bg-blue-500 transition-all"
+                style={{ width: `${Math.round((Number(form.dTimeMin) / (Number(form.dTimeMin) + Number(form.aTimeMin))) * 100)}%` }}
+              />
+              <div className="bg-emerald-500 flex-1" />
+            </div>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              D·{form.dTimeMin}m / A·{form.aTimeMin}m
+            </span>
+          </div>
+        )}
+        <p className="text-[10px] text-muted-foreground">
+          D = doctor hands-on time. A = assistant-managed time. Doctor can be in another chair during A-time (productive double-booking).
+        </p>
       </div>
 
       {/* Minimum Amount */}
@@ -302,6 +377,8 @@ export default function AppointmentLibraryPage() {
       durationMax: data.durationMax ? Number(data.durationMax) : undefined,
       minimumAmount: data.minimumAmount ? Number(data.minimumAmount) : undefined,
       color: data.color,
+      dTimeMin: data.dTimeMin ? Number(data.dTimeMin) : 0,
+      aTimeMin: data.aTimeMin ? Number(data.aTimeMin) : 0,
     });
 
     if (result.success) {
@@ -324,6 +401,8 @@ export default function AppointmentLibraryPage() {
       durationMax: data.durationMax ? Number(data.durationMax) : undefined,
       minimumAmount: data.minimumAmount ? Number(data.minimumAmount) : undefined,
       color: data.color,
+      dTimeMin: data.dTimeMin ? Number(data.dTimeMin) : 0,
+      aTimeMin: data.aTimeMin ? Number(data.aTimeMin) : 0,
     });
 
     if (success) {
@@ -366,35 +445,38 @@ export default function AppointmentLibraryPage() {
         durationMax: editTarget.durationMax != null ? String(editTarget.durationMax) : "",
         minimumAmount: editTarget.minimumAmount != null ? String(editTarget.minimumAmount) : "",
         color: editTarget.color ?? "#6366f1",
+        dTimeMin: (editTarget.dTimeMin ?? 0) > 0 ? String(editTarget.dTimeMin) : "",
+        aTimeMin: (editTarget.aTimeMin ?? 0) > 0 ? String(editTarget.aTimeMin) : "",
       } satisfies BlockTypeFormData)
     : EMPTY_FORM;
 
   return (
     <div className="max-w-5xl space-y-6">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
             <BookOpen className="w-5 h-5 text-accent" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Appointment Type Library</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Appointment Type Library</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               Manage the global library of block types used across all offices
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setResetOpen(true)}
-            className="gap-1.5"
+            className="gap-1.5 min-h-[44px]"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Reset Defaults
+            <span className="hidden sm:inline">Reset Defaults</span>
+            <span className="sm:hidden">Reset</span>
           </Button>
-          <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5">
+          <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5 min-h-[44px]">
             <Plus className="w-4 h-4" />
             New Type
           </Button>
@@ -402,7 +484,7 @@ export default function AppointmentLibraryPage() {
       </div>
 
       {/* ── Stats row ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total Types", value: blockTypes.length },
           { label: "Doctor Types", value: doctorCount },
@@ -419,7 +501,7 @@ export default function AppointmentLibraryPage() {
       </div>
 
       {/* ── Filter bar ───────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-muted-foreground">Filter by role:</span>
         {(["ALL", "DOCTOR", "HYGIENIST", "BOTH"] as const).map((role) => (
           <Button
@@ -427,6 +509,7 @@ export default function AppointmentLibraryPage() {
             variant={filterRole === role ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterRole(role)}
+            className="min-h-[44px]"
           >
             {role === "ALL"
               ? `All (${blockTypes.length})`
@@ -461,7 +544,7 @@ export default function AppointmentLibraryPage() {
 
       {/* ── Add dialog ───────────────────────────────────────────────────── */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>New Appointment Type</DialogTitle>
             <DialogDescription>
@@ -478,7 +561,7 @@ export default function AppointmentLibraryPage() {
 
       {/* ── Edit dialog ──────────────────────────────────────────────────── */}
       <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Appointment Type</DialogTitle>
             <DialogDescription>
@@ -498,7 +581,7 @@ export default function AppointmentLibraryPage() {
 
       {/* ── Delete confirmation dialog ────────────────────────────────────── */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="w-[95vw] sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Delete Appointment Type</DialogTitle>
             <DialogDescription>
@@ -520,7 +603,7 @@ export default function AppointmentLibraryPage() {
 
       {/* ── Reset confirmation dialog ─────────────────────────────────────── */}
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="w-[95vw] sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Reset to Defaults</DialogTitle>
             <DialogDescription>
@@ -615,6 +698,16 @@ function BlockTypeCard({ blockType, onEdit, onDelete }: BlockTypeCardProps) {
           {blockType.minimumAmount != null && blockType.minimumAmount > 0 && (
             <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
               ${blockType.minimumAmount.toLocaleString()}+
+            </span>
+          )}
+          {(blockType.dTimeMin ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+              D·{blockType.dTimeMin}m
+            </span>
+          )}
+          {(blockType.aTimeMin ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+              A·{blockType.aTimeMin}m
             </span>
           )}
         </div>

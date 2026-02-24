@@ -22,6 +22,11 @@ interface TimeSlotCellProps {
   isDrExam?: boolean;
   /** When true, this slot falls outside the provider's scheduled work hours — renders with gray background */
   isOutsideHours?: boolean;
+  // D/A time visual breakdown (for doctor columns)
+  dTimeMin?: number;
+  aTimeMin?: number;
+  /** Has a D-time conflict (D-time overlapping with another doctor column) */
+  hasDTimeConflict?: boolean;
 }
 
 export default function TimeSlotCell({
@@ -40,6 +45,9 @@ export default function TimeSlotCell({
   conflictTooltip,
   isDrExam = false,
   isOutsideHours = false,
+  dTimeMin = 0,
+  aTimeMin = 0,
+  hasDTimeConflict = false,
 }: TimeSlotCellProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -112,25 +120,37 @@ export default function TimeSlotCell({
     );
   }
 
+  // D/A time split visual
+  const hasDASplit = isBlockFirst && dTimeMin > 0 && aTimeMin > 0;
+  const totalDA = dTimeMin + aTimeMin;
+  const dPct = hasDASplit ? Math.round((dTimeMin / totalDA) * 100) : 0;
+  const aPct = hasDASplit ? 100 - dPct : 0;
+
+  // Effective conflict: regular conflict OR D-time conflict
+  const effectiveConflict = hasConflict || hasDTimeConflict;
+  const conflictColor = hasDTimeConflict && !hasConflict ? "#f97316" : "#ef4444"; // orange for D-time, red for hard conflict
+
   // Provider cell with data
   const cellStyle = providerColor
     ? {
-        backgroundColor: hasConflict ? "rgba(239,68,68,0.12)" : providerColor + "30",
-        borderLeft: hasConflict ? "3px solid #ef4444" : `3px solid ${providerColor}`,
-        borderRight: hasConflict ? "2px solid #ef4444" : `2px solid ${providerColor}`,
+        backgroundColor: effectiveConflict
+          ? (hasDTimeConflict && !hasConflict ? "rgba(249,115,22,0.10)" : "rgba(239,68,68,0.12)")
+          : providerColor + "30",
+        borderLeft: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${providerColor}`,
+        borderRight: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${providerColor}`,
         ...(isBlockFirst && {
-          borderTop: hasConflict ? "2px solid #ef4444" : `2px solid ${providerColor}`,
+          borderTop: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${providerColor}`,
           borderTopLeftRadius: '4px',
           borderTopRightRadius: '4px',
         }),
         ...(isBlockLast && {
-          borderBottom: hasConflict ? "2px solid #ef4444" : `2px solid ${providerColor}`,
+          borderBottom: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${providerColor}`,
           borderBottomLeftRadius: '4px',
           borderBottomRightRadius: '4px',
         }),
       }
-    : hasConflict
-    ? { borderLeft: "3px solid #ef4444", backgroundColor: "rgba(239,68,68,0.08)" }
+    : effectiveConflict
+    ? { borderLeft: `3px solid ${conflictColor}`, backgroundColor: hasDTimeConflict ? "rgba(249,115,22,0.08)" : "rgba(239,68,68,0.08)" }
     : {};
 
   return (
@@ -148,7 +168,7 @@ export default function TimeSlotCell({
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      title={hasConflict && conflictTooltip ? conflictTooltip : blockLabel ? `${staffingCode || ""} ${blockLabel}` : ""}
+      title={effectiveConflict && conflictTooltip ? conflictTooltip : blockLabel ? `${staffingCode || ""} ${blockLabel}` : ""}
     >
       {staffingCode && (
         <div className="flex items-center gap-1">
@@ -169,17 +189,54 @@ export default function TimeSlotCell({
         </div>
       )}
 
-      {/* Conflict warning icon */}
-      {hasConflict && (
-        <div className="absolute top-0.5 right-0.5 z-10 pointer-events-none" aria-label="conflict">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="#ef4444">
-            <path d="M8 1L1 14h14L8 1zm0 2.5l5.5 9.5H2.5L8 3.5zM7.25 7v3h1.5V7h-1.5zm0 4v1.5h1.5V11h-1.5z" />
-          </svg>
+      {/* D/A time split bar — shown on first cell of a block when D and A times are both set */}
+      {hasDASplit && (
+        <div className="flex items-center gap-0.5 mt-1" title={`D-time: ${dTimeMin}min (hands-on) | A-time: ${aTimeMin}min (assistant)`}>
+          <div
+            className="h-1.5 rounded-sm"
+            style={{ width: `${dPct}%`, backgroundColor: '#3b82f6', minWidth: 4 }}
+            title={`D: ${dTimeMin}min`}
+          />
+          <div
+            className="h-1.5 rounded-sm"
+            style={{ width: `${aPct}%`, backgroundColor: '#10b981', minWidth: 4 }}
+            title={`A: ${aTimeMin}min`}
+          />
+        </div>
+      )}
+
+      {/* D/A time label — small text badge on first cell */}
+      {hasDASplit && (
+        <div className="flex items-center gap-1 mt-0.5">
+          <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+            D·{dTimeMin}m
+          </span>
+          <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+            A·{aTimeMin}m
+          </span>
+        </div>
+      )}
+
+      {/* Conflict warning icons */}
+      {(hasConflict || hasDTimeConflict) && (
+        <div className="absolute top-0.5 right-0.5 z-10 pointer-events-none flex gap-0.5" aria-label="conflict">
+          {hasConflict && (
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#ef4444">
+              <title>Double-booking conflict</title>
+              <path d="M8 1L1 14h14L8 1zm0 2.5l5.5 9.5H2.5L8 3.5zM7.25 7v3h1.5V7h-1.5zm0 4v1.5h1.5V11h-1.5z" />
+            </svg>
+          )}
+          {hasDTimeConflict && !hasConflict && (
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#f97316">
+              <title>D-time overlap</title>
+              <path d="M8 1L1 14h14L8 1zm0 2.5l5.5 9.5H2.5L8 3.5zM7.25 7v3h1.5V7h-1.5zm0 4v1.5h1.5V11h-1.5z" />
+            </svg>
+          )}
         </div>
       )}
 
       {/* Drag handle dots — visible on hover (hidden when conflict icon shown) */}
-      {blockLabel && !isDragging && !hasConflict && (
+      {blockLabel && !isDragging && !effectiveConflict && (
         <div className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-40 transition-opacity pointer-events-none">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-foreground">
             <circle cx="2" cy="2" r="1" />
@@ -199,10 +256,22 @@ export default function TimeSlotCell({
               <div className="text-muted-foreground max-w-[200px] whitespace-normal">{conflictTooltip}</div>
               {blockLabel && <div className="text-foreground mt-1 font-medium">{blockLabel}</div>}
             </>
+          ) : hasDTimeConflict && conflictTooltip ? (
+            <>
+              <div className="font-semibold text-orange-500">⚡ D-time overlap</div>
+              <div className="text-muted-foreground max-w-[200px] whitespace-normal">{conflictTooltip}</div>
+              {blockLabel && <div className="text-foreground mt-1 font-medium">{blockLabel}</div>}
+            </>
           ) : blockLabel ? (
             <>
               <div className="font-semibold text-foreground">{blockLabel}</div>
               {staffingCode && <div className="text-muted-foreground">Code: {staffingCode}</div>}
+              {hasDASplit && (
+                <div className="flex gap-2 mt-1">
+                  <span className="text-blue-600 font-medium">D·{dTimeMin}m</span>
+                  <span className="text-emerald-600 font-medium">A·{aTimeMin}m</span>
+                </div>
+              )}
               {isClickable && <div className="text-accent text-[10px]">Click to edit • Drag to move</div>}
             </>
           ) : null}

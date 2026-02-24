@@ -53,6 +53,8 @@ model BlockType {
   durationMax   Int     @default(30)
   color         String  @default("#666")
   isHygieneType Boolean @default(false)
+  dTimeMin      Int     @default(0)
+  aTimeMin      Int     @default(0)
   office        Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }
 

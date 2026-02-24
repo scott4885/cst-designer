@@ -79,6 +79,8 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     durationMax: b.durationMax || undefined,
     isHygieneType: b.isHygieneType ?? false,
     color: b.color || undefined,
+    dTimeMin: b.dTimeMin ?? 0,
+    aTimeMin: b.aTimeMin ?? 0,
   }));
 
   const r = office.rules;
@@ -195,6 +197,8 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
           durationMax: b.durationMax || b.durationMin,
           color: '#666',
           isHygieneType: b.appliesToRole === 'HYGIENIST',
+          dTimeMin: (b as any).dTimeMin ?? 0,
+          aTimeMin: (b as any).aTimeMin ?? 0,
         })),
       },
       rules: {
@@ -269,6 +273,8 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
         durationMax: b.durationMax || b.durationMin,
         color: '#666',
         isHygieneType: b.appliesToRole === 'HYGIENIST',
+        dTimeMin: (b as any).dTimeMin ?? 0,
+        aTimeMin: (b as any).aTimeMin ?? 0,
       })),
     });
   }

@@ -58,7 +58,7 @@ export default function SettingsPage() {
     <div className="max-w-3xl space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Settings</h1>
         <p className="text-muted-foreground mt-1">
           Configure default preferences for schedule generation
         </p>
@@ -96,7 +96,7 @@ export default function SettingsPage() {
 
           <Separator />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="defaultStartTime">Default Start Time</Label>
               <Select
@@ -133,7 +133,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="defaultLunchStart">Default Lunch Start</Label>
               <Select
@@ -246,11 +246,11 @@ export default function SettingsPage() {
       </Card>
 
       {/* Actions */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={handleReset}>
+      <div className="flex flex-col-reverse sm:flex-row justify-between gap-3">
+        <Button variant="outline" onClick={handleReset} className="min-h-[44px]">
           Reset to Defaults
         </Button>
-        <Button onClick={handleSave} disabled={!hasChanges}>
+        <Button onClick={handleSave} disabled={!hasChanges} className="min-h-[44px]">
           {hasChanges ? "Save Changes" : "No Changes"}
         </Button>
       </div>

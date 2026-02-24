@@ -26,6 +26,8 @@ import { generateExcel, ExportInput, ExportDaySchedule } from "@/lib/export/exce
 import type { BlockTypeInput } from "@/lib/engine/types";
 import { detectConflicts } from "@/lib/engine/stagger";
 import type { ConflictResult } from "@/lib/engine/stagger";
+import { detectDTimeConflicts } from "@/lib/engine/da-time";
+import type { DTimeConflict } from "@/lib/engine/da-time";
 import { scoreScheduleAlignment, DEFAULT_IDEAL_DAY_TEMPLATE } from "@/lib/engine/ideal-day";
 import type { AlignmentScore } from "@/lib/engine/ideal-day";
 
@@ -109,6 +111,20 @@ export default function TemplateBuilderPage() {
     if (!currentDaySchedule || !currentOffice?.providers?.length) return [];
     try {
       return detectConflicts(currentDaySchedule, currentOffice.providers);
+    } catch {
+      return [];
+    }
+  }, [currentDaySchedule, currentOffice]);
+
+  // D-time conflicts: doctor hands-on time overlapping across columns → warning level
+  const currentDayDTimeConflicts: DTimeConflict[] = useMemo(() => {
+    if (!currentDaySchedule || !currentOffice?.providers?.length) return [];
+    try {
+      return detectDTimeConflicts(
+        currentDaySchedule,
+        currentOffice.providers,
+        currentOffice.blockTypes ?? []
+      );
     } catch {
       return [];
     }
@@ -741,7 +757,7 @@ export default function TemplateBuilderPage() {
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
             <TabsList className="flex w-full overflow-x-auto mb-4 h-10">
               {currentOffice.workingDays.map((day) => (
-                <TabsTrigger key={day} value={day} className="flex-1 min-w-[120px]">
+                <TabsTrigger key={day} value={day} className="flex-1 min-w-[64px] sm:min-w-[120px] text-xs sm:text-sm px-1 sm:px-3">
                   {getDayLabel(day)}
                   {generatedSchedules[day] && (
                     <span className="ml-2 w-2 h-2 rounded-full bg-success" />
@@ -762,13 +778,14 @@ export default function TemplateBuilderPage() {
               {currentOffice.workingDays.map((day) => (
                 <TabsContent key={day} value={day} className="h-full mt-0">
                   <Card className="h-full">
-                    <CardContent className="p-6">
+                    <CardContent className="p-2 sm:p-6">
                       <ScheduleGrid
                         slots={activeDay === day ? timeSlots : []}
                         providers={providers}
                         blockTypes={blockTypes}
                         timeIncrement={timeIncrement}
                         conflicts={activeDay === day ? currentDayConflicts : []}
+                        dTimeConflicts={activeDay === day ? currentDayDTimeConflicts : []}
                         onAddBlock={currentDaySchedule ? handleAddBlock : undefined}
                         onRemoveBlock={currentDaySchedule ? handleRemoveBlock : undefined}
                         onMoveBlock={currentDaySchedule ? handleMoveBlock : undefined}
@@ -826,6 +843,7 @@ export default function TemplateBuilderPage() {
             <ConflictPanel
               schedule={currentDaySchedule || null}
               providers={fullProviders}
+              blockTypes={currentOffice.blockTypes ?? []}
             />
             <VersionPanel
               officeId={officeId}

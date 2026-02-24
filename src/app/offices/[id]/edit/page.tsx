@@ -306,7 +306,7 @@ export default function EditOfficePage() {
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Name</Label>
                     <Input {...register(`providers.${index}.name`)} placeholder="Dr. John Doe" />
@@ -355,7 +355,7 @@ export default function EditOfficePage() {
                     <p className="text-xs text-muted-foreground mb-2">
                       Leave all unchecked to handle all applicable types
                     </p>
-                    <div className="grid grid-cols-2 gap-2 border border-border rounded-lg p-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-border rounded-lg p-3">
                       {currentOffice.blockTypes
                         .filter(bt => 
                           bt.appliesToRole === 'BOTH' || 
@@ -390,7 +390,7 @@ export default function EditOfficePage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Daily Goal ($)</Label>
                     <Input

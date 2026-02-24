@@ -934,6 +934,9 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'DOCTOR',
     durationMin: 60,
     durationMax: 90,
+    // D-time: doctor hands-on (prep, injection, buildup). A-time: patient waits (matrix, temporization)
+    dTimeMin: 30,
+    aTimeMin: 30,
   },
   {
     id: 'crown-prep-default',
@@ -943,6 +946,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'DOCTOR',
     durationMin: 60,
     durationMax: 90,
+    dTimeMin: 40,
+    aTimeMin: 20,
   },
   {
     id: 'mp-default',
@@ -952,6 +957,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'DOCTOR',
     durationMin: 30,
     durationMax: 60,
+    dTimeMin: 20,
+    aTimeMin: 10,
   },
   {
     id: 'np-cons-default',
@@ -961,6 +968,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'DOCTOR',
     durationMin: 30,
     durationMax: 60,
+    dTimeMin: 30,
+    aTimeMin: 0,
   },
   {
     id: 'non-prod-default',
@@ -970,6 +979,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'DOCTOR',
     durationMin: 20,
     durationMax: 30,
+    dTimeMin: 20,
+    aTimeMin: 0,
   },
   {
     id: 'er-default',
@@ -979,6 +990,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'DOCTOR',
     durationMin: 20,
     durationMax: 30,
+    dTimeMin: 20,
+    aTimeMin: 0,
   },
   {
     id: 'recare-default',
@@ -988,6 +1001,9 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'HYGIENIST',
     durationMin: 50,
     durationMax: 60,
+    // For hygienist appts: D-time = doctor's exam check, A-time = hygienist handles the rest
+    dTimeMin: 10,
+    aTimeMin: 40,
   },
   {
     id: 'pm-default',
@@ -996,6 +1012,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     minimumAmount: 190,
     appliesToRole: 'HYGIENIST',
     durationMin: 60,
+    dTimeMin: 10,
+    aTimeMin: 50,
   },
   {
     id: 'npe-default',
@@ -1005,6 +1023,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'HYGIENIST',
     durationMin: 60,
     durationMax: 90,
+    dTimeMin: 15,
+    aTimeMin: 45,
   },
   {
     id: 'aht-perio-default',
@@ -1014,6 +1034,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'HYGIENIST',
     durationMin: 60,
     durationMax: 90,
+    dTimeMin: 10,
+    aTimeMin: 50,
   },
   {
     id: 'srp-default',
@@ -1023,6 +1045,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'HYGIENIST',
     durationMin: 60,
     durationMax: 90,
+    dTimeMin: 5,
+    aTimeMin: 55,
   },
   {
     id: 'npe-doc-default',
@@ -1032,6 +1056,8 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     appliesToRole: 'DOCTOR',
     durationMin: 45,
     durationMax: 60,
+    dTimeMin: 40,
+    aTimeMin: 5,
   },
 ];
 

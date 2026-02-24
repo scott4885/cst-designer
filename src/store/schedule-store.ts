@@ -3,6 +3,7 @@ import { GenerationResult, BlockTypeInput, ProviderInput } from '@/lib/engine/ty
 import { calculateProductionSummary } from '@/lib/engine/calculator';
 import { detectConflicts } from '@/lib/engine/stagger';
 import { parseAmountFromLabel } from '@/lib/engine/generator';
+import { detectDTimeConflicts } from '@/lib/engine/da-time';
 
 interface ScheduleState {
   generatedSchedules: Record<string, GenerationResult>; // keyed by dayOfWeek
@@ -116,12 +117,19 @@ function recalcProductionSummary(
 
   // Recalculate conflict warnings, preserving non-conflict warnings
   const conflicts = detectConflicts(schedule, providers);
-  const nonConflictWarnings = (schedule.warnings ?? []).filter(w => !w.startsWith('Conflict at '));
+  const dTimeConflicts = detectDTimeConflicts(schedule, providers, blockTypes);
+
+  const nonConflictWarnings = (schedule.warnings ?? []).filter(
+    w => !w.startsWith('Conflict at ') && !w.startsWith('D-time conflict')
+  );
   const conflictWarnings = conflicts.map(
     (c) => `Conflict at ${c.time}: provider ${c.providerId} is double-booked in ${c.operatories.join(' and ')}`
   );
+  const dTimeWarnings = dTimeConflicts.map(
+    (c) => `D-time conflict at ${c.time}: ${c.providerName} has overlapping hands-on time in ${c.operatories.join(' and ')} (${c.blockLabels.join(', ')})`
+  );
 
-  return { ...schedule, productionSummary, warnings: [...nonConflictWarnings, ...conflictWarnings] };
+  return { ...schedule, productionSummary, warnings: [...nonConflictWarnings, ...conflictWarnings, ...dTimeWarnings] };
 }
 
 // Schedules are kept in Zustand memory only (no localStorage persistence needed with DB backend)

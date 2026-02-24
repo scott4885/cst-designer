@@ -74,7 +74,7 @@ export default function BlockPicker({
   return (
     <div
       ref={ref}
-      className="bg-popover border border-border rounded-lg shadow-xl p-3 z-50 max-w-xs"
+      className="bg-popover border border-border rounded-lg shadow-xl p-3 z-50 w-[calc(100vw-2rem)] max-w-xs"
     >
       <div className="flex items-center justify-between mb-2">
         <h4 className="text-sm font-semibold text-foreground">
