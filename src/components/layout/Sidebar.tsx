@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Settings, BookOpen } from "lucide-react";
+import { Building2, Settings, BookOpen, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { href: "/", label: "Offices", icon: Building2 },
@@ -11,23 +12,46 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-sidebar-bg border-r border-border flex flex-col">
+    <aside
+      className={cn(
+        // Desktop: always visible as part of flex layout
+        "w-64 bg-sidebar-bg border-r border-border flex flex-col flex-shrink-0",
+        // Mobile: fixed overlay, slide in/out
+        "fixed inset-y-0 left-0 z-50 transition-transform duration-300 lg:static lg:translate-x-0 lg:z-auto",
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
       {/* Logo/Brand */}
-      <Link href="/" className="block p-6 border-b border-border hover:bg-secondary/50 transition-colors">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
+      <div className="flex items-center justify-between p-6 border-b border-border">
+        <Link href="/" onClick={onMobileClose} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
             <span className="text-accent font-bold text-lg">S</span>
           </div>
           <div>
             <h1 className="text-sm font-semibold text-foreground">CST</h1>
             <p className="text-xs text-muted-foreground">Custom Schedule Template</p>
           </div>
-        </div>
-      </Link>
+        </Link>
+        {/* Close button — mobile only */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden h-8 w-8"
+          onClick={onMobileClose}
+          aria-label="Close menu"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
@@ -42,14 +66,15 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onMobileClose}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
                 isActive
                   ? "bg-accent/10 text-accent border border-accent/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               )}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-5 h-5 flex-shrink-0" />
               <span>{item.label}</span>
             </Link>
           );

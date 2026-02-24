@@ -465,14 +465,14 @@ export default function ScheduleGrid({
       )}
 
       {/* ─── Controls bar ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 px-1 py-1 bg-muted/30 rounded-md border border-border/50">
+      <div className="flex items-center justify-between gap-3 px-2 py-1.5 bg-muted/30 rounded-md border border-border/50">
         {/* Column width controls */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground hidden sm:inline">Columns:</span>
           <Button
             size="sm"
             variant={!columnsExpanded ? "secondary" : "ghost"}
-            className="h-7 px-2 text-xs"
+            className="h-9 min-h-[44px] px-2 text-xs"
             onClick={() => setColumnsExpanded(false)}
             title="Compact column view"
           >
@@ -482,7 +482,7 @@ export default function ScheduleGrid({
           <Button
             size="sm"
             variant={columnsExpanded ? "secondary" : "ghost"}
-            className="h-7 px-2 text-xs"
+            className="h-9 min-h-[44px] px-2 text-xs"
             onClick={() => setColumnsExpanded(true)}
             title="Expanded column view"
           >
@@ -497,7 +497,7 @@ export default function ScheduleGrid({
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7"
+            className="h-9 w-9 min-h-[44px] min-w-[44px]"
             onClick={zoomOut}
             disabled={!canZoomOut}
             title="Zoom out (smaller rows)"
@@ -510,7 +510,7 @@ export default function ScheduleGrid({
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7"
+            className="h-9 w-9 min-h-[44px] min-w-[44px]"
             onClick={zoomIn}
             disabled={!canZoomIn}
             title="Zoom in (taller rows)"
@@ -519,6 +519,11 @@ export default function ScheduleGrid({
           </Button>
         </div>
       </div>
+
+      {/* Mobile swipe hint */}
+      <p className="text-xs text-muted-foreground text-center sm:hidden">
+        ← Swipe to scroll the schedule →
+      </p>
 
       {/* ─── Schedule Grid ─────────────────────────────────────────────────── */}
       {/* Outer container: vertical scroll with max height, horizontal scroll inside */}

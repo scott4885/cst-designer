@@ -416,13 +416,13 @@ export default function EditOfficePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Working Hours</Label>
-                    <div className="flex gap-2">
-                      <Input type="time" {...register(`providers.${index}.workingStart`)} />
-                      <span className="self-center">to</span>
-                      <Input type="time" {...register(`providers.${index}.workingEnd`)} />
+                    <div className="flex flex-col sm:flex-row gap-2 mt-1">
+                      <Input type="time" {...register(`providers.${index}.workingStart`)} className="flex-1" />
+                      <span className="self-center text-sm text-muted-foreground text-center">to</span>
+                      <Input type="time" {...register(`providers.${index}.workingEnd`)} className="flex-1" />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">e.g. 7:00 AM – 5:00 PM</p>
                   </div>
@@ -443,10 +443,10 @@ export default function EditOfficePage() {
                     </div>
                     {watchProviders?.[index]?.lunchEnabled !== false ? (
                       <>
-                        <div className="flex gap-2">
-                          <Input type="time" {...register(`providers.${index}.lunchStart`)} />
-                          <span className="self-center">to</span>
-                          <Input type="time" {...register(`providers.${index}.lunchEnd`)} />
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Input type="time" {...register(`providers.${index}.lunchStart`)} className="flex-1" />
+                          <span className="self-center text-sm text-muted-foreground text-center">to</span>
+                          <Input type="time" {...register(`providers.${index}.lunchEnd`)} className="flex-1" />
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
                       </>
@@ -531,7 +531,7 @@ export default function EditOfficePage() {
             <CardTitle>Schedule Rules</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>New Patient Model</Label>
                 <Select
@@ -566,7 +566,7 @@ export default function EditOfficePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>NP Blocks Per Day</Label>
                 <Input
@@ -663,11 +663,11 @@ export default function EditOfficePage() {
         </Card>
 
         {/* Actions */}
-        <div className="flex justify-between">
-          <Button type="button" variant="outline" onClick={handleBack}>
+        <div className="flex flex-col-reverse sm:flex-row justify-between gap-2">
+          <Button type="button" variant="outline" onClick={handleBack} className="w-full sm:w-auto min-h-[44px]">
             Cancel
           </Button>
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving} className="w-full sm:w-auto min-h-[44px]">
             {isSaving ? (
               <>Saving...</>
             ) : (

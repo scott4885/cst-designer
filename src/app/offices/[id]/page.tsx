@@ -469,38 +469,40 @@ export default function TemplateBuilderPage() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4 sm:mb-6">
+        <div className="flex items-center gap-3">
           <Link href="/">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{currentOffice.name}</h1>
-            <p className="text-muted-foreground text-sm">
+            <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight">{currentOffice.name}</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">
               {currentOffice.dpmsSystem} &bull; Template Builder
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0}>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={handleExport}
                   disabled={Object.keys(generatedSchedules).length === 0 || isExporting}
+                  className="min-h-[44px]"
                 >
                   {isExporting ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Exporting...
+                      <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                      <span className="hidden sm:inline">Exporting...</span>
                     </>
                   ) : (
                     <>
-                      <Download className="w-4 h-4 mr-2" />
-                      Export
+                      <Download className="w-4 h-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Export</span>
                     </>
                   )}
                 </Button>
@@ -517,11 +519,13 @@ export default function TemplateBuilderPage() {
               <span tabIndex={0}>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => setShowODExportDialog(true)}
                   disabled={!currentDaySchedule}
+                  className="min-h-[44px]"
                 >
-                  <FileJson className="w-4 h-4 mr-2" />
-                  Open Dental
+                  <FileJson className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Open Dental</span>
                 </Button>
               </span>
             </TooltipTrigger>
@@ -531,29 +535,33 @@ export default function TemplateBuilderPage() {
                 : "Export current day schedule for Open Dental import"}
             </TooltipContent>
           </Tooltip>
-          <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary">
+          <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary" size="sm" className="min-h-[44px]">
             {isGenerating && generatingDay ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating {getDayLabel(generatingDay)}...
+                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                <span className="hidden sm:inline">Generating {getDayShort(generatingDay)}...</span>
+                <span className="sm:hidden">Gen All...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate All Days
+                <Sparkles className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Generate All Days</span>
+                <span className="sm:hidden">All Days</span>
               </>
             )}
           </Button>
-          <Button onClick={handleGenerateSchedule} disabled={isGenerating}>
+          <Button onClick={handleGenerateSchedule} disabled={isGenerating} size="sm" className="min-h-[44px]">
             {isGenerating && !generatingDay ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
+                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                <span className="hidden sm:inline">Generating...</span>
+                <span className="sm:hidden">Gen...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate {getDayLabel(activeDay)}
+                <Sparkles className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Generate {getDayLabel(activeDay)}</span>
+                <span className="sm:hidden">Generate</span>
               </>
             )}
           </Button>
@@ -562,6 +570,7 @@ export default function TemplateBuilderPage() {
             size="icon"
             onClick={() => setShowDeleteDialog(true)}
             title="Delete office"
+            className="min-h-[44px] min-w-[44px]"
           >
             <Trash2 className="w-4 h-4 text-destructive" />
           </Button>
@@ -597,10 +606,10 @@ export default function TemplateBuilderPage() {
       </Dialog>
 
       {/* 3-Panel Layout */}
-      <div className="flex-1 flex gap-6 overflow-hidden">
-        {/* Left Panel - Office Info */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 overflow-auto lg:overflow-hidden">
+        {/* Left Panel - Office Info (hidden on mobile) */}
         <div
-          className={`transition-all duration-300 ${
+          className={`transition-all duration-300 hidden lg:block ${
             leftPanelCollapsed ? "w-12" : "w-80"
           } flex-shrink-0`}
         >
@@ -728,9 +737,9 @@ export default function TemplateBuilderPage() {
         </div>
 
         {/* Center Panel - Schedule Grid */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="w-full lg:flex-1 flex flex-col lg:overflow-hidden">
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
-            <TabsList className="inline-flex w-auto mb-4 h-10">
+            <TabsList className="flex w-full overflow-x-auto mb-4 h-10">
               {currentOffice.workingDays.map((day) => (
                 <TabsTrigger key={day} value={day} className="flex-1 min-w-[120px]">
                   {getDayLabel(day)}
@@ -773,14 +782,15 @@ export default function TemplateBuilderPage() {
           </Tabs>
         </div>
 
-        {/* Right Panel - Production Summary + Mix (collapsible) */}
+        {/* Right Panel - Production Summary + Mix (collapsible on desktop, always shown on mobile) */}
         <div
-          className={`transition-all duration-300 flex-shrink-0 ${
-            rightPanelCollapsed ? "w-10" : "w-80 xl:w-96"
+          className={`transition-all duration-300 w-full lg:flex-shrink-0 ${
+            rightPanelCollapsed ? "lg:w-10" : "lg:w-80 xl:lg:w-96"
           }`}
         >
+          {/* On mobile, always show content. On desktop, respect collapsed state. */}
           {rightPanelCollapsed ? (
-            <div className="flex flex-col items-center gap-2 pt-2">
+            <div className="hidden lg:flex flex-col items-center gap-2 pt-2">
               <Button
                 variant="ghost"
                 size="icon"
@@ -791,42 +801,41 @@ export default function TemplateBuilderPage() {
                 <ChevronLeft className="w-5 h-5" />
               </Button>
             </div>
-          ) : (
-            <div className="overflow-auto space-y-6 h-full">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Production</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setRightPanelCollapsed(true)}
-                  className="h-7 w-7"
-                  title="Collapse production panel"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-              <ProductionSummary summaries={productionSummaries} alignmentScore={alignmentScore} />
-              {currentDaySchedule && (
-                <ProductionMixChart
-                  schedule={currentDaySchedule}
-                  blockTypes={blockTypesForStore}
-                  providers={fullProviders}
-                />
-              )}
-              <ConflictPanel
-                schedule={currentDaySchedule || null}
+          ) : null}
+          <div className={`${rightPanelCollapsed ? "lg:hidden" : ""} overflow-auto space-y-4 lg:space-y-6 lg:h-full`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Production</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setRightPanelCollapsed(true)}
+                className="hidden lg:flex h-7 w-7"
+                title="Collapse production panel"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+            <ProductionSummary summaries={productionSummaries} alignmentScore={alignmentScore} />
+            {currentDaySchedule && (
+              <ProductionMixChart
+                schedule={currentDaySchedule}
+                blockTypes={blockTypesForStore}
                 providers={fullProviders}
               />
-              <VersionPanel
-                officeId={officeId}
-                activeDay={activeDay}
-                currentSchedule={currentDaySchedule || null}
-                onLoadVersion={(schedule) => {
-                  setSchedules([...Object.values(generatedSchedules).filter(s => s.dayOfWeek !== schedule.dayOfWeek), schedule], officeId);
-                }}
-              />
-            </div>
-          )}
+            )}
+            <ConflictPanel
+              schedule={currentDaySchedule || null}
+              providers={fullProviders}
+            />
+            <VersionPanel
+              officeId={officeId}
+              activeDay={activeDay}
+              currentSchedule={currentDaySchedule || null}
+              onLoadVersion={(schedule) => {
+                setSchedules([...Object.values(generatedSchedules).filter(s => s.dayOfWeek !== schedule.dayOfWeek), schedule], officeId);
+              }}
+            />
+          </div>
         </div>
       </div>
 

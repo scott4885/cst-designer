@@ -352,11 +352,11 @@ function NewOfficeForm() {
       {/* Tabbed Form */}
       <form onSubmit={handleSubmit(onSubmit)}>
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="practice">1. Practice Foundation</TabsTrigger>
-            <TabsTrigger value="providers">2. Providers</TabsTrigger>
-            <TabsTrigger value="timing">3. Clinical Timing</TabsTrigger>
-            <TabsTrigger value="rules">4. Schedule Rules</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+            <TabsTrigger value="practice" className="text-xs sm:text-sm">1. Practice</TabsTrigger>
+            <TabsTrigger value="providers" className="text-xs sm:text-sm">2. Providers</TabsTrigger>
+            <TabsTrigger value="timing" className="text-xs sm:text-sm">3. Timing</TabsTrigger>
+            <TabsTrigger value="rules" className="text-xs sm:text-sm">4. Rules</TabsTrigger>
           </TabsList>
 
           {/* Tab 1: Practice Foundation */}
@@ -398,7 +398,7 @@ function NewOfficeForm() {
 
                 <div>
                   <Label>Working Days</Label>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-2 mt-2 flex-wrap">
                     {WORKING_DAYS.map((day) => (
                       <Button
                         key={day}
@@ -406,7 +406,7 @@ function NewOfficeForm() {
                         variant={workingDays?.includes(day) ? "default" : "outline"}
                         onClick={() => toggleWorkingDay(day)}
                         aria-pressed={workingDays?.includes(day)}
-                        className="flex-1"
+                        className="flex-1 min-w-[52px] min-h-[44px]"
                       >
                         {day}
                       </Button>
@@ -420,7 +420,7 @@ function NewOfficeForm() {
             </Card>
 
             <div className="flex justify-end">
-              <Button type="button" onClick={() => handleTabChange("providers")}>
+              <Button type="button" onClick={() => handleTabChange("providers")} className="w-full sm:w-auto min-h-[44px]">
                 Next: Providers
               </Button>
             </div>
@@ -514,13 +514,13 @@ function NewOfficeForm() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Working Hours</Label>
-                        <div className="flex gap-2">
-                          <Input type="time" {...register(`providers.${index}.workingHours.start`)} />
-                          <span className="self-center">to</span>
-                          <Input type="time" {...register(`providers.${index}.workingHours.end`)} />
+                        <div className="flex flex-col sm:flex-row gap-2 mt-1">
+                          <Input type="time" {...register(`providers.${index}.workingHours.start`)} className="flex-1" />
+                          <span className="self-center text-sm text-muted-foreground text-center">to</span>
+                          <Input type="time" {...register(`providers.${index}.workingHours.end`)} className="flex-1" />
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">e.g. 7:00 AM – 4:00 PM</p>
                       </div>
@@ -541,10 +541,10 @@ function NewOfficeForm() {
                         </div>
                         {watchProviders?.[index]?.lunchEnabled !== false ? (
                           <>
-                            <div className="flex gap-2">
-                              <Input type="time" {...register(`providers.${index}.lunchBreak.start`)} />
-                              <span className="self-center">to</span>
-                              <Input type="time" {...register(`providers.${index}.lunchBreak.end`)} />
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Input type="time" {...register(`providers.${index}.lunchBreak.start`)} className="flex-1" />
+                              <span className="self-center text-sm text-muted-foreground text-center">to</span>
+                              <Input type="time" {...register(`providers.${index}.lunchBreak.end`)} className="flex-1" />
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
                           </>
@@ -601,11 +601,11 @@ function NewOfficeForm() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={() => handleTabChange("practice")}>
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-2">
+              <Button type="button" variant="outline" onClick={() => handleTabChange("practice")} className="w-full sm:w-auto min-h-[44px]">
                 Back
               </Button>
-              <Button type="button" onClick={() => handleTabChange("timing")}>
+              <Button type="button" onClick={() => handleTabChange("timing")} className="w-full sm:w-auto min-h-[44px]">
                 Next: Clinical Timing
               </Button>
             </div>
@@ -620,29 +620,30 @@ function NewOfficeForm() {
               <CardContent>
                 <div className="space-y-3">
                   {procedureFields.map((field, index) => (
-                    <div key={field.id} className="grid grid-cols-3 gap-4 items-center">
+                    <div key={field.id} className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-4 items-center">
                       <div>
-                        <Input {...register(`procedures.${index}.name`)} />
+                        <Input {...register(`procedures.${index}.name`)} className="text-sm" />
                       </div>
                       <div>
                         <Input
                           type="number"
                           {...register(`procedures.${index}.duration`, { valueAsNumber: true })}
                           placeholder="60"
+                          className="text-sm"
                         />
                       </div>
-                      <div className="text-sm text-muted-foreground">{field.role}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground truncate">{field.role}</div>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
 
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={() => handleTabChange("providers")}>
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-2">
+              <Button type="button" variant="outline" onClick={() => handleTabChange("providers")} className="w-full sm:w-auto min-h-[44px]">
                 Back
               </Button>
-              <Button type="button" onClick={() => handleTabChange("rules")}>
+              <Button type="button" onClick={() => handleTabChange("rules")} className="w-full sm:w-auto min-h-[44px]">
                 Next: Schedule Rules
               </Button>
             </div>
@@ -672,7 +673,7 @@ function NewOfficeForm() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="npBlocksPerDay">NP Blocks Per Day</Label>
                     <Input
@@ -763,11 +764,11 @@ function NewOfficeForm() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={() => handleTabChange("timing")}>
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-2">
+              <Button type="button" variant="outline" onClick={() => handleTabChange("timing")} className="w-full sm:w-auto min-h-[44px]">
                 Back
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto min-h-[44px]">
                 {isSubmitting ? "Creating..." : "Create Office"}
               </Button>
             </div>

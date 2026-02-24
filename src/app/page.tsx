@@ -77,20 +77,20 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Offices</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Offices</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Manage schedule templates for {offices.length} dental offices
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {offices.length < 3 && (
             <Button 
               variant="outline" 
-              className="gap-2"
+              className="gap-2 min-h-[44px] w-full sm:w-auto"
               onClick={handleLoadDemoData}
               disabled={loadingDemo}
             >
@@ -98,8 +98,8 @@ export default function Dashboard() {
               {loadingDemo ? "Loading..." : "Load Demo Data"}
             </Button>
           )}
-          <Link href="/offices/new">
-            <Button className="gap-2">
+          <Link href="/offices/new" className="w-full sm:w-auto">
+            <Button className="gap-2 min-h-[44px] w-full">
               <Plus className="w-4 h-4" />
               New Office
             </Button>
@@ -108,7 +108,7 @@ export default function Dashboard() {
       </div>
 
       {/* Search */}
-      <div className="relative max-w-md">
+      <div className="relative w-full sm:max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           type="text"
@@ -153,15 +153,16 @@ export default function Dashboard() {
                 Get started by creating your first office template or load demo data to explore the app.
               </p>
             </div>
-            <div className="flex gap-3 justify-center">
-              <Link href="/offices/new">
-                <Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center w-full">
+              <Link href="/offices/new" className="w-full sm:w-auto">
+                <Button className="w-full min-h-[44px]">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Your First Office
                 </Button>
               </Link>
               <Button 
                 variant="outline"
+                className="w-full sm:w-auto min-h-[44px]"
                 onClick={handleLoadDemoData}
                 disabled={loadingDemo}
               >
