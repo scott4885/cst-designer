@@ -2,8 +2,8 @@ FROM node:20-slim AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y python3 make g++ openssl && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-# Skip postinstall (prisma generate fails before schema is copied)
-RUN npm ci --ignore-scripts
+COPY prisma ./prisma
+RUN npm ci
 
 FROM node:20-slim AS builder
 WORKDIR /app
