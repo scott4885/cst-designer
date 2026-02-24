@@ -174,7 +174,7 @@ export default function VersionPanel({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs gap-1"
+              className="min-h-[44px] text-xs gap-1"
               disabled={!currentSchedule}
               onClick={() => {
                 setSaveName(`Template - ${new Date().toLocaleDateString()}`);
@@ -215,29 +215,29 @@ export default function VersionPanel({
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-6 w-6"
+                      className="h-9 w-9 min-h-[44px] min-w-[44px]"
                       title="Load"
                       onClick={() => handleLoad(version.id)}
                     >
-                      <Upload className="w-3 h-3" />
+                      <Upload className="w-3.5 h-3.5" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-6 w-6"
+                      className="h-9 w-9 min-h-[44px] min-w-[44px]"
                       title="Compare"
                       onClick={() => handleCompare(version.id, version.name)}
                     >
-                      <GitCompare className="w-3 h-3" />
+                      <GitCompare className="w-3.5 h-3.5" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-6 w-6"
+                      className="h-9 w-9 min-h-[44px] min-w-[44px]"
                       title="Delete"
                       onClick={() => handleDelete(version.id)}
                     >
-                      <Trash2 className="w-3 h-3 text-destructive" />
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
                     </Button>
                   </div>
                 </div>
@@ -286,7 +286,7 @@ export default function VersionPanel({
             <DialogTitle>Compare Versions</DialogTitle>
           </DialogHeader>
           {compareVersions.a && compareVersions.b && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <CompareColumn label="Version A" name={compareVersions.a.name} summary={compareVersions.a.summary} />
               <CompareColumn label="Version B" name={compareVersions.b.name} summary={compareVersions.b.summary} />
             </div>

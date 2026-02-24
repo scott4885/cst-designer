@@ -659,12 +659,12 @@ function BlockTypeCard({ blockType, onEdit, onDelete }: BlockTypeCardProps) {
             )}
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          {/* Actions — always visible on mobile, hover-reveal on desktop */}
+          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-8 w-8 sm:h-7 sm:w-7 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
               onClick={onEdit}
               aria-label={`Edit ${blockType.label}`}
             >
@@ -674,7 +674,7 @@ function BlockTypeCard({ blockType, onEdit, onDelete }: BlockTypeCardProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 hover:text-destructive"
+                className="h-8 w-8 sm:h-7 sm:w-7 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 hover:text-destructive"
                 onClick={onDelete}
                 aria-label={`Delete ${blockType.label}`}
               >

@@ -60,7 +60,7 @@ export default function ConflictPanel({ schedule, providers, blockTypes = [], on
               </span>
             )}
           </CardTitle>
-          <Button variant="ghost" size="icon" className="h-6 w-6">
+          <Button variant="ghost" size="icon" className="h-9 w-9 min-h-[44px] min-w-[44px]">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </div>

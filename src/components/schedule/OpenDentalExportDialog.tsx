@@ -139,7 +139,7 @@ export default function OpenDentalExportDialog({
             <p className="text-xs text-muted-foreground">
               Enter the numeric ProvNum from Open Dental for each provider.
             </p>
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
@@ -179,7 +179,7 @@ export default function OpenDentalExportDialog({
               Enter the Definition.DefNum for each blockout type. Leave blank to use
               label only.
             </p>
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
@@ -219,10 +219,10 @@ export default function OpenDentalExportDialog({
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="min-h-[44px]">
               Cancel
             </Button>
-            <Button onClick={handleExport} disabled={isExporting}>
+            <Button onClick={handleExport} disabled={isExporting} className="min-h-[44px]">
               {isExporting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

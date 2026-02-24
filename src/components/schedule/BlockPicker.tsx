@@ -80,7 +80,7 @@ export default function BlockPicker({
         <h4 className="text-sm font-semibold text-foreground">
           Add Block at {timeLabel}
         </h4>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px]" onClick={onClose}>
           <X className="w-3 h-3" />
         </Button>
       </div>

@@ -247,7 +247,7 @@ export default function EditOfficePage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Edit Office</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Edit Office</h1>
           <p className="text-muted-foreground mt-1">
             Update office information and providers
           </p>
@@ -461,7 +461,7 @@ export default function EditOfficePage() {
                 <div>
                   <Label className="mb-2 block">Operatory Assignment</Label>
                   <p className="text-xs text-muted-foreground mb-2">Select which operatories this provider works in</p>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 border border-border rounded-lg p-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border border-border rounded-lg p-3">
                     {OPERATORIES.map((op) => {
                       const currentOps = watchProviders?.[index]?.operatories || [];
                       const isChecked = currentOps.includes(op);

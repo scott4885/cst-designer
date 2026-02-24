@@ -116,13 +116,13 @@ export default function BlockEditor({
   return (
     <div
       ref={ref}
-      className="bg-popover border border-border rounded-lg shadow-xl p-4 z-50 max-w-sm"
+      className="bg-popover border border-border rounded-lg shadow-xl p-4 z-50 w-[calc(100vw-2rem)] max-w-sm"
     >
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-semibold text-foreground">
           Edit Block: {currentBlock?.label || "Unknown"}
         </h4>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px]" onClick={onClose}>
           <X className="w-3 h-3" />
         </Button>
       </div>

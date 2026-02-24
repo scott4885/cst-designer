@@ -757,8 +757,9 @@ export default function TemplateBuilderPage() {
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
             <TabsList className="flex w-full overflow-x-auto mb-4 h-10">
               {currentOffice.workingDays.map((day) => (
-                <TabsTrigger key={day} value={day} className="flex-1 min-w-[64px] sm:min-w-[120px] text-xs sm:text-sm px-1 sm:px-3">
-                  {getDayLabel(day)}
+                <TabsTrigger key={day} value={day} className="flex-1 min-w-[52px] sm:min-w-[100px] text-xs sm:text-sm px-1 sm:px-3">
+                  <span className="sm:hidden">{getDayShort(day)}</span>
+                  <span className="hidden sm:inline">{getDayLabel(day)}</span>
                   {generatedSchedules[day] && (
                     <span className="ml-2 w-2 h-2 rounded-full bg-success" />
                   )}
