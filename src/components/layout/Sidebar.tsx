@@ -23,11 +23,12 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
   return (
     <aside
       className={cn(
-        // Desktop: always visible as part of flex layout
         "w-64 bg-sidebar-bg border-r border-border flex flex-col flex-shrink-0",
-        // Mobile: fixed overlay, slide in/out
-        "fixed inset-y-0 left-0 z-50 transition-transform duration-300 lg:static lg:translate-x-0 lg:z-auto",
-        mobileOpen ? "translate-x-0" : "-translate-x-full"
+        // Mobile: hidden by default (taken out of flow); fixed overlay when open
+        // Desktop: always in-flow, never fixed
+        mobileOpen
+          ? "fixed inset-y-0 left-0 z-50"
+          : "hidden lg:flex"
       )}
     >
       {/* Logo/Brand */}
