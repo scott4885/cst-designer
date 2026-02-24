@@ -237,7 +237,7 @@ export default function BlockEditor({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2 text-xs text-muted-foreground"
+                className="h-8 px-2 text-xs text-muted-foreground min-h-[44px]"
                 onClick={() => setCustomAmount("")}
                 title="Reset to default"
               >
@@ -258,20 +258,21 @@ export default function BlockEditor({
           <Button
             variant="ghost"
             size="sm"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 min-h-[44px]"
             onClick={onDelete}
           >
             <Trash2 className="w-3 h-3" />
             Delete
           </Button>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={onClose} className="min-h-[44px]">
               Cancel
             </Button>
             <Button
               size="sm"
               onClick={handleApply}
               disabled={!hasChanges}
+              className="min-h-[44px]"
             >
               Apply
             </Button>

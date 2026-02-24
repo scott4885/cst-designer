@@ -187,7 +187,7 @@ function BlockTypeForm({ initial = EMPTY_FORM, onSave, onCancel, isSubmitting, m
       </div>
 
       {/* Durations */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="bt-dur-min">
             Duration Min (min) <span className="text-destructive">*</span>
@@ -224,7 +224,7 @@ function BlockTypeForm({ initial = EMPTY_FORM, onSave, onCancel, isSubmitting, m
           D/A Time Split
           <span className="text-[10px] font-normal text-muted-foreground">(optional — for double-booking logic)</span>
         </Label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="bt-dtime" className="flex items-center gap-1">
               <span className="inline-block w-4 h-4 rounded bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">D</span>

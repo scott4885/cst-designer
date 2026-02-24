@@ -270,7 +270,7 @@ function BenchmarkBar({ label, actual, min, max, color }: BenchmarkBarProps) {
 
 function Legend({ entries }: { entries: CategoryEntry[] }) {
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
       {entries
         .filter((e) => e.percentage > 0)
         .sort((a, b) => b.percentage - a.percentage)

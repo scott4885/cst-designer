@@ -441,12 +441,44 @@ export default function TemplateBuilderPage() {
     }
   };
 
+  // Helper: check updated schedule for new D-time conflicts and show a warning toast
+  const checkAndWarnDTimeConflicts = (day: string, actionProviderId: string, actionTime: string) => {
+    const updatedSchedule = useScheduleStore.getState().generatedSchedules[day];
+    if (!updatedSchedule) return;
+
+    // D-time warnings are stored in schedule.warnings with prefix "D-time conflict"
+    const dTimeWarnings = (updatedSchedule.warnings ?? []).filter(w =>
+      w.startsWith('D-time conflict')
+    );
+    if (dTimeWarnings.length === 0) return;
+
+    // Find the real provider name (strip virtual "::OP" suffix)
+    const realProviderId = actionProviderId.includes('::')
+      ? actionProviderId.slice(0, actionProviderId.lastIndexOf('::'))
+      : actionProviderId;
+    const provider = fullProviders.find(p => p.id === realProviderId);
+
+    // Only warn for doctor providers
+    if (provider && provider.role !== 'DOCTOR') return;
+
+    const providerName = provider?.name ?? 'Doctor';
+    // Small delay so success toast appears first
+    setTimeout(() => {
+      toast.warning(`⚠️ D-time conflict: ${providerName} already has active chair time at ${actionTime}`, {
+        duration: 6000,
+        description: 'The doctor has hands-on work in another column at the same time. This is allowed but worth reviewing.',
+      });
+    }, 150);
+  };
+
   // Interactive schedule editing handlers
   // Note: store functions now accept virtual provider IDs ("realId::OP") for multi-op providers
   const handleAddBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => {
     const placed = placeBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypesForStore);
     if (placed) {
       toast.success(`${blockType.label} block added`);
+      // Warn if placing this block created a D-time conflict for a doctor
+      checkAndWarnDTimeConflicts(activeDay, providerId, time);
     } else {
       toast.error("Could not place block — slot not found or outside work hours");
     }
@@ -460,11 +492,15 @@ export default function TemplateBuilderPage() {
   const handleMoveBlock = (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => {
     moveBlockInDay(activeDay, fromTime, fromProviderId, toTime, toProviderId, fullProviders, blockTypesForStore);
     toast.success("Block moved");
+    // Warn if the move created a new D-time conflict
+    checkAndWarnDTimeConflicts(activeDay, toProviderId, toTime);
   };
 
   const handleUpdateBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number, customProductionAmount?: number | null) => {
     updateBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypesForStore, customProductionAmount);
     toast.success(`Block updated to ${blockType.label}`);
+    // Warn if the update created a D-time conflict
+    checkAndWarnDTimeConflicts(activeDay, providerId, time);
   };
 
   const getDayLabel = (day: string): string => {
