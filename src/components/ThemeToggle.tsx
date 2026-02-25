@@ -13,7 +13,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="icon" className="rounded-full">
+      <Button variant="ghost" size="icon" className="rounded-full min-h-[44px] min-w-[44px]">
         <Sun className="w-5 h-5" />
       </Button>
     );

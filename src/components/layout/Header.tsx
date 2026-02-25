@@ -55,7 +55,7 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden h-9 w-9 flex-shrink-0"
+          className="lg:hidden h-9 w-9 min-h-[44px] min-w-[44px] flex-shrink-0"
           onClick={onMobileMenuToggle}
           aria-label="Open menu"
         >
@@ -88,7 +88,7 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         <ThemeToggle />
         <Link href="/settings">
-          <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+          <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 min-h-[44px] min-w-[44px]">
             <Settings className="w-5 h-5" />
           </Button>
         </Link>
