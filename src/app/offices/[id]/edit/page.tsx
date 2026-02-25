@@ -22,6 +22,7 @@ import type { BlockTypeInput } from "@/lib/engine/types";
 // Form schema for editing
 const editOfficeSchema = z.object({
   name: z.string().min(1, "Office name is required"),
+  staggerMinutes: z.number().min(0).max(120),
   providers: z.array(
     z.object({
       id: z.string().optional(),
@@ -38,6 +39,7 @@ const editOfficeSchema = z.object({
       color: z.string(),
       seesNewPatients: z.boolean().optional(),
       enabledBlockTypeIds: z.array(z.string()).optional(),
+      assistedHygiene: z.boolean().optional(),
     })
   ).min(1, "Add at least one provider"),
   scheduleRules: z.object({
@@ -64,6 +66,9 @@ export default function EditOfficePage() {
   const { currentOffice, fetchOffice, isLoading } = useOfficeStore();
   const [isSaving, setIsSaving] = useState(false);
   const [providerToDelete, setProviderToDelete] = useState<number | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const DRAFT_KEY = `schedule-designer-draft-${officeId}`;
 
   const {
     register,
@@ -78,6 +83,7 @@ export default function EditOfficePage() {
     mode: "onBlur",
     defaultValues: {
       name: "",
+      staggerMinutes: 0,
       providers: [],
       scheduleRules: {
         npModel: "DOCTOR_ONLY",
@@ -129,8 +135,12 @@ export default function EditOfficePage() {
   useEffect(() => {
     if (currentOffice) {
       const rules = (currentOffice as any).rules;
+      // Infer staggerMinutes from second doctor's staggerOffsetMin (= 1 * staggerMinutes)
+      const doctors = currentOffice.providers?.filter(p => p.role === 'DOCTOR') || [];
+      const inferredStagger = (doctors[1] as any)?.staggerOffsetMin ?? 0;
       reset({
         name: currentOffice.name,
+        staggerMinutes: inferredStagger,
         schedulingRules: (currentOffice as any).schedulingRules || '',
         providers: currentOffice.providers?.map(p => ({
           id: p.id,
@@ -147,6 +157,7 @@ export default function EditOfficePage() {
           color: p.color || "#666",
           seesNewPatients: p.seesNewPatients !== false,
           enabledBlockTypeIds: p.enabledBlockTypeIds || [],
+          assistedHygiene: (p as any).assistedHygiene === true,
         })) || [],
         scheduleRules: {
           npModel: rules?.npModel || "DOCTOR_ONLY",
@@ -160,6 +171,36 @@ export default function EditOfficePage() {
       });
     }
   }, [currentOffice, reset]);
+
+  // localStorage draft: check for saved draft on mount (after office loads)
+  useEffect(() => {
+    if (!currentOffice) return; // only check after data loads
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { savedAt: string; data: EditOfficeFormData };
+        if (parsed?.savedAt) {
+          setDraftSavedAt(parsed.savedAt);
+          setShowDraftBanner(true);
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentOffice?.id]);
+
+  // localStorage draft: save on every form change
+  useEffect(() => {
+    const subscription = watch((values) => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          savedAt: new Date().toISOString(),
+          data: values,
+        }));
+      } catch { /* quota errors etc. */ }
+    });
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watch]);
 
   const addProvider = () => {
     appendProvider({
@@ -176,6 +217,7 @@ export default function EditOfficePage() {
       color: PROVIDER_COLORS[providerFields.length % PROVIDER_COLORS.length],
       seesNewPatients: true,
       enabledBlockTypeIds: [],
+      assistedHygiene: false,
     });
     // Scroll to bottom after adding
     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
@@ -189,10 +231,18 @@ export default function EditOfficePage() {
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-      const providers = data.providers.map((provider) => ({
-        ...provider,
-        id: provider.id || generateId(),
-      }));
+      const staggerMin = data.staggerMinutes || 0;
+      let doctorIdx = 0;
+      const providers = data.providers.map((provider) => {
+        const isDoctor = provider.role === "DOCTOR";
+        const staggerOffsetMin = isDoctor && staggerMin > 0 ? doctorIdx * staggerMin : undefined;
+        if (isDoctor) doctorIdx++;
+        return {
+          ...provider,
+          id: provider.id || generateId(),
+          ...(staggerOffsetMin !== undefined && { staggerOffsetMin }),
+        };
+      });
 
       const rules = data.scheduleRules ? {
         npModel: data.scheduleRules.npModel,
@@ -219,6 +269,7 @@ export default function EditOfficePage() {
         throw new Error("Failed to update office");
       }
 
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
       toast.success("Office updated successfully!");
       // Refetch to update the store before navigating
       await fetchOffice(officeId);
@@ -254,6 +305,49 @@ export default function EditOfficePage() {
         </div>
       </div>
 
+      {/* Draft resume banner */}
+      {showDraftBanner && draftSavedAt && (
+        <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 text-sm">
+          <span className="text-amber-800 dark:text-amber-300">
+            📝 You have an unsaved draft from{" "}
+            <span className="font-medium">{new Date(draftSavedAt).toLocaleString()}</span>.
+            Resume?
+          </span>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="min-h-[36px] border-amber-400 text-amber-800 hover:bg-amber-100 dark:text-amber-300 dark:border-amber-700"
+              onClick={() => {
+                try {
+                  const raw = localStorage.getItem(DRAFT_KEY);
+                  if (raw) {
+                    const parsed = JSON.parse(raw) as { savedAt: string; data: EditOfficeFormData };
+                    if (parsed?.data) reset(parsed.data);
+                  }
+                } catch { /* ignore */ }
+                setShowDraftBanner(false);
+              }}
+            >
+              Resume
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="min-h-[36px] text-amber-700 dark:text-amber-400"
+              onClick={() => {
+                try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+                setShowDraftBanner(false);
+              }}
+            >
+              Discard
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Office Name */}
@@ -286,6 +380,25 @@ export default function EditOfficePage() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Doctor start stagger */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+              <div className="flex-1">
+                <Label htmlFor="edit-staggerMinutes" className="font-medium">Doctor start stagger (min)</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Each successive doctor starts this many minutes later (e.g. 30 → Dr 1 at 7:00, Dr 2 at 7:30). Set to 0 to disable.
+                </p>
+              </div>
+              <Input
+                id="edit-staggerMinutes"
+                type="number"
+                min={0}
+                max={120}
+                step={15}
+                {...register("staggerMinutes", { valueAsNumber: true })}
+                className="w-24 shrink-0"
+                placeholder="0"
+              />
+            </div>
             {providerFields.length === 0 && (
               <p className="text-muted-foreground text-center py-6">
                 No providers added. Click "Add Provider" to start.
@@ -348,6 +461,26 @@ export default function EditOfficePage() {
                     Sees New Patients
                   </Label>
                 </div>
+
+                {watchProviders?.[index]?.role === 'HYGIENIST' && (
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id={`provider-${index}-assisted-hygiene`}
+                      checked={!!(watchProviders?.[index]?.assistedHygiene)}
+                      onCheckedChange={(checked) =>
+                        setValue(`providers.${index}.assistedHygiene`, checked, { shouldDirty: true })
+                      }
+                    />
+                    <div>
+                      <Label htmlFor={`provider-${index}-assisted-hygiene`} className="cursor-pointer">
+                        Assisted Hygiene Mode
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        2–3 chair rotation: hygienist moves between rooms while assistant handles setup/cleanup. Increases patient volume per day.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {currentOffice?.blockTypes && currentOffice.blockTypes.length > 0 && (
                   <div>

@@ -43,6 +43,7 @@ const officeSchema = z.object({
   name: z.string().min(1, "Office name is required"),
   dpms: z.enum(["Dentrix", "Open Dental", "Eaglesoft", "Denticon"]),
   workingDays: z.array(z.string()).min(1, "Select at least one working day"),
+  staggerMinutes: z.number().min(0).max(120),
   providers: z.array(
     z.object({
       name: z.string().min(1, "Provider name is required"),
@@ -134,6 +135,10 @@ function NewOfficeForm() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "practice");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+
+  const DRAFT_KEY = 'schedule-designer-draft-new';
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -151,12 +156,14 @@ function NewOfficeForm() {
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors, isDirty },
   } = useForm<OfficeFormData>({
     resolver: zodResolver(officeSchema),
     mode: "onBlur",
     defaultValues: {
       workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+      staggerMinutes: 0,
       providers: [],
       procedures: DEFAULT_PROCEDURES,
       scheduleRules: {
@@ -215,19 +222,27 @@ function NewOfficeForm() {
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-      const providers = (data.providers || []).map((p) => ({
-        id: generateId(),
-        name: p.name,
-        role: (p.role === "Doctor" ? "DOCTOR" : "HYGIENIST") as "DOCTOR" | "HYGIENIST",
-        operatories: p.operatories || ["OP1"],
-        workingStart: p.workingHours?.start || "07:00",
-        workingEnd: p.workingHours?.end || "16:00",
-        lunchEnabled: p.lunchEnabled !== false,
-        lunchStart: p.lunchEnabled !== false ? (p.lunchBreak?.start || "12:00") : "",
-        lunchEnd: p.lunchEnabled !== false ? (p.lunchBreak?.end || "13:00") : "",
-        dailyGoal: p.dailyGoal || 0,
-        color: p.color || "#666",
-      }));
+      const staggerMin = data.staggerMinutes || 0;
+      let doctorIndex = 0;
+      const providers = (data.providers || []).map((p) => {
+        const isDoctor = p.role === "Doctor";
+        const staggerOffsetMin = isDoctor && staggerMin > 0 ? doctorIndex * staggerMin : undefined;
+        if (isDoctor) doctorIndex++;
+        return {
+          id: generateId(),
+          name: p.name,
+          role: (p.role === "Doctor" ? "DOCTOR" : "HYGIENIST") as "DOCTOR" | "HYGIENIST",
+          operatories: p.operatories || ["OP1"],
+          workingStart: p.workingHours?.start || "07:00",
+          workingEnd: p.workingHours?.end || "16:00",
+          lunchEnabled: p.lunchEnabled !== false,
+          lunchStart: p.lunchEnabled !== false ? (p.lunchBreak?.start || "12:00") : "",
+          lunchEnd: p.lunchEnabled !== false ? (p.lunchBreak?.end || "13:00") : "",
+          dailyGoal: p.dailyGoal || 0,
+          color: p.color || "#666",
+          ...(staggerOffsetMin !== undefined && { staggerOffsetMin }),
+        };
+      });
 
       const blockTypes = (data.procedures || []).map((b) => ({
         id: generateId(),
@@ -289,6 +304,7 @@ function NewOfficeForm() {
       if (!res.ok) throw new Error('Failed to create office');
       const newOffice = await res.json();
 
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
       toast.success("Office created successfully!");
       router.push(`/offices/${newOffice.id}`);
     } catch (error) {
@@ -310,6 +326,35 @@ function NewOfficeForm() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSubmit]);
+
+  // localStorage draft: check for saved draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { savedAt: string; data: OfficeFormData };
+        if (parsed?.savedAt) {
+          setDraftSavedAt(parsed.savedAt);
+          setShowDraftBanner(true);
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // localStorage draft: save on every form change
+  useEffect(() => {
+    const subscription = watch((values) => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          savedAt: new Date().toISOString(),
+          data: values,
+        }));
+      } catch { /* quota errors etc. */ }
+    });
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watch]);
 
   // Warn on browser navigation away with unsaved changes
   useEffect(() => {
@@ -348,6 +393,49 @@ function NewOfficeForm() {
           </p>
         </div>
       </div>
+
+      {/* Draft resume banner */}
+      {showDraftBanner && draftSavedAt && (
+        <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 text-sm">
+          <span className="text-amber-800 dark:text-amber-300">
+            📝 You have an unsaved draft from{" "}
+            <span className="font-medium">{new Date(draftSavedAt).toLocaleString()}</span>.
+            Resume?
+          </span>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="min-h-[36px] border-amber-400 text-amber-800 hover:bg-amber-100 dark:text-amber-300 dark:border-amber-700"
+              onClick={() => {
+                try {
+                  const raw = localStorage.getItem(DRAFT_KEY);
+                  if (raw) {
+                    const parsed = JSON.parse(raw) as { savedAt: string; data: OfficeFormData };
+                    if (parsed?.data) reset(parsed.data);
+                  }
+                } catch { /* ignore */ }
+                setShowDraftBanner(false);
+              }}
+            >
+              Resume
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="min-h-[36px] text-amber-700 dark:text-amber-400"
+              onClick={() => {
+                try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+                setShowDraftBanner(false);
+              }}
+            >
+              Discard
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Tabbed Form */}
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -437,6 +525,26 @@ function NewOfficeForm() {
                 </Button>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Doctor start stagger */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+                  <div className="flex-1">
+                    <Label htmlFor="staggerMinutes" className="font-medium">Doctor start stagger (min)</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      When multiple doctors are present, each successive doctor starts this many minutes later
+                      (e.g. 30 → Doctor 1 at 7:00, Doctor 2 at 7:30). Set to 0 to disable.
+                    </p>
+                  </div>
+                  <Input
+                    id="staggerMinutes"
+                    type="number"
+                    min={0}
+                    max={120}
+                    step={15}
+                    {...register("staggerMinutes", { valueAsNumber: true })}
+                    className="w-24 shrink-0"
+                    placeholder="0"
+                  />
+                </div>
                 {providerFields.length === 0 && (
                   <p className="text-muted-foreground text-center py-6">
                     No providers added. Click "Add Provider" to start.

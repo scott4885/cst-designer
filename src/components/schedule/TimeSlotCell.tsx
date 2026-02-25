@@ -130,21 +130,25 @@ export default function TimeSlotCell({
   const effectiveConflict = hasConflict || hasDTimeConflict;
   const conflictColor = hasDTimeConflict && !hasConflict ? "#f97316" : "#ef4444"; // orange for D-time, red for hard conflict
 
+  // Assisted Hygiene blocks get a distinct teal/cyan color overriding the provider color
+  const isAssistedHyg = !!(blockLabel && (blockLabel.toUpperCase().includes('ASSISTED HYG') || blockLabel.toUpperCase().includes('ASSISTED HYGIENE')));
+  const effectiveProviderColor = isAssistedHyg ? '#8b5cf6' : providerColor;
+
   // Provider cell with data
-  const cellStyle = providerColor
+  const cellStyle = effectiveProviderColor
     ? {
         backgroundColor: effectiveConflict
           ? (hasDTimeConflict && !hasConflict ? "rgba(249,115,22,0.10)" : "rgba(239,68,68,0.12)")
-          : providerColor + "30",
-        borderLeft: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${providerColor}`,
-        borderRight: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${providerColor}`,
+          : effectiveProviderColor + "30",
+        borderLeft: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${effectiveProviderColor}`,
+        borderRight: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${effectiveProviderColor}`,
         ...(isBlockFirst && {
-          borderTop: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${providerColor}`,
+          borderTop: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${effectiveProviderColor}`,
           borderTopLeftRadius: '4px',
           borderTopRightRadius: '4px',
         }),
         ...(isBlockLast && {
-          borderBottom: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${providerColor}`,
+          borderBottom: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${effectiveProviderColor}`,
           borderBottomLeftRadius: '4px',
           borderBottomRightRadius: '4px',
         }),
@@ -182,9 +186,14 @@ export default function TimeSlotCell({
       )}
       {blockLabel && (
         <div
-          className="text-[11px] text-foreground/70 mt-0.5 leading-tight truncate max-w-[140px]"
+          className="text-[11px] text-foreground/70 mt-0.5 leading-tight truncate max-w-[140px] flex items-center gap-1"
           title={blockLabel}
         >
+          {isAssistedHyg && isBlockFirst && (
+            <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 border border-violet-300 dark:border-violet-700 shrink-0">
+              AH
+            </span>
+          )}
           {blockLabel}
         </div>
       )}

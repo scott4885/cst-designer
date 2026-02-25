@@ -76,15 +76,16 @@ export const HYGIENIST_BENCHMARKS: Record<string, { min: number; max: number }> 
 // ─── Display labels ────────────────────────────────────────────────────────
 
 const CATEGORY_DISPLAY: Record<BlockCategory, string> = {
-  HP:       'High Production',
-  NP:       'New Patient',
-  SRP:      'Scaling & Root Planing',
-  ER:       'Emergency',
-  MP:       'Medium Production',
-  RECARE:   'Recare / Recall',
-  PM:       'Perio Maintenance',
-  NON_PROD: 'Non-Productive',
-  OTHER:    'Other',
+  HP:           'High Production',
+  NP:           'New Patient',
+  SRP:          'Scaling & Root Planing',
+  ER:           'Emergency',
+  MP:           'Medium Production',
+  RECARE:       'Recare / Recall',
+  PM:           'Perio Maintenance',
+  NON_PROD:     'Non-Productive',
+  ASSISTED_HYG: 'Assisted Hygiene',
+  OTHER:        'Other',
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────

@@ -64,7 +64,7 @@ export function getStaffingCode(role: 'DOCTOR' | 'HYGIENIST' | 'OTHER'): Staffin
 // Block categorization helpers — works with arbitrary block type labels
 // ---------------------------------------------------------------------------
 
-export type BlockCategory = 'HP' | 'NP' | 'SRP' | 'ER' | 'MP' | 'RECARE' | 'PM' | 'NON_PROD' | 'OTHER';
+export type BlockCategory = 'HP' | 'NP' | 'SRP' | 'ER' | 'MP' | 'RECARE' | 'PM' | 'NON_PROD' | 'ASSISTED_HYG' | 'OTHER';
 
 /**
  * Identify the "category" of a block by its label string.
@@ -73,6 +73,7 @@ export type BlockCategory = 'HP' | 'NP' | 'SRP' | 'ER' | 'MP' | 'RECARE' | 'PM' 
 export function categorizeLabel(label: string): BlockCategory {
   const lbl = label.toUpperCase();
   // Order matters — more specific first
+  if (lbl.includes('ASSISTED HYG') || lbl.includes('ASSISTED HYGIENE') || lbl === 'AH') return 'ASSISTED_HYG';
   if (lbl.includes('SRP') || lbl.includes('AHT') || lbl.includes('PERIO SRP')) return 'SRP';
   if (lbl.includes('NON-PROD') || lbl === 'SEAT') return 'NON_PROD';
   if (lbl.includes('NP') || lbl.includes('CONSULT') || lbl === 'EXAM') return 'NP';
@@ -233,6 +234,7 @@ const DEFAULT_BLOCKS: Record<string, Omit<BlockTypeInput, 'id'>> = {
   SRP: { label: 'SRP', description: 'Scaling & Root Planing', minimumAmount: 300, appliesToRole: 'HYGIENIST', durationMin: 80 },
   PM: { label: 'PM', description: 'Perio Maintenance', minimumAmount: 190, appliesToRole: 'HYGIENIST', durationMin: 60 },
   RECARE: { label: 'Recare', description: 'Recall/Prophy', minimumAmount: 150, appliesToRole: 'HYGIENIST', durationMin: 60 },
+  ASSISTED_HYG: { label: 'Assisted Hyg', description: 'Assisted Hygiene (2-3 chair rotation)', minimumAmount: 150, appliesToRole: 'HYGIENIST', durationMin: 60, color: '#8b5cf6', isHygieneType: true },
 };
 
 /**
@@ -241,14 +243,15 @@ const DEFAULT_BLOCKS: Record<string, Omit<BlockTypeInput, 'id'>> = {
  * Pattern: "{label-slug}-default"   (previously was "default-{category}" which caused mismatches)
  */
 const FALLBACK_IDS: Record<string, string> = {
-  HP:       'hp-default',
-  NP:       'np-cons-default',
-  MP:       'mp-default',
-  ER:       'er-default',
-  NON_PROD: 'non-prod-default',
-  SRP:      'srp-default',
-  PM:       'pm-default',
-  RECARE:   'recare-default',
+  HP:           'hp-default',
+  NP:           'np-cons-default',
+  MP:           'mp-default',
+  ER:           'er-default',
+  NON_PROD:     'non-prod-default',
+  SRP:          'srp-default',
+  PM:           'pm-default',
+  RECARE:       'recare-default',
+  ASSISTED_HYG: 'assisted-hyg-default',
 };
 
 function getBlockForCategory(
@@ -416,16 +419,22 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
     blocksByCategory.get(cat)!.push(bt);
   }
 
-  // ─── Step 2: Place DOCTOR blocks across ALL operatories ───
-  // Multi-column doctors (columns > 1): generate blocks on primary op, then mirror to all assigned ops
-  for (const doc of doctors) {
+  // ─── Step 2: Place DOCTOR blocks across ALL operatories (with staggering) ───
+  // Stagger: each doctor gets an offset start time to avoid competing for the same hygiene checks.
+  // Default stagger interval: 20 min per doctor index.
+  // Doctors in same office get lunch at different times when possible.
+  const STAGGER_INTERVAL_MIN = 20;
+  for (let di = 0; di < doctors.length; di++) {
+    const doc = doctors[di];
+    // Use explicit override if set, otherwise auto-calculate
+    const staggerOffsetMin = doc.staggerOffsetMin ?? (di * STAGGER_INTERVAL_MIN);
     const opSlots = getProviderOpSlots(psMap, doc.id);
     const isMultiColumn = (doc.columns ?? 1) > 1 && opSlots.length > 1;
 
     if (isMultiColumn) {
       // Generate blocks only on the PRIMARY operatory
       const primaryPs = opSlots[0];
-      placeDoctorBlocks(slots, primaryPs, doc, blocksByCategory, rules, timeIncrement, warnings);
+      placeDoctorBlocks(slots, primaryPs, doc, blocksByCategory, rules, timeIncrement, warnings, staggerOffsetMin, di, doctors.length);
       // Mirror placed blocks to all OTHER operatories simultaneously
       for (let oi = 1; oi < opSlots.length; oi++) {
         const secondaryPs = opSlots[oi];
@@ -434,7 +443,7 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
     } else {
       // Single-column: place independently per operatory
       for (const ps of opSlots) {
-        placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings);
+        placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings, staggerOffsetMin, di, doctors.length);
       }
     }
   }
@@ -478,8 +487,14 @@ function placeDoctorBlocks(
   blocksByCategory: Map<string, BlockTypeInput[]>,
   rules: ScheduleRules,
   timeIncrement: number,
-  warnings: string[]
+  warnings: string[],
+  staggerOffsetMin: number = 0,
+  _doctorIndex: number = 0,
+  _totalDoctors: number = 1
 ): void {
+  // Stagger: offset the "available from" start time for morning block placement.
+  // This spreads doctors across the morning so they aren't competing for the same hygiene checks.
+  const staggeredStartMin = toMinutes(doc.workingStart) + staggerOffsetMin;
   const targets = calculateProductionTargets(doc);
 
   // Resolve block types for each category
@@ -504,13 +519,16 @@ function placeDoctorBlocks(
 
   // ──────── MORNING: ROCKS ────────
 
-  // 2a. NP CONSULT — First available morning slot
+  // 2a. NP CONSULT — First available morning slot (staggered by doctor index)
   if (npBlock && rules.npBlocksPerDay > 0 && (rules.npModel === 'DOCTOR_ONLY' || rules.npModel === 'EITHER')) {
     const slotsNeeded = Math.ceil(npBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
-    // NP in first 2 hours of the day
-    const startMin = toMinutes(doc.workingStart);
-    const earlyRanges = rangesBefore(ranges, slots, startMin + 120);
+    // NP in first 2 hours of the staggered start window
+    const earlyRanges = rangesAfter(
+      rangesBefore(ranges, slots, staggeredStartMin + 120),
+      slots,
+      staggeredStartMin
+    );
     const targetRange = earlyRanges[0] || morningRanges(ranges, slots, doc)[0];
 
     if (targetRange) {
@@ -526,7 +544,7 @@ function placeDoctorBlocks(
     }
   }
 
-  // 2b-e. HP BLOCKS — Fill morning with rocks (2-3 morning HP blocks)
+  // 2b-e. HP BLOCKS — Fill morning with rocks (2-3 morning HP blocks), starting at staggered offset
   const morningHPTarget = 3;
   let morningHPPlaced = 0;
 
@@ -536,11 +554,15 @@ function placeDoctorBlocks(
 
     const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
-    const amRanges = morningRanges(ranges, slots, doc);
+    // Start from staggered offset to spread doctors across morning
+    const amRanges = rangesAfter(morningRanges(ranges, slots, doc), slots, staggeredStartMin);
+    const fallbackAmRanges = morningRanges(ranges, slots, doc);
 
-    if (amRanges.length > 0) {
+    const targetRange = amRanges[0] || fallbackAmRanges[0];
+
+    if (targetRange) {
       const amount = hp.minimumAmount || hpMinPerBlock;
-      placeBlockInSlots(slots, amRanges[0], hp, doc, makeLabel(hp, amount));
+      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, amount));
       totalScheduled += amount;
       morningHPPlaced++;
     } else {
@@ -548,12 +570,13 @@ function placeDoctorBlocks(
     }
   }
 
-  // 2d. ER/ACCESS — Mid-morning (~10:00-10:30)
+  // 2d. ER/ACCESS — Mid-morning, offset by stagger to spread doctors
   if (erBlock && rules.emergencyHandling !== 'FLEX') {
     const slotsNeeded = Math.ceil(erBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
-    // Prefer 10:00-11:30 window
-    const midMorningRanges = rangesInWindow(ranges, slots, 10 * 60, 11 * 60 + 30);
+    // Prefer 10:00-11:30 window, but shift forward by stagger offset
+    const erWindowStart = Math.max(10 * 60 + staggerOffsetMin, staggeredStartMin);
+    const midMorningRanges = rangesInWindow(ranges, slots, erWindowStart, 11 * 60 + 30 + staggerOffsetMin);
     const targetRange = midMorningRanges[0] || morningRanges(ranges, slots, doc)[0];
 
     if (targetRange) {
@@ -579,6 +602,8 @@ function placeDoctorBlocks(
   // ──────── AFTERNOON: SAND & WATER ────────
 
   // 2f. HP BLOCK (afternoon) — 1 HP block right after lunch
+  // For staggered doctors: offset the first afternoon block to avoid lunch overlap.
+  // If stagger offset > 0, give secondary doctors an earlier/later first-PM block.
   if (hpBlocks.length > 0) {
     const hp = hpBlocks[0];
     const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
@@ -586,8 +611,12 @@ function placeDoctorBlocks(
     const pmRanges = afternoonRanges(ranges, slots, doc);
 
     if (pmRanges.length > 0) {
+      // Stagger first afternoon HP: each additional doctor delays by stagger offset
+      const pmStaggerStart = getLunchMidpoint(doc) + staggerOffsetMin;
+      const staggeredPmRanges = rangesAfter(pmRanges, slots, pmStaggerStart);
+      const targetRange = staggeredPmRanges[0] || pmRanges[0];
       const amount = hp.minimumAmount || hpMinPerBlock;
-      placeBlockInSlots(slots, pmRanges[0], hp, doc, makeLabel(hp, amount));
+      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, amount));
       totalScheduled += amount;
     }
   }
@@ -704,6 +733,12 @@ function placeHygienistBlocks(
   timeIncrement: number,
   warnings: string[]
 ): void {
+  // If hygienist is in Assisted Hygiene mode, use a different block pattern
+  if (hyg.assistedHygiene) {
+    placeAssistedHygienistBlocks(slots, ps, hyg, hygIndex, blocksByCategory, rules, timeIncrement, warnings);
+    return;
+  }
+
   const srpBlock = getBlockForCategory('SRP', blocksByCategory, hyg);
   const pmBlock = getBlockForCategory('PM', blocksByCategory, hyg);
   const recareBlock = getBlockForCategory('RECARE', blocksByCategory, hyg);
@@ -761,6 +796,54 @@ function placeHygienistBlocks(
 
       placeBlockInSlots(slots, ranges[0], recareBlock, hyg, makeLabel(recareBlock));
     }
+  }
+}
+
+/**
+ * Assisted Hygiene mode: hygienist rotates across 2-3 chairs with assistant support.
+ * Shorter appointment slots (30-45 min), more patients per day.
+ * Blocks labeled "Assisted Hyg" (AH) with distinct teal color.
+ */
+function placeAssistedHygienistBlocks(
+  slots: TimeSlotOutput[],
+  ps: ProviderSlots,
+  hyg: ProviderInput,
+  hygIndex: number,
+  blocksByCategory: Map<string, BlockTypeInput[]>,
+  rules: ScheduleRules,
+  timeIncrement: number,
+  warnings: string[]
+): void {
+  // Get the assisted hygiene block type, fall back to creating one
+  const assistedHygBlock = getBlockForCategory('ASSISTED_HYG', blocksByCategory, hyg)
+    || { id: FALLBACK_IDS.ASSISTED_HYG, ...DEFAULT_BLOCKS.ASSISTED_HYG as Omit<BlockTypeInput, 'id'> };
+
+  // Also get SRP for morning (assisted hygiene still does SRP)
+  const srpBlock = getBlockForCategory('SRP', blocksByCategory, hyg);
+
+  // 1. SRP morning block (staggered)
+  if (srpBlock && rules.srpBlocksPerDay > 0) {
+    const slotsNeeded = Math.ceil(srpBlock.durationMin / timeIncrement);
+    const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+    const staggerOffset = hygIndex * 90;
+    const startMin = toMinutes(hyg.workingStart) + staggerOffset;
+    const staggeredRanges = rangesAfter(morningRanges(ranges, slots, hyg), slots, startMin);
+    const targetRange = staggeredRanges[0] || morningRanges(ranges, slots, hyg)[0] || ranges[0];
+    if (targetRange) {
+      placeBlockInSlots(slots, targetRange, srpBlock, hyg, makeLabel(srpBlock));
+    } else {
+      warnings.push(`No room for SRP block for ${hyg.name} (assisted hygiene mode)`);
+    }
+  }
+
+  // 2. Fill remaining slots with assisted hygiene blocks (shorter = more patients)
+  const slotsNeeded = Math.ceil(assistedHygBlock.durationMin / timeIncrement);
+  let safety = 0;
+  while (safety < 12) {
+    safety++;
+    const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+    if (ranges.length === 0) break;
+    placeBlockInSlots(slots, ranges[0], assistedHygBlock, hyg, 'Assisted Hyg');
   }
 }
 
@@ -865,7 +948,22 @@ function fillHygOpSlots(
   blocksByCategory: Map<string, BlockTypeInput[]>,
   timeIncrement: number
 ): void {
-    
+    // Assisted hygiene mode: fill remaining gaps with assisted hyg blocks
+    if (hyg.assistedHygiene) {
+      const assistedHygBlock = getBlockForCategory('ASSISTED_HYG', blocksByCategory, hyg)
+        || { id: FALLBACK_IDS.ASSISTED_HYG, ...DEFAULT_BLOCKS.ASSISTED_HYG as Omit<BlockTypeInput, 'id'> };
+      const slotsNeeded = Math.ceil(assistedHygBlock.durationMin / timeIncrement);
+      let safety = 0;
+      while (safety < 20) {
+        safety++;
+        const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+        if (ranges.length === 0) break;
+        placeBlockInSlots(slots, ranges[0], assistedHygBlock, hyg, 'Assisted Hyg');
+      }
+      return;
+    }
+
+    // Standard hygiene fill
     // Get all available block types for this hygienist
     const recareBlocks = getAllBlocksForCategory('RECARE', blocksByCategory, hyg);
     const pmBlocks = getAllBlocksForCategory('PM', blocksByCategory, hyg);

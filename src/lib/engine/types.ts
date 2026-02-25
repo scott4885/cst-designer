@@ -13,6 +13,8 @@ export interface ProviderInput {
   color: string;
   seesNewPatients?: boolean;          // defaults to true
   enabledBlockTypeIds?: string[];     // if set, only these block types; if unset, all applicable
+  assistedHygiene?: boolean;          // hygienists only: enables assisted hygiene (2-3 chair rotation) mode
+  staggerOffsetMin?: number;          // doctor stagger override (auto-calculated if not set)
 }
 
 export interface BlockTypeInput {

@@ -47,6 +47,7 @@ export default function TemplateBuilderPage() {
     isExporting,
     setExporting,
     loadSchedulesForOffice,
+    clearSchedules,
     placeBlockInDay,
     removeBlockInDay,
     moveBlockInDay,
@@ -272,6 +273,15 @@ export default function TemplateBuilderPage() {
       return parseTime(a.time) - parseTime(b.time);
     });
   }
+
+  // Whether there are any persisted/generated schedules for this office
+  const hasSchedules = Object.keys(generatedSchedules).length > 0;
+
+  // Clear all schedules and localStorage state, reset to empty
+  const handleClearAndStartOver = () => {
+    clearSchedules();
+    toast.info("Schedules cleared. Click Generate to create a new schedule.");
+  };
 
   // Generate schedule for a single day
   const handleGenerateSchedule = async () => {
@@ -587,6 +597,19 @@ export default function TemplateBuilderPage() {
                 : "Export current day schedule for Open Dental import"}
             </TooltipContent>
           </Tooltip>
+          {hasSchedules && (
+            <Button
+              onClick={handleClearAndStartOver}
+              disabled={isGenerating}
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] border-destructive/50 text-destructive hover:bg-destructive/10"
+              title="Wipe all schedules and start fresh"
+            >
+              <Trash2 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Clear &amp; Start Over</span>
+            </Button>
+          )}
           <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary" size="sm" className="min-h-[44px]">
             {isGenerating && generatingDay ? (
               <>
@@ -597,7 +620,7 @@ export default function TemplateBuilderPage() {
             ) : (
               <>
                 <Sparkles className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Generate All Days</span>
+                <span className="hidden sm:inline">{hasSchedules ? 'Regenerate All Days' : 'Generate All Days'}</span>
                 <span className="sm:hidden">All Days</span>
               </>
             )}
@@ -612,8 +635,8 @@ export default function TemplateBuilderPage() {
             ) : (
               <>
                 <Sparkles className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Generate {getDayLabel(activeDay)}</span>
-                <span className="sm:hidden">Generate</span>
+                <span className="hidden sm:inline">{hasSchedules ? `Regenerate ${getDayLabel(activeDay)}` : `Generate ${getDayLabel(activeDay)}`}</span>
+                <span className="sm:hidden">{hasSchedules ? 'Regenerate' : 'Generate'}</span>
               </>
             )}
           </Button>

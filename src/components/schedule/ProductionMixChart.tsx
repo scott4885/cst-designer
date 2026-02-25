@@ -19,15 +19,16 @@ import type { GenerationResult, BlockTypeInput, ProviderInput } from "@/lib/engi
 // ─── Color palette matching block type colors ────────────────────────────────
 
 const CATEGORY_COLORS: Record<BlockCategory, string> = {
-  HP:       "#6366f1", // indigo
-  NP:       "#22c55e", // green
-  SRP:      "#f59e0b", // amber
-  ER:       "#ef4444", // red
-  MP:       "#3b82f6", // blue
-  RECARE:   "#06b6d4", // cyan
-  PM:       "#a855f7", // purple
-  NON_PROD: "#94a3b8", // slate
-  OTHER:    "#64748b", // gray
+  HP:           "#6366f1", // indigo
+  NP:           "#22c55e", // green
+  SRP:          "#f59e0b", // amber
+  ER:           "#ef4444", // red
+  MP:           "#3b82f6", // blue
+  RECARE:       "#06b6d4", // cyan
+  PM:           "#a855f7", // purple
+  NON_PROD:     "#94a3b8", // slate
+  ASSISTED_HYG: "#8b5cf6", // purple
+  OTHER:        "#64748b", // gray
 };
 
 // ─── SVG Donut chart ─────────────────────────────────────────────────────────

@@ -1059,6 +1059,18 @@ export const defaultBlockTypes: BlockTypeInput[] = [
     dTimeMin: 40,
     aTimeMin: 5,
   },
+  {
+    id: 'assisted-hyg-default',
+    label: 'Assisted Hyg',
+    description: 'Assisted Hygiene - 2-3 chair rotation with assistant support. Hygienist moves between chairs while assistant handles prep/cleanup.',
+    minimumAmount: 150,
+    appliesToRole: 'HYGIENIST',
+    durationMin: 45,
+    durationMax: 60,
+    dTimeMin: 15,
+    aTimeMin: 30,
+    color: '#0ea5e9', // sky blue / teal-cyan
+  },
 ];
 
 export const defaultRules: ScheduleRules = {
