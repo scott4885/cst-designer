@@ -3,6 +3,8 @@ import {
   detectConflicts,
   suggestStagger,
   inferTimeIncrement,
+  calculateStaggerOffset,
+  DEFAULT_COLUMN_STAGGER_MIN,
   type ConflictResult,
   type StaggerSuggestion,
 } from '../stagger';
@@ -136,6 +138,66 @@ function createMultiConflictSchedule(): GenerationResult {
     makeSlot({ time: '09:10', providerId: 'dr2', operatory: 'OP4', staffingCode: null, blockTypeId: null, blockLabel: null }),
   ]);
 }
+
+// ---------------------------------------------------------------------------
+// calculateStaggerOffset tests
+// ---------------------------------------------------------------------------
+
+describe('calculateStaggerOffset', () => {
+  it('should return 0 for the first column (index 0) regardless of provider index', () => {
+    expect(calculateStaggerOffset(0, 0, 20)).toBe(0);
+    expect(calculateStaggerOffset(1, 0, 20)).toBe(0);
+    expect(calculateStaggerOffset(5, 0, 20)).toBe(0);
+  });
+
+  it('should return intervalMin for the second column (index 1)', () => {
+    expect(calculateStaggerOffset(0, 1, 20)).toBe(20);
+    expect(calculateStaggerOffset(1, 1, 20)).toBe(20);
+  });
+
+  it('should return 2×intervalMin for the third column (index 2)', () => {
+    expect(calculateStaggerOffset(0, 2, 20)).toBe(40);
+    expect(calculateStaggerOffset(1, 2, 20)).toBe(40);
+  });
+
+  it('should scale linearly with column index', () => {
+    // column 0 → 0, column 1 → 20, column 2 → 40, column 3 → 60
+    for (let col = 0; col <= 3; col++) {
+      expect(calculateStaggerOffset(0, col, 20)).toBe(col * 20);
+    }
+  });
+
+  it('should use a custom interval', () => {
+    expect(calculateStaggerOffset(0, 1, 30)).toBe(30);
+    expect(calculateStaggerOffset(0, 2, 30)).toBe(60);
+    expect(calculateStaggerOffset(0, 3, 15)).toBe(45);
+  });
+
+  it('should use DEFAULT_COLUMN_STAGGER_MIN when no interval is specified', () => {
+    expect(calculateStaggerOffset(0, 1)).toBe(DEFAULT_COLUMN_STAGGER_MIN);
+    expect(calculateStaggerOffset(0, 2)).toBe(2 * DEFAULT_COLUMN_STAGGER_MIN);
+  });
+
+  it('DEFAULT_COLUMN_STAGGER_MIN should be 20', () => {
+    expect(DEFAULT_COLUMN_STAGGER_MIN).toBe(20);
+  });
+
+  it('should return 0 for negative column index (edge case)', () => {
+    expect(calculateStaggerOffset(0, -1, 20)).toBe(0);
+    expect(calculateStaggerOffset(0, -5, 20)).toBe(0);
+  });
+
+  it('should return 0 for negative provider index (edge case)', () => {
+    // providerIndex does not affect the column offset; should still return column offset
+    expect(calculateStaggerOffset(-1, 0, 20)).toBe(0);
+    expect(calculateStaggerOffset(-1, 1, 20)).toBe(20);
+  });
+
+  it('should return 0 when intervalMin is 0 or negative', () => {
+    expect(calculateStaggerOffset(0, 1, 0)).toBe(0);
+    expect(calculateStaggerOffset(0, 2, -10)).toBe(0);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // detectConflicts tests

@@ -297,5 +297,190 @@ describe('generator', () => {
       // Should have warnings about not being able to place all blocks
       expect(result.warnings.length).toBeGreaterThan(0);
     });
+
+    // ── Multi-column stagger tests ──────────────────────────────────────────
+
+    /**
+     * Build a minimal GenerationInput for a single doctor working 2 or 3 operatories.
+     * doubleBooking must be true so the generator creates slots for all operatories.
+     */
+    function createMultiColumnInput(numColumns: number, customStaggerInterval?: number): GenerationInput {
+      const ops = ['OP1', 'OP2', 'OP3'].slice(0, numColumns);
+      const provider: ProviderInput = {
+        id: 'drMulti',
+        name: 'Dr. Multi',
+        role: 'DOCTOR',
+        operatories: ops,
+        workingStart: '07:00',
+        workingEnd: '17:00',
+        lunchStart: '12:00',
+        lunchEnd: '13:00',
+        dailyGoal: 5000,
+        color: '#000',
+        ...(customStaggerInterval !== undefined ? { columnStaggerIntervalMin: customStaggerInterval } : {}),
+      };
+      const blockTypes: BlockTypeInput[] = [
+        { id: 'hp1', label: 'HP > $1200', minimumAmount: 1200, appliesToRole: 'DOCTOR', durationMin: 60 },
+        { id: 'np1', label: 'NP CONS',   minimumAmount: 150,  appliesToRole: 'DOCTOR', durationMin: 30 },
+        { id: 'mp1', label: 'MP',        minimumAmount: 375,  appliesToRole: 'DOCTOR', durationMin: 40 },
+        { id: 'er1', label: 'ER',        minimumAmount: 187,  appliesToRole: 'DOCTOR', durationMin: 30 },
+      ];
+      return {
+        providers: [provider],
+        blockTypes,
+        rules: {
+          npModel: 'DOCTOR_ONLY',
+          npBlocksPerDay: 1,
+          srpBlocksPerDay: 1,
+          hpPlacement: 'MORNING',
+          doubleBooking: true,   // must be true to activate multi-op slots
+          matrixing: false,
+          emergencyHandling: 'DEDICATED',
+        },
+        timeIncrement: 10,
+        dayOfWeek: 'Monday',
+      };
+    }
+
+    it('single-column provider should have no column stagger (all slots in one operatory)', () => {
+      const input = createMultiColumnInput(1);
+      const result = generateSchedule(input);
+
+      const op1Slots = result.slots.filter(s => s.providerId === 'drMulti' && s.operatory === 'OP1' && !s.isBreak && s.blockTypeId);
+      expect(op1Slots.length).toBeGreaterThan(0);
+
+      // No OP2 slots should exist for this provider
+      const op2Slots = result.slots.filter(s => s.providerId === 'drMulti' && s.operatory === 'OP2');
+      expect(op2Slots.length).toBe(0);
+    });
+
+    it('two-column provider should have schedules that are NOT identical across columns', () => {
+      const input = createMultiColumnInput(2);
+      const result = generateSchedule(input);
+
+      const op1Active = result.slots.filter(s =>
+        s.providerId === 'drMulti' && s.operatory === 'OP1' && !s.isBreak && s.blockTypeId
+      );
+      const op2Active = result.slots.filter(s =>
+        s.providerId === 'drMulti' && s.operatory === 'OP2' && !s.isBreak && s.blockTypeId
+      );
+
+      expect(op1Active.length).toBeGreaterThan(0);
+      expect(op2Active.length).toBeGreaterThan(0);
+
+      // The set of occupied times must differ between OP1 and OP2
+      const op1Times = new Set(op1Active.map(s => s.time));
+      const op2Times = new Set(op2Active.map(s => s.time));
+
+      // There should be times in OP1 that are NOT in OP2 (because col2 is shifted by 20min)
+      const uniqueToOp1 = [...op1Times].filter(t => !op2Times.has(t));
+      expect(uniqueToOp1.length).toBeGreaterThan(0);
+    });
+
+    it('two-column provider: column 2 first block starts at least 20min after column 1 first block', () => {
+      const input = createMultiColumnInput(2);
+      const result = generateSchedule(input);
+
+      const toMin = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      };
+
+      const op1FirstBlock = result.slots
+        .filter(s => s.providerId === 'drMulti' && s.operatory === 'OP1' && !s.isBreak && s.blockTypeId)
+        .sort((a, b) => toMin(a.time) - toMin(b.time))[0];
+
+      const op2FirstBlock = result.slots
+        .filter(s => s.providerId === 'drMulti' && s.operatory === 'OP2' && !s.isBreak && s.blockTypeId)
+        .sort((a, b) => toMin(a.time) - toMin(b.time))[0];
+
+      expect(op1FirstBlock).toBeDefined();
+      expect(op2FirstBlock).toBeDefined();
+
+      // Column 2 must start at least 20 minutes after column 1 (the stagger offset)
+      const startDiff = toMin(op2FirstBlock!.time) - toMin(op1FirstBlock!.time);
+      expect(startDiff).toBeGreaterThanOrEqual(20);
+    });
+
+    it('three-column provider: columns are offset by 0, 20, 40 min respectively', () => {
+      const input = createMultiColumnInput(3);
+      const result = generateSchedule(input);
+
+      const toMin = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      };
+
+      const firstBlockTime = (op: string) =>
+        result.slots
+          .filter(s => s.providerId === 'drMulti' && s.operatory === op && !s.isBreak && s.blockTypeId)
+          .sort((a, b) => toMin(a.time) - toMin(b.time))[0];
+
+      const col1First = firstBlockTime('OP1');
+      const col2First = firstBlockTime('OP2');
+      const col3First = firstBlockTime('OP3');
+
+      expect(col1First).toBeDefined();
+      expect(col2First).toBeDefined();
+      expect(col3First).toBeDefined();
+
+      // OP2 starts ≥20 min after OP1
+      expect(toMin(col2First!.time) - toMin(col1First!.time)).toBeGreaterThanOrEqual(20);
+      // OP3 starts ≥40 min after OP1
+      expect(toMin(col3First!.time) - toMin(col1First!.time)).toBeGreaterThanOrEqual(40);
+    });
+
+    it('multi-column stagger interval is configurable per provider', () => {
+      const input30 = createMultiColumnInput(2, 30); // 30min stagger interval
+      const result = generateSchedule(input30);
+
+      const toMin = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      };
+
+      const op1First = result.slots
+        .filter(s => s.providerId === 'drMulti' && s.operatory === 'OP1' && !s.isBreak && s.blockTypeId)
+        .sort((a, b) => toMin(a.time) - toMin(b.time))[0];
+
+      const op2First = result.slots
+        .filter(s => s.providerId === 'drMulti' && s.operatory === 'OP2' && !s.isBreak && s.blockTypeId)
+        .sort((a, b) => toMin(a.time) - toMin(b.time))[0];
+
+      expect(op1First).toBeDefined();
+      expect(op2First).toBeDefined();
+
+      // With 30min interval, column 2 must start at least 30 min after column 1
+      const startDiff = toMin(op2First!.time) - toMin(op1First!.time);
+      expect(startDiff).toBeGreaterThanOrEqual(30);
+    });
+
+    it('multi-column provider should not have the same blocks at every time slot', () => {
+      const input = createMultiColumnInput(2);
+      const result = generateSchedule(input);
+
+      // If the schedules were identical (old mirroring bug), every block in OP1 would
+      // appear at the exact same time in OP2. We verify this is no longer the case.
+      const op1BlocksByTime = new Map<string, string | null>();
+      result.slots
+        .filter(s => s.providerId === 'drMulti' && s.operatory === 'OP1' && !s.isBreak && s.blockTypeId)
+        .forEach(s => op1BlocksByTime.set(s.time, s.blockTypeId));
+
+      const op2BlocksByTime = new Map<string, string | null>();
+      result.slots
+        .filter(s => s.providerId === 'drMulti' && s.operatory === 'OP2' && !s.isBreak && s.blockTypeId)
+        .forEach(s => op2BlocksByTime.set(s.time, s.blockTypeId));
+
+      // Count times where both OP1 and OP2 have a block at the same time (double-booking)
+      let simultaneousCount = 0;
+      for (const [time] of op1BlocksByTime) {
+        if (op2BlocksByTime.has(time)) simultaneousCount++;
+      }
+
+      // There may be some overlap (e.g. fill blocks) but the schedules should NOT be fully identical.
+      // The stagger means OP1 and OP2 blocks differ in start times.
+      // OP1 total blocks count should NOT equal the simultaneously-occupied slots count (i.e., not all overlap)
+      expect(simultaneousCount).toBeLessThan(op1BlocksByTime.size);
+    });
   });
 });

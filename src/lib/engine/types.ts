@@ -15,6 +15,7 @@ export interface ProviderInput {
   enabledBlockTypeIds?: string[];     // if set, only these block types; if unset, all applicable
   assistedHygiene?: boolean;          // hygienists only: enables assisted hygiene (2-3 chair rotation) mode
   staggerOffsetMin?: number;          // doctor stagger override (auto-calculated if not set)
+  columnStaggerIntervalMin?: number;  // minutes between each column's schedule offset (default 20). Used when provider works multiple operatories simultaneously.
 }
 
 export interface BlockTypeInput {

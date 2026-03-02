@@ -9,6 +9,7 @@ import type {
   ProviderProductionSummary
 } from './types';
 import { calculateTarget75, calculateProductionSummary } from './calculator';
+import { calculateStaggerOffset, DEFAULT_COLUMN_STAGGER_MIN } from './stagger';
 
 /**
  * Generate time slots from start to end in specified increments (24h format: "07:00")
@@ -137,19 +138,6 @@ function getProviderOpSlots(psMap: Map<string, ProviderSlots>, providerId: strin
   return result;
 }
 
-/** Mirror placed blocks from a source ProviderSlots to a target ProviderSlots (same provider, different op) */
-function mirrorBlocks(slots: TimeSlotOutput[], source: ProviderSlots, target: ProviderSlots): void {
-  const len = Math.min(source.indices.length, target.indices.length);
-  for (let i = 0; i < len; i++) {
-    const srcSlot = slots[source.indices[i]];
-    if (srcSlot.blockTypeId && !srcSlot.isBreak) {
-      const tgtIdx = target.indices[i];
-      slots[tgtIdx].blockTypeId = srcSlot.blockTypeId;
-      slots[tgtIdx].blockLabel = srcSlot.blockLabel;
-      slots[tgtIdx].staffingCode = srcSlot.staffingCode;
-    }
-  }
-}
 
 /** Find contiguous available slot ranges for a provider */
 function findAvailableRanges(
@@ -420,30 +408,47 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
   }
 
   // ─── Step 2: Place DOCTOR blocks across ALL operatories (with staggering) ───
-  // Stagger: each doctor gets an offset start time to avoid competing for the same hygiene checks.
-  // Default stagger interval: 20 min per doctor index.
-  // Doctors in same office get lunch at different times when possible.
+  // Provider-level stagger: each doctor gets an offset start time to avoid competing for the
+  // same hygiene checks. Default: 20 min per doctor index.
+  //
+  // Column-level stagger (NEW): when a single doctor works multiple operatories simultaneously
+  // (multi-column), each column gets its OWN independently-generated schedule offset by
+  // columnStaggerIntervalMin (default 20 min) per column.
+  //   Column 0 → T+0 (no extra offset)
+  //   Column 1 → T+20
+  //   Column 2 → T+40
+  // This prevents the provider from being double-booked at the same time across columns.
   const STAGGER_INTERVAL_MIN = 20;
+
+  // Track per-operatory stagger offsets so the fill function can respect them.
+  // Key: "providerId::operatory", Value: total stagger offset in minutes.
+  const doctorColumnStagger = new Map<string, number>();
+
   for (let di = 0; di < doctors.length; di++) {
     const doc = doctors[di];
-    // Use explicit override if set, otherwise auto-calculate
-    const staggerOffsetMin = doc.staggerOffsetMin ?? (di * STAGGER_INTERVAL_MIN);
+    // Base (provider-level) stagger: use explicit override if set, else auto-calculate
+    const baseStaggerMin = doc.staggerOffsetMin ?? (di * STAGGER_INTERVAL_MIN);
+    // Per-column stagger interval: configurable per provider, default 20 min
+    const columnStaggerInterval = doc.columnStaggerIntervalMin ?? DEFAULT_COLUMN_STAGGER_MIN;
     const opSlots = getProviderOpSlots(psMap, doc.id);
-    const isMultiColumn = (doc.columns ?? 1) > 1 && opSlots.length > 1;
+    // A provider is "multi-column" when they are assigned to more than one operatory
+    const isMultiColumn = opSlots.length > 1;
 
     if (isMultiColumn) {
-      // Generate blocks only on the PRIMARY operatory
-      const primaryPs = opSlots[0];
-      placeDoctorBlocks(slots, primaryPs, doc, blocksByCategory, rules, timeIncrement, warnings, staggerOffsetMin, di, doctors.length);
-      // Mirror placed blocks to all OTHER operatories simultaneously
-      for (let oi = 1; oi < opSlots.length; oi++) {
-        const secondaryPs = opSlots[oi];
-        mirrorBlocks(slots, primaryPs, secondaryPs);
+      // Generate blocks INDEPENDENTLY on each operatory with a per-column stagger offset.
+      // Each column's schedule is staggered so appointment start times differ across columns,
+      // ensuring the provider is never scheduled in two places at the same instant.
+      for (let oi = 0; oi < opSlots.length; oi++) {
+        const columnOffset = calculateStaggerOffset(di, oi, columnStaggerInterval);
+        const totalStagger = baseStaggerMin + columnOffset;
+        doctorColumnStagger.set(`${doc.id}::${opSlots[oi].operatory}`, totalStagger);
+        placeDoctorBlocks(slots, opSlots[oi], doc, blocksByCategory, rules, timeIncrement, warnings, totalStagger, di, doctors.length);
       }
     } else {
-      // Single-column: place independently per operatory
+      // Single-column: place with base provider stagger only
       for (const ps of opSlots) {
-        placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings, staggerOffsetMin, di, doctors.length);
+        doctorColumnStagger.set(`${doc.id}::${ps.operatory}`, baseStaggerMin);
+        placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings, baseStaggerMin, di, doctors.length);
       }
     }
   }
@@ -457,7 +462,9 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
   }
 
   // ─── Step 4: Fill ANY remaining gaps ───
-  fillRemainingDoctorSlots(slots, psMap, doctors, blocksByCategory, timeIncrement);
+  // Pass doctorColumnStagger so fill respects per-column stagger windows
+  // (secondary columns should not be filled before their stagger offset start time).
+  fillRemainingDoctorSlots(slots, psMap, doctors, blocksByCategory, timeIncrement, doctorColumnStagger);
   fillRemainingHygienistSlots(slots, psMap, hygienists, blocksByCategory, timeIncrement);
 
   // ─── Step 5: Doctor matrixing — D/A codes ───
@@ -856,12 +863,14 @@ function fillRemainingDoctorSlots(
   psMap: Map<string, ProviderSlots>,
   doctors: ProviderInput[],
   blocksByCategory: Map<string, BlockTypeInput[]>,
-  timeIncrement: number
+  timeIncrement: number,
+  columnStaggerMap?: Map<string, number>
 ): void {
   for (const doc of doctors) {
     const opSlotsList = getProviderOpSlots(psMap, doc.id);
     for (const ps of opSlotsList) {
-      fillDocOpSlots(slots, ps, doc, blocksByCategory, timeIncrement);
+      const staggerMin = columnStaggerMap?.get(`${doc.id}::${ps.operatory}`) ?? 0;
+      fillDocOpSlots(slots, ps, doc, blocksByCategory, timeIncrement, staggerMin);
     }
   }
 }
@@ -871,7 +880,8 @@ function fillDocOpSlots(
   ps: ProviderSlots,
   doc: ProviderInput,
   blocksByCategory: Map<string, BlockTypeInput[]>,
-  timeIncrement: number
+  timeIncrement: number,
+  staggerOffsetMin: number = 0
 ): void {
     // Get all available block types for this doctor
     const hpBlocks = getAllBlocksForCategory('HP', blocksByCategory, doc);
@@ -887,6 +897,11 @@ function fillDocOpSlots(
     npBlocks.forEach(b => blockPool.push({ block: b, weight: 20 }));
     
     if (blockPool.length === 0) return;
+
+    // For staggered columns: the fill function must respect the stagger window.
+    // Slots before the staggered start time are intentionally left empty — they
+    // represent the ramp-up period before this column's patients arrive.
+    const staggeredFillStart = toMinutes(doc.workingStart) + staggerOffsetMin;
     
     // Shuffle and distribute blocks
     let safety = 0;
@@ -907,7 +922,11 @@ function fillDocOpSlots(
       }
       
       const slotsNeeded = Math.ceil(selectedBlock.durationMin / timeIncrement);
-      const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+      // Only consider slots at or after the staggered start time for this column
+      const allRanges = findAvailableRanges(slots, ps, slotsNeeded);
+      const ranges = staggerOffsetMin > 0
+        ? rangesAfter(allRanges, slots, staggeredFillStart)
+        : allRanges;
       if (ranges.length === 0) break;
       
       // Prefer morning for HP, afternoon for MP/ER

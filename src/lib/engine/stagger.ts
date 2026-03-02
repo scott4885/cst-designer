@@ -3,9 +3,55 @@
  *
  * Detects when a provider is double-booked across operatories at the same time
  * slot and suggests stagger moves to eliminate the conflicts.
+ *
+ * Also exports calculateStaggerOffset for use by the schedule generator when
+ * producing staggered multi-column schedules.
  */
 
 import type { GenerationResult, ProviderInput, TimeSlotOutput } from './types';
+
+// ---------------------------------------------------------------------------
+// calculateStaggerOffset — per-column offset calculation
+// ---------------------------------------------------------------------------
+
+/**
+ * Default number of minutes to offset each successive column's schedule.
+ * Column 0 = T+0, Column 1 = T+20, Column 2 = T+40, etc.
+ */
+export const DEFAULT_COLUMN_STAGGER_MIN = 20;
+
+/**
+ * Calculate the stagger offset (in minutes) for a specific column of a provider.
+ *
+ * The offset ensures that when a provider works multiple operatories simultaneously
+ * (multi-column), each column's appointment blocks start at a different time so
+ * the provider is never double-booked at the same moment.
+ *
+ * @param providerIndex - Zero-based index of the provider among all providers of the same role.
+ *                        Accepted for API completeness; the column offset is independent of
+ *                        provider index (provider-level stagger is handled separately in the
+ *                        generator).
+ * @param columnIndex   - Zero-based index of the operatory/column within this provider's columns.
+ *                        Column 0 gets offset 0, column 1 gets 1×intervalMin, etc.
+ * @param intervalMin   - Minutes to offset per column step. Defaults to DEFAULT_COLUMN_STAGGER_MIN (20).
+ * @returns             - Offset in minutes (≥ 0). Returns 0 for any negative inputs.
+ *
+ * @example
+ *   calculateStaggerOffset(0, 0, 20) // → 0   (first column, no offset)
+ *   calculateStaggerOffset(0, 1, 20) // → 20  (second column, +20 min)
+ *   calculateStaggerOffset(0, 2, 20) // → 40  (third column, +40 min)
+ *   calculateStaggerOffset(1, 0, 20) // → 0   (second provider, first column → column offset is 0)
+ *   calculateStaggerOffset(1, 1, 20) // → 20  (second provider, second column → +20 min)
+ */
+export function calculateStaggerOffset(
+  providerIndex: number,
+  columnIndex: number,
+  intervalMin: number = DEFAULT_COLUMN_STAGGER_MIN,
+): number {
+  // Guard against negative indices or invalid intervals
+  if (columnIndex <= 0 || intervalMin <= 0) return 0;
+  return columnIndex * intervalMin;
+}
 
 // ---------------------------------------------------------------------------
 // Public Types
