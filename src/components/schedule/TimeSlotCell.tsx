@@ -27,6 +27,8 @@ interface TimeSlotCellProps {
   aTimeMin?: number;
   /** Has a D-time conflict (D-time overlapping with another doctor column) */
   hasDTimeConflict?: boolean;
+  /** This block meets or exceeds the role-based High Production threshold */
+  isHighProduction?: boolean;
 }
 
 export default function TimeSlotCell({
@@ -48,6 +50,7 @@ export default function TimeSlotCell({
   dTimeMin = 0,
   aTimeMin = 0,
   hasDTimeConflict = false,
+  isHighProduction = false,
 }: TimeSlotCellProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -192,6 +195,11 @@ export default function TimeSlotCell({
           {isAssistedHyg && isBlockFirst && (
             <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 border border-violet-300 dark:border-violet-700 shrink-0">
               AH
+            </span>
+          )}
+          {isHighProduction && isBlockFirst && (
+            <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shrink-0" title="High Production">
+              HP
             </span>
           )}
           {blockLabel}

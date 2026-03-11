@@ -123,9 +123,11 @@ export function calculateProductionSummary(
   // Calculate total scheduled production
   const actualScheduled = blocks.reduce((sum, b) => sum + b.amount, 0);
 
-  // Calculate high production scheduled (blocks with minimumAmount >= $1000)
+  // Calculate high production scheduled — role-based thresholds (§6.2):
+  // Doctor: minimumAmount >= $1,000 | Hygienist: minimumAmount >= $300
+  const hpThreshold = provider.role === 'HYGIENIST' ? 300 : 1000;
   const highProductionScheduled = scheduledBlocks
-    .filter(b => (b.minimumAmount ?? 0) >= 1000)
+    .filter(b => (b.minimumAmount ?? 0) >= hpThreshold)
     .reduce((sum, b) => sum + b.amount, 0);
 
   // Determine status

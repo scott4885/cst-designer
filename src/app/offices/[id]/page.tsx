@@ -101,15 +101,18 @@ export default function TemplateBuilderPage() {
     if (!currentDaySchedule || !currentOffice) return [];
     if (!currentDaySchedule.productionSummary || !Array.isArray(currentDaySchedule.productionSummary)) return [];
     try {
-      return currentDaySchedule.productionSummary.map((summary) => ({
-        providerName: String(summary.providerName || "Unknown"),
-        providerColor:
-          currentOffice.providers?.find((p) => p.id === summary.providerId)?.color || "#666",
-        dailyGoal: Number(summary.dailyGoal) || 0,
-        target75: Number(summary.target75) || 0,
-        actualScheduled: Number(summary.actualScheduled) || 0,
-        highProductionScheduled: Number(summary.highProductionScheduled) || 0,
-      }));
+      return currentDaySchedule.productionSummary.map((summary) => {
+        const providerRecord = currentOffice.providers?.find((p) => p.id === summary.providerId);
+        return {
+          providerName: String(summary.providerName || "Unknown"),
+          providerColor: providerRecord?.color || "#666",
+          providerRole: providerRecord?.role as 'DOCTOR' | 'HYGIENIST' | 'OTHER' | undefined,
+          dailyGoal: Number(summary.dailyGoal) || 0,
+          target75: Number(summary.target75) || 0,
+          actualScheduled: Number(summary.actualScheduled) || 0,
+          highProductionScheduled: Number(summary.highProductionScheduled) || 0,
+        };
+      });
     } catch {
       console.error("Error computing production summaries");
       return [];
@@ -436,6 +439,7 @@ export default function TemplateBuilderPage() {
         providers: (currentOffice.providers || []).map((p) => ({
           id: p.id,
           name: p.name,
+          providerId: (p as any).providerId || undefined,
           role: p.role,
           operatories: p.operatories,
           dailyGoal: p.dailyGoal,

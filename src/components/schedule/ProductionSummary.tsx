@@ -10,10 +10,11 @@ import type { AlignmentScore } from "@/lib/engine/ideal-day";
 export interface ProviderProductionSummary {
   providerName: string;
   providerColor: string;
+  providerRole?: 'DOCTOR' | 'HYGIENIST' | 'OTHER';
   dailyGoal: number;
   target75: number;
   actualScheduled: number;
-  /** Sum of only blocks with minimumAmount >= $1000 */
+  /** Sum of only blocks with minimumAmount >= role-based HP threshold (Dr≥$1k, Hyg≥$300) */
   highProductionScheduled: number;
 }
 
@@ -130,7 +131,10 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-semibold text-foreground/80">
-                    High Production <span className="font-normal text-muted-foreground">(Target: 75%)</span>
+                    High Production{" "}
+                    <span className="font-normal text-muted-foreground">
+                      ({summary.providerRole === 'HYGIENIST' ? '≥$300' : '≥$1k'} · Target: 75%)
+                    </span>
                   </span>
                   {getHPBadge(hp, summary.dailyGoal)}
                 </div>

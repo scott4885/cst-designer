@@ -760,11 +760,15 @@ export default function ScheduleGrid({
                     let cellDTimeMin = 0;
                     let cellATimeMin = 0;
 
+                    // HP badge: role-based threshold (Dr≥$1k, Hyg≥$300)
+                    let isHighProduction = false;
                     if (hasBlock && slot?.blockTypeId) {
                       const bt = blockTypeById.get(slot.blockTypeId);
                       if (bt && isFirstCell) {
                         cellDTimeMin = bt.dTimeMin ?? 0;
                         cellATimeMin = bt.aTimeMin ?? 0;
+                        const hpThreshold = provider.role === 'HYGIENIST' ? 300 : 1000;
+                        isHighProduction = (bt.minimumAmount ?? 0) >= hpThreshold;
                       }
 
                       // Show D-time conflict on the first cell of any conflicting block
@@ -774,9 +778,13 @@ export default function ScheduleGrid({
                       }
                     }
 
+                    // Visual grouping (§4.4): suppress row divider for non-last block cells
+                    // so the block appears as a single contiguous unit
+                    const isBlockCellNotLast = hasBlock && blockInfo && !blockInfo.isLast;
+
                     return (
                       <Fragment key={provider.id}>
-                        <td className="p-0 border-b border-border" style={{ width: 28, minWidth: 28 }}>
+                        <td className={`p-0 ${isBlockCellNotLast ? '' : 'border-b border-border'}`} style={{ width: 28, minWidth: 28 }}>
                           <TimeSlotCell
                             staffingCode={slot?.staffingCode}
                             providerColor={slot?.staffingCode ? provider.color : undefined}
@@ -784,7 +792,7 @@ export default function ScheduleGrid({
                             isDrExam={slot?.staffingCode === 'D' && provider.role === 'HYGIENIST'}
                           />
                         </td>
-                        <td className="p-0 border-b border-border" style={{ minWidth: colWidth }}>
+                        <td className={`p-0 ${isBlockCellNotLast ? '' : 'border-b border-border'}`} style={{ minWidth: colWidth }}>
                           <div
                             data-testid={`block-cell-${row.time}-${provider.id}`}
                             draggable={hasBlock && !!onMoveBlock && !outsideHours}
@@ -820,6 +828,7 @@ export default function ScheduleGrid({
                               dTimeMin={cellDTimeMin}
                               aTimeMin={cellATimeMin}
                               hasDTimeConflict={hasDTimeConflict}
+                              isHighProduction={isHighProduction}
                             />
                           </div>
                         </td>
