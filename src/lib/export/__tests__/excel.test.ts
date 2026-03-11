@@ -90,8 +90,8 @@ describe('Excel Export', () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as any);
     
-    // 2 instruction sheets + 2 day schedules = 4 sheets
-    expect(workbook.worksheets.length).toBe(4);
+    // Summary + 2 instruction sheets + 2 day schedules = 5 sheets
+    expect(workbook.worksheets.length).toBe(5);
   });
 
   it('should have correct sheet names', async () => {
@@ -100,6 +100,7 @@ describe('Excel Export', () => {
     await workbook.xlsx.load(buffer as any);
     
     const sheetNames = workbook.worksheets.map(ws => ws.name);
+    expect(sheetNames).toContain('Summary');
     expect(sheetNames).toContain('Reading the Schedule Template');
     expect(sheetNames).toContain('Scheduling Guidelines');
     expect(sheetNames).toContain('Monday 1.26');
@@ -120,7 +121,7 @@ describe('Excel Export', () => {
     expect(providerName).toBe('Dr. Kevin Fitzpatrick');
   });
 
-  it('should contain time slots from 7:00 to 6:00', async () => {
+  it('should contain time slots from 7:00 AM to 6:00 PM', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as any);
@@ -128,23 +129,19 @@ describe('Excel Export', () => {
     const mondaySheet = workbook.getWorksheet('Monday 1.26');
     expect(mondaySheet).toBeDefined();
     
-    // Find the time column (should start around row 16)
-    // Look for the first "7:00" entry
+    // Time cells are formatted as "7:00 AM" / "6:00 PM"
     let found700 = false;
-    let found1800 = false;
+    let found600PM = false;
     
-    mondaySheet!.eachRow((row, rowNumber) => {
+    mondaySheet!.eachRow((row) => {
       const timeCell = row.getCell(1);
-      if (timeCell.value === '7:00' || timeCell.value === '7:0') {
-        found700 = true;
-      }
-      if (timeCell.value === '18:00' || timeCell.value === '18:0') {
-        found1800 = true;
-      }
+      const val = String(timeCell.value ?? '');
+      if (val === '7:00 AM') found700 = true;
+      if (val === '6:00 PM') found600PM = true;
     });
     
     expect(found700).toBe(true);
-    expect(found1800).toBe(true);
+    expect(found600PM).toBe(true);
   });
 
   it('should contain block type legend', async () => {
@@ -199,12 +196,17 @@ describe('Excel Export', () => {
     const mondaySheet = workbook.getWorksheet('Monday 1.26');
     expect(mondaySheet).toBeDefined();
     
-    // Look for "Total Production Minimums"
+    // Look for production summary rows (Scheduled Production, Target, Status, or legacy Total row)
     let foundSummary = false;
     
     mondaySheet!.eachRow((row) => {
       const cell = row.getCell(1);
-      if (cell.value === 'Total Production Minimums') {
+      const val = String(cell.value ?? '');
+      if (
+        val === 'Total Production Minimums' ||
+        val.includes('Scheduled Production') ||
+        val.includes('Target (75%)')
+      ) {
         foundSummary = true;
       }
     });
