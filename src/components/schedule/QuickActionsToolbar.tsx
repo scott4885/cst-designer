@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Wand2, Copy, RotateCcw, ShieldCheck, Printer, Download, Loader2, ClipboardCopy } from "lucide-react";
+import { Wand2, Copy, RotateCcw, ShieldCheck, Printer, Download, Loader2, ClipboardCopy, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -25,6 +25,8 @@ interface QuickActionsToolbarProps {
   onExport: () => void;
   /** Optional: opens the clone template modal */
   onClone?: () => void;
+  /** Optional: opens the insert sequence picker */
+  onInsertSequence?: () => void;
 }
 
 const getDayLabel = (day: string) => {
@@ -47,6 +49,7 @@ export default function QuickActionsToolbar({
   onPrint,
   onExport,
   onClone,
+  onInsertSequence,
 }: QuickActionsToolbarProps) {
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -219,6 +222,28 @@ export default function QuickActionsToolbar({
               <TooltipContent>
                 {!hasAnySchedule ? 'Generate a schedule first' : 'Clone this schedule to another office'}
               </TooltipContent>
+            </Tooltip>
+          </>
+        )}
+
+        {onInsertSequence && (
+          <>
+            <div className="w-px h-5 bg-border mx-0.5" />
+            {/* Insert Sequence */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs gap-1"
+                  onClick={onInsertSequence}
+                  data-testid="quick-action-insert-sequence"
+                >
+                  <Layers className="w-3 h-3" />
+                  <span className="hidden sm:inline">Insert Sequence</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Place a treatment sequence starting on {activeDayLabel}</TooltipContent>
             </Tooltip>
           </>
         )}
