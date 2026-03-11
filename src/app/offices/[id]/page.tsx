@@ -28,6 +28,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 // CRUD operations go through API routes (Prisma backend)
 import { generateExcel, ExportInput, ExportDaySchedule } from "@/lib/export/excel";
+import CloneTemplateModal from "@/components/schedule/CloneTemplateModal";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import { detectConflicts } from "@/lib/engine/stagger";
 import type { ConflictResult } from "@/lib/engine/stagger";
@@ -45,7 +46,7 @@ export default function TemplateBuilderPage() {
   const router = useRouter();
   const officeId = params.id as string;
 
-  const { currentOffice, fetchOffice, isLoading: officeLoading } = useOfficeStore();
+  const { currentOffice, offices, fetchOffice, fetchOffices, isLoading: officeLoading } = useOfficeStore();
   const {
     generatedSchedules,
     activeDay,
@@ -86,6 +87,7 @@ export default function TemplateBuilderPage() {
 
   // Per-provider "Generate Smart Schedule" state
   const [generatingProviderId, setGeneratingProviderId] = useState<string | null>(null);
+  const [showCloneModal, setShowCloneModal] = useState(false);
 
   // Fetch office data on mount
   useEffect(() => {
@@ -94,7 +96,9 @@ export default function TemplateBuilderPage() {
       console.error(error);
       router.push("/");
     });
-  }, [officeId, fetchOffice, router]);
+    // Also fetch all offices for the clone modal (best-effort)
+    fetchOffices().catch(() => {});
+  }, [officeId, fetchOffice, fetchOffices, router]);
 
   // Load schedules for this office from localStorage — auto-populate on mount
   useEffect(() => {
@@ -1387,6 +1391,7 @@ export default function TemplateBuilderPage() {
                 }}
                 onPrint={() => window.open(`/offices/${officeId}/print?day=${activeDay.toLowerCase()}`, '_blank')}
                 onExport={handleExport}
+                onClone={() => setShowCloneModal(true)}
               />
             </div>
 
@@ -1509,6 +1514,20 @@ export default function TemplateBuilderPage() {
           timeIncrement={timeIncrement}
         />
       )}
+
+      {/* Clone Template Modal */}
+      <CloneTemplateModal
+        open={showCloneModal}
+        onOpenChange={setShowCloneModal}
+        sourceOfficeId={officeId}
+        sourceOfficeName={currentOffice.name}
+        sourceProviders={fullProviders}
+        allOffices={offices}
+        rotationEnabled={(currentOffice as any).rotationEnabled || (currentOffice as any).alternateWeekEnabled}
+        rotationWeeks={(currentOffice as any).rotationWeeks ?? 2}
+        activeWeek={activeWeek}
+        workingDays={currentOffice.workingDays}
+      />
     </div>
   );
 }
