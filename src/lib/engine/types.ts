@@ -34,6 +34,19 @@ export interface BlockTypeInput {
   dTimeMin?: number;
   /** A-time (Assistant-managed time): minutes the assistant manages the chair. 0 = not set. */
   aTimeMin?: number;
+  /**
+   * H-time (Hygienist time): minutes the hygienist actively works the chair.
+   * Only applies to hygiene appointment types. When set, combined with dTimeMin for
+   * the H+D model (hygienist majority + doctor exam overlay).
+   */
+  hTimeMin?: number;
+  /**
+   * D-time start offset for hygiene appointments (minutes from appointment start).
+   * Doctor exam time begins at this offset. Must be ≥ 20 (cannot be earlier than
+   * 20 minutes into the hygiene appointment).
+   * Default: 25 (doctor comes in at minute 25 for a standard 60-min hygiene appointment).
+   */
+  dTimeOffsetMin?: number;
 }
 
 export interface ScheduleRules {
@@ -88,3 +101,32 @@ export interface ProviderProductionSummary {
 }
 
 export type StaffingCode = 'D' | 'A' | 'H' | null;
+
+/**
+ * Per-day working hours override.
+ * Key: day abbreviation ("Mon", "Tue", etc.)
+ * Value: { start, end } for working days, or null for closed days.
+ */
+export type PerDayHours = Record<string, { start: string; end: string } | null>;
+
+/**
+ * Snap a minute value to the nearest time increment boundary.
+ * Used to ensure rotation events, stagger offsets, and D-time windows
+ * align with the office's configured time increment (10 or 15 min).
+ *
+ * @param minutes - The minute value to snap
+ * @param increment - The time increment in minutes (e.g. 10 or 15)
+ * @param direction - 'round' (default), 'floor', or 'ceil'
+ */
+export function snapToIncrement(
+  minutes: number,
+  increment: number,
+  direction: 'round' | 'floor' | 'ceil' = 'round'
+): number {
+  if (increment <= 0) return minutes;
+  switch (direction) {
+    case 'floor': return Math.floor(minutes / increment) * increment;
+    case 'ceil':  return Math.ceil(minutes / increment) * increment;
+    default:      return Math.round(minutes / increment) * increment;
+  }
+}

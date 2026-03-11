@@ -283,3 +283,113 @@ export function getDAProportion(
 
   return { dProportion, aProportion, hasSplit: dTimeMin > 0 && aTimeMin > 0 };
 }
+
+// ---------------------------------------------------------------------------
+// Hygiene H+D Time Model (§3.5)
+// ---------------------------------------------------------------------------
+
+/** Minimum offset (minutes from appointment start) before doctor D-time may begin in hygiene. */
+export const HYGIENE_DTIME_MIN_OFFSET = 20;
+
+/** Default D-time offset (minutes) for a standard 60-min hygiene appointment. */
+export const HYGIENE_DTIME_DEFAULT_OFFSET = 25;
+
+/** Default D-time duration (minutes) for a hygiene doctor exam. */
+export const HYGIENE_DTIME_DEFAULT_DURATION = 10;
+
+export interface HygieneDTimeValidation {
+  valid: boolean;
+  /** Error message if invalid */
+  error?: string;
+}
+
+/**
+ * Validate the D-time offset for a hygiene appointment type.
+ *
+ * Rules (§3.5):
+ *  - D-time start offset must be ≥ HYGIENE_DTIME_MIN_OFFSET (20 min)
+ *  - D-time start offset must be < appointment duration
+ *  - D-time duration must fit within the appointment (offset + dTimeMin ≤ durationMin)
+ *
+ * @param dTimeOffsetMin  - Minutes from appointment start when doctor enters
+ * @param dTimeMin        - Duration of doctor exam (minutes)
+ * @param appointmentDurationMin - Total appointment duration (minutes)
+ */
+export function validateHygieneDTimeOffset(
+  dTimeOffsetMin: number,
+  dTimeMin: number,
+  appointmentDurationMin: number
+): HygieneDTimeValidation {
+  if (dTimeOffsetMin < HYGIENE_DTIME_MIN_OFFSET) {
+    return {
+      valid: false,
+      error: `D-time start must be at minute ${HYGIENE_DTIME_MIN_OFFSET} or later (got minute ${dTimeOffsetMin}). Doctor exam cannot begin before minute 20 of a hygiene appointment.`,
+    };
+  }
+
+  if (dTimeOffsetMin >= appointmentDurationMin) {
+    return {
+      valid: false,
+      error: `D-time start (minute ${dTimeOffsetMin}) must be before the end of the appointment (${appointmentDurationMin} min).`,
+    };
+  }
+
+  if (dTimeMin > 0 && dTimeOffsetMin + dTimeMin > appointmentDurationMin) {
+    return {
+      valid: false,
+      error: `D-time window (minute ${dTimeOffsetMin} to ${dTimeOffsetMin + dTimeMin}) extends beyond the appointment duration (${appointmentDurationMin} min).`,
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Compute the default D-time offset for a hygiene appointment based on its duration.
+ * Scales the offset proportionally: longer appointments → later exam time.
+ * Always returns a value ≥ HYGIENE_DTIME_MIN_OFFSET.
+ *
+ * @param appointmentDurationMin - Total appointment duration in minutes
+ * @param timeIncrement - Office time increment (10 or 15 min)
+ */
+export function computeDefaultHygieneDTimeOffset(
+  appointmentDurationMin: number,
+  timeIncrement: number = 10
+): number {
+  // Default: ~40% into the appointment (after hygiene assessment & scaling portion)
+  const rawOffset = Math.round(appointmentDurationMin * 0.4);
+  // Snap to the time increment
+  const snapped = Math.round(rawOffset / timeIncrement) * timeIncrement;
+  // Enforce minimum of 20 minutes
+  return Math.max(HYGIENE_DTIME_MIN_OFFSET, snapped);
+}
+
+/**
+ * Compute H/D time proportions for a hygiene appointment block.
+ * H-time fills the appointment until the doctor arrives; D-time is the doctor exam overlay.
+ *
+ * Returns proportions for visual rendering in the ScheduleGrid.
+ */
+export function getHygieneDAProportion(
+  blockType: BlockTypeInput,
+  totalDurationMin: number
+): { hProportion: number; dProportion: number; hasSplit: boolean } {
+  const hTimeMin = blockType.hTimeMin ?? 0;
+  const dTimeMin = blockType.dTimeMin ?? 0;
+  const dTimeOffsetMin = blockType.dTimeOffsetMin ?? 0;
+
+  if ((hTimeMin <= 0 && dTimeMin <= 0) || totalDurationMin <= 0) {
+    return { hProportion: 1, dProportion: 0, hasSplit: false };
+  }
+
+  // H-time fills from start until the doctor overlay begins
+  const effectiveOffset = dTimeOffsetMin > 0
+    ? Math.min(dTimeOffsetMin, totalDurationMin)
+    : computeDefaultHygieneDTimeOffset(totalDurationMin);
+
+  const hProportion = Math.min(1, effectiveOffset / totalDurationMin);
+  const dEnd = Math.min(totalDurationMin, effectiveOffset + (dTimeMin > 0 ? dTimeMin : HYGIENE_DTIME_DEFAULT_DURATION));
+  const dProportion = Math.max(0, (dEnd - effectiveOffset) / totalDurationMin);
+
+  return { hProportion, dProportion, hasSplit: dProportion > 0 };
+}
