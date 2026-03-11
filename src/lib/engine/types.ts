@@ -1,6 +1,8 @@
 export interface ProviderInput {
   id: string;
   name: string;
+  /** Provider ID for DPMS export (e.g. "DG001", "DR-01"). Optional but recommended. */
+  providerId?: string;
   role: 'DOCTOR' | 'HYGIENIST' | 'OTHER';
   operatories: string[];
   columns?: number;     // Number of simultaneous ops (1=single, 2+=multi-column). Defaults to 1.

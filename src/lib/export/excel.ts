@@ -3,6 +3,8 @@ import ExcelJS from 'exceljs';
 export interface ExportProvider {
   id: string;
   name: string;
+  /** DPMS provider ID (e.g. "DG001") — included as column header label when present */
+  providerId?: string;
   role: string;
   operatories: string[];
   dailyGoal: number;
@@ -307,7 +309,9 @@ function addDayScheduleSheet(
     const shortName = provider.role === 'DOCTOR' 
       ? `DR ${provider.name.split(' ')[1] || provider.name}` 
       : `HYG ${provider.name.split(' ')[0]}`;
-    headerValues.push('', shortName); // Empty for staffing column, name for block column
+    // Include Provider ID in header when present (e.g. "DR Smith [DG001]")
+    const idSuffix = provider.providerId ? ` [${provider.providerId}]` : '';
+    headerValues.push('', shortName + idSuffix); // Empty for staffing column, name for block column
   }
   
   headerRow.values = headerValues;
