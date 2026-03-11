@@ -9,7 +9,16 @@ import type {
   ProviderProductionSummary
 } from './types';
 import { calculateTarget75, calculateProductionSummary } from './calculator';
-import { calculateStaggerOffset, DEFAULT_COLUMN_STAGGER_MIN } from './stagger';
+import { calculateStaggerOffset, DEFAULT_COLUMN_STAGGER_MIN, snapRotationTime } from './stagger';
+
+// Re-export snapRotationTime so callers can import it from generator if needed
+export { snapRotationTime };
+
+/**
+ * Maximum fraction of a provider's filled slots that may be occupied by a single block type.
+ * Enforces the "no single appointment type fills the entire day" variety requirement (§7).
+ */
+export const MAX_SAME_TYPE_FRACTION = 0.65;
 
 /**
  * Generate time slots from start to end in specified increments (24h format: "07:00")
@@ -858,6 +867,53 @@ function placeAssistedHygienistBlocks(
 // Fill remaining gaps — ensure every slot has a block
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Variety enforcement helper — tracks how many SLOTS each blockTypeId occupies
+// for a provider+operatory so we can enforce MAX_SAME_TYPE_FRACTION (§7).
+// ---------------------------------------------------------------------------
+
+/**
+ * Count occupied slots (non-break, has blockTypeId) per blockTypeId for a ProviderSlots.
+ */
+function countSlotsByBlockType(slots: TimeSlotOutput[], ps: ProviderSlots): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const idx of ps.indices) {
+    const slot = slots[idx];
+    if (!slot.isBreak && slot.blockTypeId) {
+      counts.set(slot.blockTypeId, (counts.get(slot.blockTypeId) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+/**
+ * Count total occupied (non-break) slots for a ProviderSlots.
+ */
+function countOccupiedSlots(slots: TimeSlotOutput[], ps: ProviderSlots): number {
+  return ps.indices.filter(idx => !slots[idx].isBreak && slots[idx].blockTypeId).length;
+}
+
+/**
+ * Check if placing `slotsNeeded` more slots of `blockTypeId` would exceed
+ * MAX_SAME_TYPE_FRACTION of the total available (non-break) time.
+ * Returns true if placing would violate the cap (block should be skipped).
+ */
+function wouldExceedVarietyCap(
+  slots: TimeSlotOutput[],
+  ps: ProviderSlots,
+  blockTypeId: string,
+  slotsNeeded: number
+): boolean {
+  const totalNonBreak = ps.indices.filter(idx => !slots[idx].isBreak).length;
+  if (totalNonBreak === 0) return false;
+
+  const byType = countSlotsByBlockType(slots, ps);
+  const currentCount = byType.get(blockTypeId) ?? 0;
+  const afterCount = currentCount + slotsNeeded;
+
+  return afterCount / totalNonBreak > MAX_SAME_TYPE_FRACTION;
+}
+
 function fillRemainingDoctorSlots(
   slots: TimeSlotOutput[],
   psMap: Map<string, ProviderSlots>,
@@ -922,6 +978,13 @@ function fillDocOpSlots(
       }
       
       const slotsNeeded = Math.ceil(selectedBlock.durationMin / timeIncrement);
+
+      // Variety cap: if placing this block type would exceed MAX_SAME_TYPE_FRACTION,
+      // skip it this iteration so a different type gets placed instead (§7 variety enforcement).
+      if (wouldExceedVarietyCap(slots, ps, selectedBlock.id, slotsNeeded)) {
+        continue;
+      }
+
       // Only consider slots at or after the staggered start time for this column
       const allRanges = findAvailableRanges(slots, ps, slotsNeeded);
       const ranges = staggerOffsetMin > 0
@@ -1023,6 +1086,12 @@ function fillHygOpSlots(
       }
       
       const slotsNeeded = Math.ceil(selectedBlock.durationMin / timeIncrement);
+
+      // Variety cap: prevent a single hygiene block type from filling >65% of the day (§7)
+      if (wouldExceedVarietyCap(slots, ps, selectedBlock.id, slotsNeeded)) {
+        continue;
+      }
+
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) break;
       
@@ -1147,4 +1216,4 @@ function calculateAllProductionSummaries(
 }
 
 // Re-export helpers for external use
-export { findAvailableRanges, placeBlockInSlots };
+export { findAvailableRanges, placeBlockInSlots, countSlotsByBlockType, countOccupiedSlots, wouldExceedVarietyCap };

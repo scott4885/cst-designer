@@ -20,6 +20,64 @@ import type { GenerationResult, ProviderInput, TimeSlotOutput } from './types';
  */
 export const DEFAULT_COLUMN_STAGGER_MIN = 20;
 
+// ---------------------------------------------------------------------------
+// snapRotationTime — increment alignment for rotation events (§5.5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Snap a rotation time (minutes since midnight) to the nearest valid boundary
+ * for the given office time increment.
+ *
+ * Examples with increment=10: 07:00, 07:10, 07:20, …
+ * Examples with increment=15: 07:00, 07:15, 07:30, 07:45, …
+ *
+ * Doctor rotation events (when the doctor moves from Op1 to Op2) must land on
+ * an increment boundary so they align with slot start times in the grid.
+ *
+ * @param minutes - Raw rotation time in minutes since midnight
+ * @param increment - Office time increment (10 or 15)
+ * @param direction - 'round' (nearest, default), 'floor' (previous boundary),
+ *                    or 'ceil' (next boundary)
+ * @returns Snapped minutes value (multiple of `increment`)
+ *
+ * @example
+ *   snapRotationTime(7 * 60 + 5, 10)         // → 420  (07:00 → rounds to 07:00 or 07:10 = 07:10 since 5 rounds down? no, 5/10=0.5 rounds up)
+ *   snapRotationTime(7 * 60 + 12, 10)        // → 430  (07:12 → 07:10)
+ *   snapRotationTime(7 * 60 + 8, 15)         // → 420  (07:08 → 07:00)
+ *   snapRotationTime(7 * 60 + 9, 15)         // → 435  (07:09 → 07:15)
+ */
+export function snapRotationTime(
+  minutes: number,
+  increment: number,
+  direction: 'round' | 'floor' | 'ceil' = 'round'
+): number {
+  if (increment <= 0) return minutes;
+  switch (direction) {
+    case 'floor': return Math.floor(minutes / increment) * increment;
+    case 'ceil':  return Math.ceil(minutes / increment) * increment;
+    default:      return Math.round(minutes / increment) * increment;
+  }
+}
+
+/**
+ * Check that a rotation time (minutes) aligns with the given increment.
+ * Returns true if `minutes` is an exact multiple of `increment`.
+ */
+export function isAlignedToIncrement(minutes: number, increment: number): boolean {
+  if (increment <= 0) return true;
+  return minutes % increment === 0;
+}
+
+/**
+ * Convert minutes since midnight to a "HH:MM" time string.
+ * Re-exported from stagger.ts so callers don't need to import from multiple modules.
+ */
+export function minutesToTimeStr(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 /**
  * Calculate the stagger offset (in minutes) for a specific column of a provider.
  *
