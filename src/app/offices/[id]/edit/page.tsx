@@ -50,6 +50,7 @@ const editOfficeSchema = z.object({
       enabledBlockTypeIds: z.array(z.string()).optional(),
       assistedHygiene: z.boolean().optional(),
       providerSchedule: z.record(z.any()).optional(),
+      staggerOffsetMin: z.number().min(0).max(120).optional(),
     })
   ).min(1, "Add at least one provider"),
   scheduleRules: z.object({
@@ -191,6 +192,7 @@ export default function EditOfficePage() {
           enabledBlockTypeIds: p.enabledBlockTypeIds || [],
           assistedHygiene: (p as any).assistedHygiene === true,
           providerSchedule: (p as any).providerSchedule || {},
+          staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
         })) || [],
         scheduleRules: {
           npModel: rules?.npModel || "DOCTOR_ONLY",
@@ -253,6 +255,7 @@ export default function EditOfficePage() {
       enabledBlockTypeIds: [],
       assistedHygiene: false,
       providerSchedule: {},
+      staggerOffsetMin: 0,
     });
     // Scroll to bottom after adding
     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
@@ -305,8 +308,10 @@ export default function EditOfficePage() {
       let doctorIdx = 0;
       const providers = data.providers.map((provider, idx) => {
         const isDoctor = provider.role === "DOCTOR";
-        // Always persist staggerOffsetMin: 0 for non-doctors and first doctor, N*staggerMin for Nth doctor
-        const staggerOffsetMin = isDoctor ? doctorIdx * staggerMin : 0;
+        // Use explicit per-provider staggerOffsetMin if set (non-zero), else auto-calculate from doctor index
+        const hasExplicitStagger = (provider.staggerOffsetMin ?? 0) > 0;
+        const autoStagger = isDoctor ? doctorIdx * staggerMin : 0;
+        const staggerOffsetMin = hasExplicitStagger ? (provider.staggerOffsetMin ?? autoStagger) : autoStagger;
         if (isDoctor) doctorIdx++;
         // Merge per-day schedule overrides (from detailByDayMap state)
         const providerSchedule = detailByDayMap[idx] ? (providerScheduleMap[idx] || {}) : {};
@@ -617,6 +622,37 @@ export default function EditOfficePage() {
                         2–3 chair rotation: hygienist moves between rooms while assistant handles setup/cleanup. Increases patient volume per day.
                       </p>
                     </div>
+                  </div>
+                )}
+
+                {watchProviders?.[index]?.role === 'DOCTOR' && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Label>Stagger Offset</Label>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          Minutes this doctor's schedule starts after the previous doctor. 0 = auto-calculate from office stagger setting.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Select
+                      value={String(watchProviders?.[index]?.staggerOffsetMin ?? 0)}
+                      onValueChange={(val) => setValue(`providers.${index}.staggerOffsetMin`, Number(val), { shouldDirty: true })}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Auto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">0 min (auto)</SelectItem>
+                        {[10, 20, 30, 40, 50, 60, 90, 120].map(v => (
+                          <SelectItem key={v} value={String(v)}>{v} min</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">Overrides auto stagger when non-zero</p>
                   </div>
                 )}
 
