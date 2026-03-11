@@ -15,6 +15,10 @@ import ProductionMixChart from "@/components/schedule/ProductionMixChart";
 import ConflictPanel from "@/components/schedule/ConflictPanel";
 import VersionPanel from "@/components/schedule/VersionPanel";
 import OpenDentalExportDialog from "@/components/schedule/OpenDentalExportDialog";
+import ClinicalValidationPanel from "@/components/schedule/ClinicalValidationPanel";
+import QualityScoreBadge from "@/components/schedule/QualityScoreBadge";
+import QuickActionsToolbar from "@/components/schedule/QuickActionsToolbar";
+import WeeklyProductionOverview from "@/components/schedule/WeeklyProductionOverview";
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { useScheduleStore } from "@/store/schedule-store";
@@ -31,6 +35,10 @@ import { detectDTimeConflicts } from "@/lib/engine/da-time";
 import type { DTimeConflict } from "@/lib/engine/da-time";
 import { scoreScheduleAlignment, DEFAULT_IDEAL_DAY_TEMPLATE } from "@/lib/engine/ideal-day";
 import type { AlignmentScore } from "@/lib/engine/ideal-day";
+import { validateClinicalRules } from "@/lib/engine/clinical-rules";
+import type { ClinicalWarning } from "@/lib/engine/clinical-rules";
+import { calculateQualityScore } from "@/lib/engine/quality-score";
+import type { QualityScore } from "@/lib/engine/quality-score";
 
 export default function TemplateBuilderPage() {
   const params = useParams();
@@ -186,6 +194,35 @@ export default function TemplateBuilderPage() {
       return undefined;
     }
   }, [currentDaySchedule]);
+
+  // Clinical validation warnings for the current day
+  const clinicalWarnings: ClinicalWarning[] = useMemo(() => {
+    if (!currentDaySchedule || !currentOffice?.providers?.length) return [];
+    try {
+      return validateClinicalRules(
+        currentDaySchedule,
+        currentOffice.providers,
+        currentOffice.blockTypes ?? []
+      );
+    } catch {
+      return [];
+    }
+  }, [currentDaySchedule, currentOffice]);
+
+  // Schedule quality score for the current day
+  const qualityScore: QualityScore | undefined = useMemo(() => {
+    if (!currentDaySchedule || !currentOffice?.providers?.length) return undefined;
+    try {
+      return calculateQualityScore(
+        currentDaySchedule,
+        currentOffice.providers,
+        currentOffice.blockTypes ?? [],
+        clinicalWarnings
+      );
+    } catch {
+      return undefined;
+    }
+  }, [currentDaySchedule, currentOffice, clinicalWarnings]);
 
   if (officeLoading || !currentOffice) {
     return (
@@ -736,6 +773,65 @@ export default function TemplateBuilderPage() {
     checkAndWarnDTimeConflicts(activeDay, providerId, time);
   };
 
+  // Quick Actions — Smart Fill All: generates for all providers on current day simultaneously
+  const handleQuickSmartFillAll = async () => {
+    if (!currentOffice) return;
+    const dayProviders = fullProviders.filter(p => {
+      const dayEntry = (p as any).providerSchedule?.[activeDay];
+      return dayEntry?.enabled !== false;
+    });
+    for (const p of dayProviders) {
+      await handleGenerateProvider(p.id);
+    }
+  };
+
+  // Quick Actions — Copy first working day → all other days
+  const handleQuickCopyFirstDayToAll = () => {
+    if (!currentOffice || !currentOffice.workingDays.length) return;
+    const firstDay = currentOffice.workingDays[0];
+    const firstSchedule = generatedSchedules[firstDay];
+    if (!firstSchedule) {
+      return;
+    }
+    const allSchedules = currentOffice.workingDays.map(day => ({
+      ...firstSchedule,
+      dayOfWeek: day,
+    }));
+    setSchedules(allSchedules, officeId);
+    setIsDirty(true);
+    toast.success(`${getDayLabel(firstDay)} schedule copied to all working days!`);
+  };
+
+  // Quick Actions — Reset current day (clear all blocks)
+  const handleQuickResetDay = () => {
+    if (!currentDaySchedule) return;
+    const cleared = {
+      ...currentDaySchedule,
+      slots: currentDaySchedule.slots.map(s => ({
+        ...s,
+        blockTypeId: null,
+        blockLabel: null,
+        staffingCode: null as any,
+        blockInstanceId: null,
+        customProductionAmount: null,
+      })),
+      productionSummary: currentDaySchedule.productionSummary.map(s => ({
+        ...s,
+        actualScheduled: 0,
+        highProductionScheduled: 0,
+        status: 'UNDER' as const,
+        blocks: [],
+      })),
+    };
+    const others = Object.values(generatedSchedules).filter(s => s.dayOfWeek !== activeDay);
+    setSchedules([...others, cleared], officeId);
+    setIsDirty(true);
+    toast.success(`${getDayLabel(activeDay)} cleared`);
+  };
+
+  // Quick Actions — Scroll to validation panel
+  const clinicalValidationRef = { current: null as HTMLDivElement | null };
+
   const getDayLabel = (day: string): string => {
     const dayLabels: Record<string, string> = {
       MONDAY: "Monday",
@@ -819,7 +915,10 @@ export default function TemplateBuilderPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight">{currentOffice.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight">{currentOffice.name}</h1>
+              {qualityScore && <QualityScoreBadge score={qualityScore} />}
+            </div>
             <p className="text-muted-foreground text-xs sm:text-sm">
               {currentOffice.dpmsSystem} &bull; Template Builder
             </p>
@@ -1250,7 +1349,7 @@ export default function TemplateBuilderPage() {
           })()}
 
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
-            <TabsList className="flex w-full overflow-x-auto mb-4 h-10">
+            <TabsList className="flex w-full overflow-x-auto mb-2 h-10">
               {currentOffice.workingDays.map((day) => (
                 <TabsTrigger key={day} value={day} className="flex-1 min-w-[52px] sm:min-w-[100px] text-xs sm:text-sm px-1 sm:px-3">
                   <span className="sm:hidden">{getDayShort(day)}</span>
@@ -1269,6 +1368,27 @@ export default function TemplateBuilderPage() {
                 </TabsTrigger>
               ))}
             </TabsList>
+
+            {/* Quick Actions Toolbar — below day selector, above schedule grid */}
+            <div className="mb-3">
+              <QuickActionsToolbar
+                activeDay={activeDay}
+                hasSchedule={!!currentDaySchedule}
+                hasAnySchedule={hasSchedules}
+                workingDays={currentOffice.workingDays}
+                isSmartFilling={generatingProviderId !== null}
+                onSmartFillAll={handleQuickSmartFillAll}
+                onCopyMondayToAll={handleQuickCopyFirstDayToAll}
+                onResetDay={handleQuickResetDay}
+                onValidate={() => {
+                  // Scroll to clinical validation panel in the right column
+                  const el = document.getElementById('clinical-validation-panel');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                onPrint={() => window.open(`/offices/${officeId}/print?day=${activeDay.toLowerCase()}`, '_blank')}
+                onExport={handleExport}
+              />
+            </div>
 
             <div className="flex-1 overflow-auto">
               {currentOffice.workingDays.map((day) => (
@@ -1348,6 +1468,20 @@ export default function TemplateBuilderPage() {
               schedule={currentDaySchedule || null}
               providers={fullProviders}
               blockTypes={currentOffice.blockTypes ?? []}
+            />
+            {/* Clinical Validation Panel — Sprint 11 */}
+            {currentDaySchedule && (
+              <div id="clinical-validation-panel">
+                <ClinicalValidationPanel warnings={clinicalWarnings} />
+              </div>
+            )}
+            {/* Weekly Production Overview — Sprint 11 */}
+            <WeeklyProductionOverview
+              officeId={officeId}
+              workingDays={currentOffice.workingDays}
+              generatedSchedules={generatedSchedules}
+              providers={fullProviders}
+              totalDailyGoal={currentOffice.totalDailyGoal}
             />
             <VersionPanel
               officeId={officeId}
