@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import ScheduleGrid, { ProviderInput, TimeSlotOutput } from "@/components/schedule/ScheduleGrid";
+import BlockPalette from "@/components/schedule/BlockPalette";
 import ProductionSummary, { ProviderProductionSummary } from "@/components/schedule/ProductionSummary";
 import ProductionMixChart from "@/components/schedule/ProductionMixChart";
 import ConflictPanel from "@/components/schedule/ConflictPanel";
@@ -1132,9 +1133,15 @@ export default function TemplateBuilderPage() {
                       <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                         Editing
                       </h3>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground mb-3">
                         Click empty slots to add blocks. Click existing blocks to edit. Drag blocks to move them.
                       </p>
+                      {blockTypes && blockTypes.length > 0 && (
+                        <BlockPalette
+                          blockTypes={blockTypes}
+                          onSelect={() => {}} // click-to-select not used from palette
+                        />
+                      )}
                     </div>
                   </>
                 )}

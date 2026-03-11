@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import TimeSlotCell from "./TimeSlotCell";
 import BlockPicker from "./BlockPicker";
 import BlockEditor from "./BlockEditor";
+import { BLOCK_TYPE_DRAG_KEY } from "./BlockPalette";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import type { ConflictResult } from "@/lib/engine/stagger";
 import type { DTimeConflict } from "@/lib/engine/da-time";
@@ -193,6 +194,8 @@ export default function ScheduleGrid({
   // ─── Drag state ───────────────────────────────────────────────────────────
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragOverCell, setDragOverCell] = useState<{ time: string; providerId: string } | null>(null);
+  // Track whether a sidebar drag (from BlockPalette) is in progress
+  const [sidebarDragging, setSidebarDragging] = useState(false);
 
   // Build conflict lookup: "time:providerId" → ConflictResult
   const conflictMap = useMemo(() => {
@@ -463,12 +466,15 @@ export default function ScheduleGrid({
 
   const handleDragOver = useCallback(
     (e: React.DragEvent, time: string, providerId: string) => {
-      if (!dragState) return;
+      // Accept drops from: existing block drag OR sidebar palette drag
+      const hasSidebarData = e.dataTransfer.types.includes(BLOCK_TYPE_DRAG_KEY);
+      if (!dragState && !hasSidebarData) return;
       e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
+      e.dataTransfer.dropEffect = hasSidebarData ? "copy" : "move";
       setDragOverCell({ time, providerId });
+      if (hasSidebarData && !sidebarDragging) setSidebarDragging(true);
     },
-    [dragState]
+    [dragState, sidebarDragging]
   );
 
   const handleDragLeave = useCallback(() => {
@@ -478,18 +484,35 @@ export default function ScheduleGrid({
   const handleDrop = useCallback(
     (e: React.DragEvent, time: string, providerId: string) => {
       e.preventDefault();
-      if (!dragState || !onMoveBlock) return;
 
+      // ── Sidebar drop: block type from BlockPalette/BlockPicker ──────────
+      const blockTypeJson = e.dataTransfer.getData(BLOCK_TYPE_DRAG_KEY);
+      if (blockTypeJson && onAddBlock) {
+        try {
+          const blockType: BlockTypeInput = JSON.parse(blockTypeJson);
+          const durationSlots = Math.ceil(blockType.durationMin / timeIncrement);
+          onAddBlock(time, providerId, blockType, durationSlots);
+        } catch {
+          // malformed JSON — ignore
+        }
+        setSidebarDragging(false);
+        setDragOverCell(null);
+        return;
+      }
+
+      // ── Grid block move ──────────────────────────────────────────────────
+      if (!dragState || !onMoveBlock) return;
       onMoveBlock(dragState.time, dragState.providerId, time, providerId);
       setDragState(null);
       setDragOverCell(null);
     },
-    [dragState, onMoveBlock]
+    [dragState, onMoveBlock, onAddBlock, timeIncrement]
   );
 
   const handleDragEnd = useCallback(() => {
     setDragState(null);
     setDragOverCell(null);
+    setSidebarDragging(false);
   }, []);
 
   // Determine the provider role for filtering block types in the picker
@@ -850,9 +873,9 @@ export default function ScheduleGrid({
                             data-testid={`block-cell-${row.time}-${provider.id}`}
                             draggable={hasBlock && !!onMoveBlock && !outsideHours}
                             onDragStart={(e) => hasBlock && !outsideHours && handleDragStart(e, row.time, provider.id)}
-                            onDragOver={(e) => isEmpty && !outsideHours && handleDragOver(e, row.time, provider.id)}
+                            onDragOver={(e) => !outsideHours && (isEmpty || sidebarDragging) && handleDragOver(e, row.time, provider.id)}
                             onDragLeave={handleDragLeave}
-                            onDrop={(e) => isEmpty && !outsideHours && handleDrop(e, row.time, provider.id)}
+                            onDrop={(e) => !outsideHours && (isEmpty || sidebarDragging) && handleDrop(e, row.time, provider.id)}
                             onDragEnd={handleDragEnd}
                           >
                             <TimeSlotCell

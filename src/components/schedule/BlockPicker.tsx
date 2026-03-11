@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import { useBlockTypeStore } from "@/store/block-type-store";
+import { BLOCK_TYPE_DRAG_KEY } from "./BlockPalette";
 
 interface BlockPickerProps {
   /** If omitted, falls back to the global Appointment Type Library */
@@ -88,7 +89,13 @@ export default function BlockPicker({
         {applicableBlocks.map((bt) => (
           <button
             key={bt.id}
-            className="w-full text-left px-3 py-2 rounded-md hover:bg-accent/20 transition-colors text-sm group border border-transparent hover:border-border"
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = "copy";
+              e.dataTransfer.setData(BLOCK_TYPE_DRAG_KEY, JSON.stringify(bt));
+              e.dataTransfer.setData("text/plain", "sidebar-block");
+            }}
+            className="w-full text-left px-3 py-2 rounded-md hover:bg-accent/20 transition-colors text-sm group border border-transparent hover:border-border cursor-grab active:cursor-grabbing"
             onClick={() => onSelect(bt)}
           >
             <div className="flex items-center justify-between">
