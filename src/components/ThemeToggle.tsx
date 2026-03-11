@@ -2,8 +2,18 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+type ThemeMode = 'light' | 'dark' | 'system';
+
+const CYCLE: ThemeMode[] = ['light', 'dark', 'system'];
+
+const THEME_LABELS: Record<ThemeMode, string> = {
+  light: 'Light mode — click to switch to Dark',
+  dark: 'Dark mode — click to switch to System',
+  system: 'System mode — click to switch to Light',
+};
 
 export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -19,17 +29,29 @@ export function ThemeToggle() {
     );
   }
 
-  const isDark = resolvedTheme === "dark";
+  const current = (theme as ThemeMode) || 'system';
+
+  const cycleTheme = () => {
+    const idx = CYCLE.indexOf(current);
+    const next = CYCLE[(idx + 1) % CYCLE.length];
+    setTheme(next);
+  };
+
+  const Icon =
+    current === 'dark' ? Moon :
+    current === 'light' ? Sun :
+    Monitor;
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      className="rounded-full"
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className="rounded-full min-h-[44px] min-w-[44px]"
+      onClick={cycleTheme}
+      title={THEME_LABELS[current] || 'Toggle theme'}
+      aria-label={THEME_LABELS[current] || 'Toggle theme'}
     >
-      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      <Icon className="w-5 h-5" />
     </Button>
   );
 }
