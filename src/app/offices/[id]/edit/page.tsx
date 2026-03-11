@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, Plus, Trash2, Save, HelpCircle, Calendar } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, HelpCircle, Calendar, CalendarOff } from "lucide-react";
+import ProviderTimeOffCalendar from "@/components/schedule/ProviderTimeOffCalendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,6 +96,9 @@ export default function EditOfficePage() {
   const [mixExpandedMap, setMixExpandedMap] = useState<Record<number, boolean>>({});
   /** Active sub-tab for procedure mix (current or future) per provider */
   const [mixTabMap, setMixTabMap] = useState<Record<number, 'current' | 'future'>>({});
+  /** Time-Off calendar: which provider's modal is open (by provider DB id) */
+  const [timeOffProviderId, setTimeOffProviderId] = useState<string | null>(null);
+  const [timeOffProviderName, setTimeOffProviderName] = useState<string>("");
   const DRAFT_KEY = `schedule-designer-draft-${officeId}`;
 
   const {
@@ -1112,6 +1116,36 @@ export default function EditOfficePage() {
                     Multi-column: schedule spans all assigned ops simultaneously
                   </p>
                 </div>
+
+                {/* Time Off — Sprint 13 */}
+                <div className="rounded-lg border border-border p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CalendarOff className="w-4 h-4 text-muted-foreground" />
+                      <Label className="font-medium">Time Off</Label>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => {
+                        const providerId = watchProviders?.[index]?.id;
+                        if (providerId) {
+                          setTimeOffProviderId(providerId);
+                          setTimeOffProviderName(watchProviders?.[index]?.name ?? "Provider");
+                        }
+                      }}
+                      disabled={!watchProviders?.[index]?.id}
+                    >
+                      <CalendarOff className="w-3 h-3" />
+                      Manage Time Off
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Mark specific dates when this provider will be absent (vacation, CE, sick, etc.)
+                  </p>
+                </div>
               </div>
             ))}
           </CardContent>
@@ -1338,6 +1372,17 @@ export default function EditOfficePage() {
           }
         }}
       />
+
+      {/* Time Off Calendar Modal — Sprint 13 */}
+      {timeOffProviderId && (
+        <ProviderTimeOffCalendar
+          open={!!timeOffProviderId}
+          onOpenChange={(open) => { if (!open) setTimeOffProviderId(null); }}
+          officeId={officeId}
+          providerId={timeOffProviderId}
+          providerName={timeOffProviderName}
+        />
+      )}
     </div>
   );
 }

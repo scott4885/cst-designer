@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Settings, BookOpen, X } from "lucide-react";
+import { Building2, Settings, BookOpen, Library, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { href: "/", label: "Offices", icon: Building2 },
+  { href: "/templates", label: "Template Library", icon: Library },
   { href: "/appointment-library", label: "Appt Library", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -61,7 +62,8 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
           const isActive =
             item.href === "/"
               ? pathname === "/" || pathname.startsWith("/offices")
-              : pathname === item.href || pathname.startsWith(item.href + "/");
+              : pathname === item.href || pathname.startsWith(item.href + "/") ||
+                (item.href === "/templates" && pathname.startsWith("/templates"));
 
           return (
             <Link

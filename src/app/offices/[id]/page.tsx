@@ -29,6 +29,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 // CRUD operations go through API routes (Prisma backend)
 import { generateExcel, ExportInput, ExportDaySchedule } from "@/lib/export/excel";
 import CloneTemplateModal from "@/components/schedule/CloneTemplateModal";
+import OptimizationPanel from "@/components/schedule/OptimizationPanel";
+import type { OptimizationSuggestion } from "@/lib/engine/optimizer";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import { detectConflicts } from "@/lib/engine/stagger";
 import type { ConflictResult } from "@/lib/engine/stagger";
@@ -89,6 +91,9 @@ export default function TemplateBuilderPage() {
   const [generatingProviderId, setGeneratingProviderId] = useState<string | null>(null);
   const [showCloneModal, setShowCloneModal] = useState(false);
 
+  // Provider absences for the current office (loaded on mount)
+  const [providerAbsences, setProviderAbsences] = useState<Array<{ providerId: string; providerName: string; date: string; reason: string }>>([]);
+
   // Fetch office data on mount
   useEffect(() => {
     fetchOffice(officeId).catch((error) => {
@@ -120,6 +125,28 @@ export default function TemplateBuilderPage() {
       setActiveDay(currentOffice.workingDays[0]);
     }
   }, [currentOffice, setActiveDay]);
+
+  // Load provider absences for absence warning banner
+  useEffect(() => {
+    if (!currentOffice?.providers?.length) return;
+    const loadAbsences = async () => {
+      const all: typeof providerAbsences = [];
+      for (const p of currentOffice.providers ?? []) {
+        try {
+          const res = await fetch(`/api/offices/${officeId}/providers/${p.id}/absences`);
+          if (res.ok) {
+            const data = await res.json();
+            for (const a of data) {
+              all.push({ providerId: p.id, providerName: p.name, date: a.date, reason: a.reason });
+            }
+          }
+        } catch { /* ignore */ }
+      }
+      setProviderAbsences(all);
+    };
+    loadAbsences();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentOffice, officeId]);
 
   // Get current day's schedule
   const currentDaySchedule = generatedSchedules[activeDay];
@@ -356,12 +383,9 @@ export default function TemplateBuilderPage() {
   // Whether there are any persisted/generated schedules for this office
   const hasSchedules = Object.keys(generatedSchedules).length > 0;
 
-  // Explicit Save: persists current state to localStorage, clears dirty flag, shows confirmation
-  const handleSaveTemplate = () => {
-    // The store already auto-saves to localStorage on every edit (placeBlock, removeBlock, etc.)
-    // This explicit Save button provides user confirmation and resets the dirty state.
-    // Re-persist current state explicitly (idempotent — safe to call again).
-    // Use week-aware key so Week A and Week B schedules are persisted separately.
+  // Explicit Save: persists current state to localStorage, creates version snapshot
+  const handleSaveTemplate = async () => {
+    // Re-persist current state explicitly to localStorage
     if (officeId && Object.keys(generatedSchedules).length > 0) {
       const weekSuffix = activeWeek === 'A' ? '' : `:week${activeWeek}`;
       const lsKey = `schedule-designer:schedule-state:${officeId}${weekSuffix}`;
@@ -371,6 +395,26 @@ export default function TemplateBuilderPage() {
         console.warn('Failed to explicitly save template:', e);
       }
     }
+
+    // Create a ScheduleVersion snapshot for the active day (fire-and-forget)
+    if (currentDaySchedule && officeId) {
+      try {
+        await fetch(`/api/offices/${officeId}/schedule-versions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dayOfWeek: activeDay,
+            weekType: activeWeek,
+            slots: currentDaySchedule.slots,
+            productionSummary: currentDaySchedule.productionSummary,
+            label: '', // auto-label will be applied server-side
+          }),
+        });
+      } catch (e) {
+        console.warn('Version snapshot failed (non-critical):', e);
+      }
+    }
+
     setIsDirty(false);
     setLastSavedAt(new Date());
     toast.success(
@@ -775,6 +819,22 @@ export default function TemplateBuilderPage() {
     toast.success(`Block updated to ${blockType.label}`);
     // Warn if the update created a D-time conflict
     checkAndWarnDTimeConflicts(activeDay, providerId, time);
+  };
+
+  // Optimization Advisor: handle auto-apply suggestion
+  const handleApplyOptimizationSuggestion = (suggestion: OptimizationSuggestion) => {
+    if (!suggestion.applyPayload) return;
+    const { type, time, providerId, blockLabel } = suggestion.applyPayload;
+    if (type === 'ADD_BLOCK' && time && providerId && blockLabel && currentDaySchedule) {
+      const matchingBlockType = blockTypesForStore.find(bt => bt.label === blockLabel)
+        ?? blockTypesForStore.find(bt => blockLabel.includes(bt.label));
+      if (matchingBlockType) {
+        const durationSlots = Math.ceil((matchingBlockType.durationMin ?? 30) / timeIncrement);
+        handleAddBlock(time, providerId, matchingBlockType, durationSlots);
+      } else {
+        toast.info(`Could not auto-apply: no matching block type for "${blockLabel}". Add manually.`);
+      }
+    }
   };
 
   // Quick Actions — Smart Fill All: generates for all providers on current day simultaneously
@@ -1284,6 +1344,31 @@ export default function TemplateBuilderPage() {
             </div>
           )}
 
+          {/* Provider Absence Warning — Sprint 13: warn if any provider is absent in the current week */}
+          {providerAbsences.length > 0 && (() => {
+            const DOW_TO_NUM: Record<string, number> = {
+              MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6, SUNDAY: 0,
+            };
+            const activeNum = DOW_TO_NUM[activeDay] ?? -1;
+            // Find absences that fall on a day matching activeDay (by day-of-week)
+            const relevant = providerAbsences.filter(a => {
+              try {
+                const d = new Date(a.date + 'T12:00:00');
+                return d.getDay() === activeNum;
+              } catch { return false; }
+            });
+            if (relevant.length === 0) return null;
+            return (
+              <div className="flex flex-col gap-1 mb-2">
+                {relevant.map((a, i) => (
+                  <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs font-medium w-fit">
+                    ⚠️ {a.providerName} is marked absent on {a.date}{a.reason ? ` (${a.reason})` : ''}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
           {/* Rotation week selector — shown when rotationEnabled (or legacy alternateWeekEnabled) */}
           {((currentOffice as any).rotationEnabled || (currentOffice as any).alternateWeekEnabled) && (() => {
             // Determine rotation length: rotationWeeks takes priority, then fall back to 2 (legacy)
@@ -1479,6 +1564,17 @@ export default function TemplateBuilderPage() {
               <div id="clinical-validation-panel">
                 <ClinicalValidationPanel warnings={clinicalWarnings} />
               </div>
+            )}
+            {/* Optimization Advisor — Sprint 13 */}
+            {currentDaySchedule && qualityScore && (
+              <OptimizationPanel
+                schedule={currentDaySchedule}
+                providers={fullProviders}
+                blockTypes={blockTypesForStore}
+                qualityScore={qualityScore}
+                clinicalWarnings={clinicalWarnings}
+                onApplySuggestion={handleApplyOptimizationSuggestion}
+              />
             )}
             {/* Weekly Production Overview — Sprint 11 */}
             <WeeklyProductionOverview

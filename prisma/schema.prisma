@@ -25,6 +25,7 @@ model Office {
   blockTypes           BlockType[]
   rules                ScheduleRule?
   templates            ScheduleTemplate[]
+  scheduleVersions     ScheduleVersion[]
 }
 
 model Provider {
@@ -47,6 +48,7 @@ model Provider {
   currentProcedureMix String @default("{}")
   futureProcedureMix  String @default("{}")
   office            Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  absences          ProviderAbsence[]
 }
 
 model BlockType {
@@ -92,4 +94,39 @@ model ScheduleTemplate {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   office       Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+}
+
+// Sprint 13 — Global Template Library
+model TemplateLibraryItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  category    String   @default("GENERAL")
+  isBuiltIn   Boolean  @default(false)
+  slotsJson   String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Sprint 13 — Schedule Version History (auto-snapshot on every save)
+model ScheduleVersion {
+  id          String   @id @default(cuid())
+  officeId    String
+  dayOfWeek   String
+  weekType    String   @default("A")
+  slotsJson   String
+  summaryJson String   @default("[]")
+  label       String   @default("")
+  createdAt   DateTime @default(now())
+  office      Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+}
+
+// Sprint 13 — Provider Time-Off / Absence Tracking
+model ProviderAbsence {
+  id         String   @id @default(cuid())
+  providerId String
+  officeId   String
+  date       String
+  reason     String   @default("")
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 }
