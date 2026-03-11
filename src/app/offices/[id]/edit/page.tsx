@@ -23,11 +23,13 @@ import type { BlockTypeInput } from "@/lib/engine/types";
 // Form schema for editing
 const editOfficeSchema = z.object({
   name: z.string().min(1, "Office name is required"),
+  timeIncrement: z.number().min(10).max(15).optional(),
   staggerMinutes: z.number().min(0).max(120),
   providers: z.array(
     z.object({
       id: z.string().optional(),
       name: z.string().min(1, "Provider name is required"),
+      providerId: z.string().optional(),
       role: z.enum(["DOCTOR", "HYGIENIST", "OTHER"]),
       operatories: z.array(z.string()).min(1, "Select at least one operatory"),
       columns: z.number().min(1).max(3).optional(),
@@ -141,11 +143,13 @@ export default function EditOfficePage() {
       const inferredStagger = (doctors[1] as any)?.staggerOffsetMin ?? 0;
       reset({
         name: currentOffice.name,
+        timeIncrement: currentOffice.timeIncrement ?? 10,
         staggerMinutes: inferredStagger,
         schedulingRules: (currentOffice as any).schedulingRules || '',
         providers: currentOffice.providers?.map(p => ({
           id: p.id,
           name: p.name,
+          providerId: (p as any).providerId || '',
           role: p.role,
           operatories: p.operatories || ["OP1"],
           columns: (p as any).columns ?? 1,
@@ -206,6 +210,7 @@ export default function EditOfficePage() {
   const addProvider = () => {
     appendProvider({
       name: "",
+      providerId: "",
       role: "DOCTOR",
       operatories: ["OP1"],
       columns: 1,
@@ -243,6 +248,7 @@ export default function EditOfficePage() {
           ...provider,
           id: provider.id || generateId(),
           staggerOffsetMin,
+          ...(provider.providerId ? { providerId: provider.providerId } : {}),
         };
       });
 
@@ -261,6 +267,7 @@ export default function EditOfficePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name,
+          timeIncrement: data.timeIncrement ?? currentOffice?.timeIncrement ?? 10,
           providers,
           ...(rules ? { rules } : {}),
           schedulingRules: data.schedulingRules || '',
@@ -357,7 +364,7 @@ export default function EditOfficePage() {
           <CardHeader>
             <CardTitle>Office Information</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div>
               <Label htmlFor="name">Office Name</Label>
               <Input
@@ -368,6 +375,24 @@ export default function EditOfficePage() {
               {errors.name && (
                 <p className="text-sm text-error mt-1">{errors.name.message}</p>
               )}
+            </div>
+            <div>
+              <Label htmlFor="edit-timeIncrement">Time Increment</Label>
+              <Select
+                value={String(watch("timeIncrement") ?? currentOffice?.timeIncrement ?? 10)}
+                onValueChange={(value) => setValue("timeIncrement", parseInt(value) as 10 | 15, { shouldDirty: true })}
+              >
+                <SelectTrigger id="edit-timeIncrement">
+                  <SelectValue placeholder="10 minutes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 minutes</SelectItem>
+                  <SelectItem value="15">15 minutes</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Schedule grid granularity. Changing this will affect stagger options and appointment durations.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -472,6 +497,26 @@ export default function EditOfficePage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor={`edit-providers-${index}-providerId`}>
+                    Provider ID
+                    {!watchProviders?.[index]?.providerId && (
+                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-normal">
+                        ⚠ Recommended for DPMS export
+                      </span>
+                    )}
+                  </Label>
+                  <Input
+                    id={`edit-providers-${index}-providerId`}
+                    {...register(`providers.${index}.providerId`)}
+                    placeholder="e.g. DG001, DR-01"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Alphanumeric ID used in DPMS export. Optional but recommended.
+                  </p>
                 </div>
 
                 <div className="flex items-center space-x-2">

@@ -41,12 +41,14 @@ const DEFAULT_SCHEDULING_RULES = `# Office Scheduling Rules
 // Form schema
 const officeSchema = z.object({
   name: z.string().min(1, "Office name is required"),
-  dpms: z.enum(["Dentrix", "Open Dental", "Eaglesoft", "Denticon"]),
+  dpms: z.enum(["Open Dental", "Dentrix", "Eaglesoft", "Curve Dental", "Carestream", "DSN", "Other"]),
   workingDays: z.array(z.string()).min(1, "Select at least one working day"),
+  timeIncrement: z.number().min(10).max(15),
   staggerMinutes: z.number().min(0).max(120),
   providers: z.array(
     z.object({
       name: z.string().min(1, "Provider name is required"),
+      providerId: z.string().optional(),
       role: z.enum(["Doctor", "Hygienist"]),
       operatories: z.array(z.string()).min(1, "Select at least one operatory"),
       workingHours: z.object({
@@ -163,6 +165,7 @@ function NewOfficeForm() {
     mode: "onBlur",
     defaultValues: {
       workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+      timeIncrement: 10,
       staggerMinutes: 0,
       providers: [],
       procedures: DEFAULT_PROCEDURES,
@@ -204,6 +207,7 @@ function NewOfficeForm() {
     const s = getSettings();
     appendProvider({
       name: "",
+      providerId: "",
       role: "Doctor",
       operatories: ["OP1"],
       workingHours: { start: s.defaultStartTime, end: s.defaultEndTime },
@@ -231,6 +235,7 @@ function NewOfficeForm() {
         return {
           id: generateId(),
           name: p.name,
+          ...(p.providerId ? { providerId: p.providerId } : {}),
           role: (p.role === "Doctor" ? "DOCTOR" : "HYGIENIST") as "DOCTOR" | "HYGIENIST",
           operatories: p.operatories || ["OP1"],
           workingStart: p.workingHours?.start || "07:00",
@@ -285,15 +290,14 @@ function NewOfficeForm() {
         return dayMap[day] || day.toUpperCase();
       });
 
-      const settings = getSettings();
       const res = await fetch('/api/offices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name,
-          dpmsSystem: data.dpms.toUpperCase().replace(" ", "_"),
+          dpmsSystem: data.dpms.toUpperCase().replace(/ /g, "_"),
           workingDays,
-          timeIncrement: settings.timeIncrement,
+          timeIncrement: data.timeIncrement ?? 10,
           feeModel: "UCR",
           providers,
           blockTypes,
@@ -473,10 +477,13 @@ function NewOfficeForm() {
                       <SelectValue placeholder="Select DPMS" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Dentrix">Dentrix</SelectItem>
                       <SelectItem value="Open Dental">Open Dental</SelectItem>
+                      <SelectItem value="Dentrix">Dentrix</SelectItem>
                       <SelectItem value="Eaglesoft">Eaglesoft</SelectItem>
-                      <SelectItem value="Denticon">Denticon</SelectItem>
+                      <SelectItem value="Curve Dental">Curve Dental</SelectItem>
+                      <SelectItem value="Carestream">Carestream</SelectItem>
+                      <SelectItem value="DSN">DSN</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.dpms && (
@@ -503,6 +510,25 @@ function NewOfficeForm() {
                   {errors.workingDays && (
                     <p className="text-sm text-error mt-1">{errors.workingDays.message}</p>
                   )}
+                </div>
+
+                <div>
+                  <Label htmlFor="timeIncrement">Time Increment</Label>
+                  <Select
+                    defaultValue="10"
+                    onValueChange={(value) => setValue("timeIncrement", parseInt(value) as 10 | 15)}
+                  >
+                    <SelectTrigger id="timeIncrement">
+                      <SelectValue placeholder="Select increment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 minutes (default)</SelectItem>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Schedule grid granularity. Affects stagger options and appointment durations.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -594,6 +620,25 @@ function NewOfficeForm() {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor={`providers.${index}.providerId`}>
+                        Provider ID
+                        {!watchProviders?.[index]?.providerId && (
+                          <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-normal">
+                            ⚠ Recommended for DPMS export
+                          </span>
+                        )}
+                      </Label>
+                      <Input
+                        {...register(`providers.${index}.providerId`)}
+                        placeholder="e.g. DG001, DR-01"
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Alphanumeric ID used in DPMS export. Optional but recommended.
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
