@@ -731,6 +731,63 @@ export default function TemplateBuilderPage() {
     return getDayLabel(day).substring(0, 3);
   };
 
+  // ─── DPMS-specific export button ────────────────────────────────────────────
+  /**
+   * Returns a Tooltip+Button for the DPMS-specific import button.
+   * Open Dental: opens the existing export dialog.
+   * Other supported DPMS: shows "coming soon" toast.
+   * OTHER: hidden.
+   * Not set: defaults to Open Dental behavior.
+   */
+  const dpmsNormalized = (currentOffice.dpmsSystem || '').toUpperCase().replace(/ /g, '_');
+  const DPMS_LABELS: Record<string, string> = {
+    OPEN_DENTAL: 'Open Dental',
+    DENTRIX: 'Dentrix',
+    EAGLESOFT: 'Eaglesoft',
+    CURVE_DENTAL: 'Curve',
+    CARESTREAM: 'Carestream',
+    DSN: 'DSN',
+  };
+  const dpmsLabel = DPMS_LABELS[dpmsNormalized] || 'Open Dental';
+  const isOpenDental = !dpmsNormalized || dpmsNormalized === 'OPEN_DENTAL';
+  const isOtherDpms = dpmsNormalized === 'OTHER';
+
+  const getDpmsExportButton = (dpms: string, schedule: any, onOpenDentalClick: () => void) => {
+    if (isOtherDpms) return null;
+    const handleClick = () => {
+      if (isOpenDental) {
+        onOpenDentalClick();
+      } else {
+        toast.info(`${dpmsLabel} export is in development. Use Open Dental format for now.`);
+      }
+    };
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span tabIndex={0}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClick}
+              disabled={!schedule}
+              className="min-h-[44px]"
+            >
+              <FileJson className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">{dpmsLabel}</span>
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          {!schedule
+            ? "Generate a schedule first"
+            : isOpenDental
+              ? `Export current day schedule for ${dpmsLabel} import`
+              : `Export to ${dpmsLabel} (coming soon)`}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -808,27 +865,7 @@ export default function TemplateBuilderPage() {
                 : "Export all generated schedules to Excel"}
             </TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowODExportDialog(true)}
-                  disabled={!currentDaySchedule}
-                  className="min-h-[44px]"
-                >
-                  <FileJson className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Open Dental</span>
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              {!currentDaySchedule
-                ? "Generate a schedule first"
-                : "Export current day schedule for Open Dental import"}
-            </TooltipContent>
-          </Tooltip>
+          {getDpmsExportButton(currentOffice.dpmsSystem, currentDaySchedule, () => setShowODExportDialog(true))}
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0}>
