@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson, FileText, Save, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson, FileText, Save, CheckCircle2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -886,6 +886,27 @@ export default function TemplateBuilderPage() {
             </TooltipContent>
           </Tooltip>
           {getDpmsExportButton(currentOffice.dpmsSystem, currentDaySchedule, () => setShowODExportDialog(true))}
+          {/* Print View button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/offices/${officeId}/print?day=${activeDay.toLowerCase()}`, '_blank')}
+                  disabled={!currentDaySchedule}
+                  className="min-h-[44px]"
+                >
+                  <Printer className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Print</span>
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {!currentDaySchedule ? 'Generate a schedule first' : `Open print view for ${getDayLabel(activeDay)}`}
+            </TooltipContent>
+          </Tooltip>
+
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0}>
