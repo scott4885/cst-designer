@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import DPMSImportButton from "@/components/dpms/DPMSImportButton";
 // updateOffice uses API route
 import type { BlockTypeInput, ProviderDayScheduleEntry, ProviderSchedule, ProcedureMix, ProcedureCategory } from "@/lib/engine/types";
 import { ALL_PROCEDURE_CATEGORIES, PROCEDURE_CATEGORY_LABELS, PROCEDURE_MIX_BENCHMARKS } from "@/lib/engine/types";
@@ -978,6 +979,18 @@ export default function EditOfficePage() {
                             ))}
                           </select>
                         </div>
+
+                        {/* DPMS Import (Current Mix tab only) */}
+                        {(mixTabMap[index] ?? 'current') === 'current' && (
+                          <div className="flex justify-end">
+                            <DPMSImportButton
+                              dpmsSystem={currentOffice?.dpmsSystem ?? 'OPEN_DENTAL'}
+                              onApply={(mix) => {
+                                setCurrentMixMap(prev => ({ ...prev, [index]: mix }));
+                              }}
+                            />
+                          </div>
+                        )}
 
                         {/* Mix fields */}
                         {(() => {
