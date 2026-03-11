@@ -362,6 +362,47 @@ function calculateProductionTargets(provider: ProviderInput): ProductionTargets 
 }
 
 // ---------------------------------------------------------------------------
+// Shared ctx recalibration — Sprint 6 §5.4
+// ---------------------------------------------------------------------------
+
+/**
+ * Recompute a doctor's shared production ctx from the actual placed slots, using
+ * the same consecutive-group merge logic as calculateAllProductionSummaries.
+ *
+ * This corrects for the fact that `recordProd` counts each block placement
+ * individually ($1,200 per HP), while the production summary merges consecutive
+ * same-type blocks into one group ($1,200 for the entire run). Without recalibration,
+ * the ctx would over-count consecutive HP blocks and prematurely signal goal-met,
+ * leaving later ops under-filled.
+ *
+ * Call this AFTER each operatory's `placeDoctorBlocks` so the next op starts with
+ * an accurate ctx.
+ */
+function recomputeSharedCtxFromSlots(
+  slots: TimeSlotOutput[],
+  providerId: string,
+  blockTypes: BlockTypeInput[],
+  ctx: { target: number; produced: number }
+): void {
+  const btAmountMap = new Map<string, number>(
+    blockTypes.map(bt => [bt.id, bt.minimumAmount ?? 0])
+  );
+  const providerSlots = slots.filter(
+    s => s.providerId === providerId && s.blockTypeId !== null && !s.isBreak
+  );
+  let production = 0;
+  let prevKey: string | null = null;
+  for (const slot of providerSlots) {
+    const key = `${slot.blockTypeId}::${slot.operatory}`;
+    if (key !== prevKey) {
+      production += btAmountMap.get(slot.blockTypeId!) ?? parseAmountFromLabel(slot.blockLabel ?? '');
+      prevKey = key;
+    }
+  }
+  ctx.produced = production;
+}
+
+// ---------------------------------------------------------------------------
 // Main schedule generation — Rock-Sand-Water Algorithm
 // ---------------------------------------------------------------------------
 
@@ -433,6 +474,10 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
   // Key: "providerId::operatory", Value: total stagger offset in minutes.
   const doctorColumnStagger = new Map<string, number>();
 
+  // Sprint 6: Shared production pool per doctor (multi-op).
+  // Key: doctor id, Value: mutable ctx shared across all ops for that doctor.
+  const sharedDoctorCtxMap = new Map<string, { target: number; produced: number }>();
+
   for (let di = 0; di < doctors.length; di++) {
     const doc = doctors[di];
     // Base (provider-level) stagger: use explicit override if set, else auto-calculate
@@ -444,22 +489,27 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
     const isMultiColumn = opSlots.length > 1;
 
     if (isMultiColumn) {
-      // Generate blocks INDEPENDENTLY on each operatory with a per-column stagger offset.
-      // Each column's schedule is staggered so appointment start times differ across columns,
-      // ensuring the provider is never scheduled in two places at the same instant.
-      //
-      // FIX (Sprint 5 §5.4): Divide the daily goal evenly across all operatories so the
-      // combined scheduled production doesn't exceed the provider's actual daily goal.
-      const perOpGoal = doc.dailyGoal / opSlots.length;
-      const docPerOp: ProviderInput = { ...doc, dailyGoal: perOpGoal };
+      // Sprint 6 FIX: Shared production pool — one target for ALL ops combined.
+      // Instead of dividing dailyGoal / numOps (Sprint 5 approach), we use a mutable
+      // ctx object that tracks production across all ops. Each op fills until the
+      // combined goal is met, rather than being constrained to a fraction of the goal.
+      // Op 0 leads with HP (Rocks), Op 1 with MP, Op 2+ with NP/ER.
+      const sharedTarget = calculateTarget75(doc.dailyGoal);
+      const sharedProductionCtx = { target: sharedTarget, produced: 0 };
+      sharedDoctorCtxMap.set(doc.id, sharedProductionCtx);
       for (let oi = 0; oi < opSlots.length; oi++) {
         const columnOffset = calculateStaggerOffset(di, oi, columnStaggerInterval);
         const totalStagger = baseStaggerMin + columnOffset;
         doctorColumnStagger.set(`${doc.id}::${opSlots[oi].operatory}`, totalStagger);
-        placeDoctorBlocks(slots, opSlots[oi], docPerOp, blocksByCategory, rules, timeIncrement, warnings, totalStagger, di, doctors.length);
+        placeDoctorBlocks(slots, opSlots[oi], doc, blocksByCategory, rules, timeIncrement, warnings, totalStagger, di, doctors.length, oi, sharedProductionCtx);
+        // Recalibrate shared ctx after each op so the NEXT op's isGoalMet() check
+        // uses summary-consistent merged-group production counts, not the raw
+        // per-placement counts tracked by recordProd (which may overcount consecutive
+        // same-type blocks by treating them as separate $1,200 blocks).
+        recomputeSharedCtxFromSlots(slots, doc.id, blockTypes, sharedProductionCtx);
       }
     } else {
-      // Single-column: place with base provider stagger only
+      // Single-column: place with base provider stagger only (no shared ctx needed)
       for (const ps of opSlots) {
         doctorColumnStagger.set(`${doc.id}::${ps.operatory}`, baseStaggerMin);
         placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings, baseStaggerMin, di, doctors.length);
@@ -478,7 +528,8 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
   // ─── Step 4: Fill ANY remaining gaps ───
   // Pass doctorColumnStagger so fill respects per-column stagger windows
   // (secondary columns should not be filled before their stagger offset start time).
-  fillRemainingDoctorSlots(slots, psMap, doctors, blocksByCategory, timeIncrement, doctorColumnStagger);
+  // Pass sharedDoctorCtxMap so fill respects the shared production pool for multi-op doctors.
+  fillRemainingDoctorSlots(slots, psMap, doctors, blocksByCategory, timeIncrement, doctorColumnStagger, sharedDoctorCtxMap);
   fillRemainingHygienistSlots(slots, psMap, hygienists, blocksByCategory, timeIncrement);
 
   // ─── Step 5: Doctor matrixing — D/A codes ───
@@ -511,12 +562,26 @@ function placeDoctorBlocks(
   warnings: string[],
   staggerOffsetMin: number = 0,
   _doctorIndex: number = 0,
-  _totalDoctors: number = 1
+  _totalDoctors: number = 1,
+  opIndex: number = 0,
+  sharedProductionCtx?: { target: number; produced: number }
 ): void {
   // Stagger: offset the "available from" start time for morning block placement.
   // This spreads doctors across the morning so they aren't competing for the same hygiene checks.
   const staggeredStartMin = toMinutes(doc.workingStart) + staggerOffsetMin;
   const targets = calculateProductionTargets(doc);
+
+  // Sprint 6: shared-pool helpers.
+  // isGoalMet() checks whether the shared target has been reached (or local total if no shared ctx).
+  // recordProd() updates both the local counter and the shared ctx.
+  const isGoalMet = () =>
+    sharedProductionCtx
+      ? sharedProductionCtx.produced >= sharedProductionCtx.target
+      : totalScheduled >= targets.target75;
+  const recordProd = (amount: number) => {
+    totalScheduled += amount;
+    if (sharedProductionCtx) sharedProductionCtx.produced += amount;
+  };
 
   // Resolve block types for each category
   const hpBlock = getBlockForCategory('HP', blocksByCategory, doc);
@@ -540,8 +605,9 @@ function placeDoctorBlocks(
 
   // ──────── MORNING: ROCKS ────────
 
-  // 2a. NP CONSULT — First available morning slot (staggered by doctor index)
-  if (npBlock && rules.npBlocksPerDay > 0 && (rules.npModel === 'DOCTOR_ONLY' || rules.npModel === 'EITHER')) {
+  // 2a. NP CONSULT — First available morning slot (staggered by doctor index).
+  // Always attempt for all ops (NP is lightweight and applies across op roles).
+  if (npBlock && rules.npBlocksPerDay > 0 && (rules.npModel === 'DOCTOR_ONLY' || rules.npModel === 'EITHER') && !isGoalMet()) {
     const slotsNeeded = Math.ceil(npBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     // NP in first 2 hours of the staggered start window
@@ -555,33 +621,30 @@ function placeDoctorBlocks(
     if (targetRange) {
       const amount = npBlock.minimumAmount || npMin;
       placeBlockInSlots(slots, targetRange, npBlock, doc, makeLabel(npBlock, amount));
-      totalScheduled += amount;
+      recordProd(amount);
     } else if (ranges[0]) {
       const amount = npBlock.minimumAmount || npMin;
       placeBlockInSlots(slots, ranges[0], npBlock, doc, makeLabel(npBlock, amount));
-      totalScheduled += amount;
+      recordProd(amount);
     } else {
       warnings.push(`No room for NP block for ${doc.name}`);
     }
   }
 
-  // 2b-e. HP BLOCKS — Fill morning with rocks (2-3 morning HP blocks), starting at staggered offset
-  const morningHPTarget = 3;
+  // 2b-e. HP BLOCKS — Fill morning with rocks.
+  // Op 0: strong HP preference — up to 3 morning HP blocks (original behavior).
+  // Op 1: limited HP — at most 1 morning HP block; rely on MP for the rest.
+  // Op 2+: skip HP morning entirely — use ER/NP/MP for lighter-touch production.
+  const morningHPMax = opIndex === 0 ? 3 : opIndex === 1 ? 1 : 0;
   let morningHPPlaced = 0;
 
-  for (let i = 0; i < morningHPTarget; i++) {
-    // Production cap guard: stop placing HP blocks once we've hit the per-op target.
-    // This prevents multi-op doctors from over-scheduling when dailyGoal is divided per op.
-    if (totalScheduled >= targets.target75) break;
+  for (let i = 0; i < morningHPMax; i++) {
+    if (isGoalMet()) break;
 
     const hp = hpBlocks[i % hpBlocks.length];
     if (!hp) break;
 
     const hpAmount = hp.minimumAmount || hpMinPerBlock;
-    // Additional guard: if a single HP block would exceed the per-op target by 1.5×,
-    // skip HP placements entirely. This handles cases where the per-op goal is very
-    // small relative to block size (e.g. 3 ops with $3000 goal → target75 = $750, HP = $1200).
-    if (hpAmount > targets.target75 * 1.5) break;
 
     const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
@@ -593,15 +656,29 @@ function placeDoctorBlocks(
 
     if (targetRange) {
       placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, hpAmount));
-      totalScheduled += hpAmount;
+      recordProd(hpAmount);
       morningHPPlaced++;
     } else {
       break; // No more morning room
     }
   }
 
+  // 2b-alt. For Op 1+: place an MP block in the morning (fills the role that HP would have had on Op 0).
+  if (opIndex >= 1 && mpBlock && !isGoalMet()) {
+    const slotsNeeded = Math.ceil(mpBlock.durationMin / timeIncrement);
+    const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+    const amRanges = rangesAfter(morningRanges(ranges, slots, doc), slots, staggeredStartMin);
+    const fallbackAmRanges = morningRanges(ranges, slots, doc);
+    const targetRange = amRanges[0] || fallbackAmRanges[0];
+    if (targetRange) {
+      const amount = mpBlock.minimumAmount || mpMinPerBlock;
+      placeBlockInSlots(slots, targetRange, mpBlock, doc, makeLabel(mpBlock, amount));
+      recordProd(amount);
+    }
+  }
+
   // 2d. ER/ACCESS — Mid-morning, offset by stagger to spread doctors
-  if (erBlock && rules.emergencyHandling !== 'FLEX') {
+  if (erBlock && rules.emergencyHandling !== 'FLEX' && !isGoalMet()) {
     const slotsNeeded = Math.ceil(erBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     // Prefer 10:00-11:30 window, but shift forward by stagger offset
@@ -612,56 +689,47 @@ function placeDoctorBlocks(
     if (targetRange) {
       const amount = erBlock.minimumAmount || erMin;
       placeBlockInSlots(slots, targetRange, erBlock, doc, makeLabel(erBlock, amount));
-      totalScheduled += amount;
+      recordProd(amount);
     }
   }
 
-  // Fill remaining morning slots with more HP if available
-  // Only fill if still under the per-op target (guards multi-op over-scheduling).
-  if (morningHPPlaced < 4 && hpBlocks.length > 0 && totalScheduled < targets.target75) {
+  // Fill remaining morning slots with more HP if available (Op 0 and Op 1 only).
+  if (opIndex <= 1 && morningHPPlaced < 4 && hpBlocks.length > 0 && !isGoalMet()) {
     const hp = hpBlocks[0];
     const fillHpAmount = hp.minimumAmount || hpMinPerBlock;
-    // Same block-size guard: skip if this HP block itself would exceed target by 1.5×
-    if (fillHpAmount <= targets.target75 * 1.5) {
-      const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
-      const ranges = findAvailableRanges(slots, ps, slotsNeeded);
-      const amRanges = morningRanges(ranges, slots, doc);
-      if (amRanges.length > 0) {
-        placeBlockInSlots(slots, amRanges[0], hp, doc, makeLabel(hp, fillHpAmount));
-        totalScheduled += fillHpAmount;
-      }
+    const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
+    const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+    const amRanges = morningRanges(ranges, slots, doc);
+    if (amRanges.length > 0) {
+      placeBlockInSlots(slots, amRanges[0], hp, doc, makeLabel(hp, fillHpAmount));
+      recordProd(fillHpAmount);
     }
   }
 
   // ──────── AFTERNOON: SAND & WATER ────────
 
-  // 2f. HP BLOCK (afternoon) — 1 HP block right after lunch
-  // For staggered doctors: offset the first afternoon block to avoid lunch overlap.
-  // If stagger offset > 0, give secondary doctors an earlier/later first-PM block.
-  // Guard: skip if we've already met the per-op target (multi-op doctors with divided goals).
-  if (hpBlocks.length > 0 && totalScheduled < targets.target75) {
+  // 2f. HP BLOCK (afternoon) — 1 HP block right after lunch.
+  // Op 0 and Op 1: place HP in afternoon if goal not yet met.
+  // Op 2+: skip HP afternoon — use lighter blocks to fill the remaining goal gap.
+  if (opIndex <= 1 && hpBlocks.length > 0 && !isGoalMet()) {
     const hp = hpBlocks[0];
     const pmHpAmount = hp.minimumAmount || hpMinPerBlock;
-    // Same block-size guard as morning: skip if single block far exceeds per-op target
-    if (pmHpAmount <= targets.target75 * 1.5) {
-      const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
-      const ranges = findAvailableRanges(slots, ps, slotsNeeded);
-      const pmRanges = afternoonRanges(ranges, slots, doc);
+    const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
+    const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+    const pmRanges = afternoonRanges(ranges, slots, doc);
 
-      if (pmRanges.length > 0) {
-        // Stagger first afternoon HP: each additional doctor delays by stagger offset
-        const pmStaggerStart = getLunchMidpoint(doc) + staggerOffsetMin;
-        const staggeredPmRanges = rangesAfter(pmRanges, slots, pmStaggerStart);
-        const targetRange = staggeredPmRanges[0] || pmRanges[0];
-        placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, pmHpAmount));
-        totalScheduled += pmHpAmount;
-      }
+    if (pmRanges.length > 0) {
+      // Stagger first afternoon HP: each additional doctor delays by stagger offset
+      const pmStaggerStart = getLunchMidpoint(doc) + staggerOffsetMin;
+      const staggeredPmRanges = rangesAfter(pmRanges, slots, pmStaggerStart);
+      const targetRange = staggeredPmRanges[0] || pmRanges[0];
+      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, pmHpAmount));
+      recordProd(pmHpAmount);
     }
   }
 
   // 2g. MP BLOCK — After afternoon HP
-  // Guard: skip if already at per-op target (multi-op doctors with divided goals).
-  if (mpBlock && totalScheduled < targets.target75 * 1.5) {
+  if (mpBlock && !isGoalMet()) {
     const slotsNeeded = Math.ceil(mpBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     const pmRanges = afternoonRanges(ranges, slots, doc);
@@ -669,11 +737,11 @@ function placeDoctorBlocks(
     if (pmRanges.length > 0) {
       const amount = mpBlock.minimumAmount || mpMinPerBlock;
       placeBlockInSlots(slots, pmRanges[0], mpBlock, doc, makeLabel(mpBlock, amount));
-      totalScheduled += amount;
+      recordProd(amount);
     }
   }
 
-  // 2h. NON-PROD — Late afternoon (crown seat, adjustment)
+  // 2h. NON-PROD — Late afternoon (crown seat, adjustment). Always place regardless of goal.
   if (nonProdBlock) {
     const slotsNeeded = Math.ceil(nonProdBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
@@ -684,13 +752,12 @@ function placeDoctorBlocks(
 
     if (targetRange) {
       placeBlockInSlots(slots, targetRange, nonProdBlock, doc, makeLabel(nonProdBlock));
-      totalScheduled += nonProdBlock.minimumAmount || 0;
+      recordProd(nonProdBlock.minimumAmount || 0);
     }
   }
 
   // 2i. Second MP block — fill remaining afternoon gap
-  // Guard: skip if already at per-op target.
-  if (mpBlock && totalScheduled < targets.target75 * 1.5) {
+  if (mpBlock && !isGoalMet()) {
     const slotsNeeded = Math.ceil(mpBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     const pmRanges = afternoonRanges(ranges, slots, doc);
@@ -698,12 +765,12 @@ function placeDoctorBlocks(
     if (pmRanges.length > 0) {
       const amount = mpBlock.minimumAmount || mpMinPerBlock;
       placeBlockInSlots(slots, pmRanges[0], mpBlock, doc, makeLabel(mpBlock, amount));
-      totalScheduled += amount;
+      recordProd(amount);
     }
   }
 
   // 2j. Second ER block in early afternoon if ACCESS_BLOCKS mode
-  if (erBlock && rules.emergencyHandling === 'ACCESS_BLOCKS') {
+  if (erBlock && rules.emergencyHandling === 'ACCESS_BLOCKS' && !isGoalMet()) {
     const slotsNeeded = Math.ceil(erBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     const earlyPM = rangesInWindow(ranges, slots, 14 * 60, 15 * 60 + 30);
@@ -711,32 +778,64 @@ function placeDoctorBlocks(
     if (earlyPM.length > 0) {
       const amount = erBlock.minimumAmount || erMin;
       placeBlockInSlots(slots, earlyPM[0], erBlock, doc, makeLabel(erBlock, amount));
-      totalScheduled += amount;
+      recordProd(amount);
     }
   }
 
-  // 2k. Goal-driven gap fill — work backwards from target to select best block type
-  // Sort available blocks by production per slot (descending) to maximize efficiency
+  // 2k. Goal-driven gap fill — work backwards from target to select best block type.
+  // Block priority varies by opIndex:
+  //   Op 0: HP → MP → ER  (Rocks dominate)
+  //   Op 1: MP → HP → ER  (Sand/mid-tier fills)
+  //   Op 2+: NP → ER → MP (Water/lighter fills)
   let safety = 0;
-  while (totalScheduled < targets.target75 && safety < 15) {
+  while (!isGoalMet() && safety < 15) {
     safety++;
-    const gap = targets.target75 - totalScheduled;
+    const sharedGap = sharedProductionCtx
+      ? sharedProductionCtx.target - sharedProductionCtx.produced
+      : targets.target75 - totalScheduled;
 
-    // Pick the block type that best fills the remaining gap
-    // Prefer HP if gap is large, MP if medium, ER/NP if small
     const candidateBlocks: { block: BlockTypeInput; priority: number }[] = [];
-    
-    if (hpBlocks.length > 0 && gap >= (hpBlocks[0].minimumAmount || 800)) {
-      hpBlocks.forEach(b => candidateBlocks.push({ block: b, priority: 3 }));
+
+    if (opIndex === 0) {
+      // Op 0: HP-heavy priority
+      if (hpBlocks.length > 0 && sharedGap >= (hpBlocks[0].minimumAmount || 800)) {
+        hpBlocks.forEach(b => candidateBlocks.push({ block: b, priority: 3 }));
+      }
+      if (mpBlock && sharedGap >= (mpBlock.minimumAmount || 200)) {
+        candidateBlocks.push({ block: mpBlock, priority: 2 });
+      }
+      if (erBlock && sharedGap >= (erBlock.minimumAmount || 100)) {
+        candidateBlocks.push({ block: erBlock, priority: 1 });
+      }
+    } else if (opIndex === 1) {
+      // Op 1: MP → HP → ER
+      if (mpBlock && sharedGap >= (mpBlock.minimumAmount || 200)) {
+        candidateBlocks.push({ block: mpBlock, priority: 3 });
+      }
+      if (hpBlocks.length > 0 && sharedGap >= (hpBlocks[0].minimumAmount || 800)) {
+        hpBlocks.forEach(b => candidateBlocks.push({ block: b, priority: 2 }));
+      }
+      if (erBlock && sharedGap >= (erBlock.minimumAmount || 100)) {
+        candidateBlocks.push({ block: erBlock, priority: 1 });
+      }
+    } else {
+      // Op 2+: NP → ER → MP (lighter fill)
+      if (npBlock && sharedGap >= (npBlock.minimumAmount || 200)) {
+        candidateBlocks.push({ block: npBlock, priority: 3 });
+      }
+      if (erBlock && sharedGap >= (erBlock.minimumAmount || 100)) {
+        candidateBlocks.push({ block: erBlock, priority: 2 });
+      }
+      if (mpBlock && sharedGap >= (mpBlock.minimumAmount || 200)) {
+        candidateBlocks.push({ block: mpBlock, priority: 1 });
+      }
     }
-    if (mpBlock && gap >= (mpBlock.minimumAmount || 200)) {
-      candidateBlocks.push({ block: mpBlock, priority: 2 });
-    }
-    if (erBlock && gap >= (erBlock.minimumAmount || 100)) {
-      candidateBlocks.push({ block: erBlock, priority: 1 });
-    }
+
     if (candidateBlocks.length === 0 && mpBlock) {
       candidateBlocks.push({ block: mpBlock, priority: 0 });
+    }
+    if (candidateBlocks.length === 0 && erBlock) {
+      candidateBlocks.push({ block: erBlock, priority: 0 });
     }
     if (candidateBlocks.length === 0) break;
 
@@ -750,10 +849,12 @@ function placeDoctorBlocks(
 
     const amount = selected.minimumAmount || mpMinPerBlock;
     placeBlockInSlots(slots, ranges[0], selected, doc, makeLabel(selected, amount));
-    totalScheduled += amount;
+    recordProd(amount);
   }
 
-  if (totalScheduled < targets.target75) {
+  // Warn only for single-op or after all ops (skip per-op warnings for multi-op doctors).
+  // For multi-op doctors the combined total is checked after all ops are processed.
+  if (!sharedProductionCtx && totalScheduled < targets.target75) {
     warnings.push(`${doc.name}: scheduled $${totalScheduled} vs $${Math.round(targets.target75)} target (${Math.round(totalScheduled / targets.target75 * 100)}%)`);
   }
 }
@@ -975,16 +1076,17 @@ function fillRemainingDoctorSlots(
   doctors: ProviderInput[],
   blocksByCategory: Map<string, BlockTypeInput[]>,
   timeIncrement: number,
-  columnStaggerMap?: Map<string, number>
+  columnStaggerMap?: Map<string, number>,
+  sharedDoctorCtxMap?: Map<string, { target: number; produced: number }>
 ): void {
   for (const doc of doctors) {
     const opSlotsList = getProviderOpSlots(psMap, doc.id);
-    // For multi-column doctors, cap per-op fill to dailyGoal / numOps so the
-    // fill step doesn't undo the per-op goal division applied in placeDoctorBlocks.
-    const perOpCap = opSlotsList.length > 1 ? doc.dailyGoal / opSlotsList.length : undefined;
+    // Sprint 6: For multi-op doctors, use the shared production ctx instead of per-op cap.
+    // Single-op doctors have no shared ctx → no production cap in fill.
+    const sharedCtx = sharedDoctorCtxMap?.get(doc.id);
     for (const ps of opSlotsList) {
       const staggerMin = columnStaggerMap?.get(`${doc.id}::${ps.operatory}`) ?? 0;
-      fillDocOpSlots(slots, ps, doc, blocksByCategory, timeIncrement, staggerMin, perOpCap);
+      fillDocOpSlots(slots, ps, doc, blocksByCategory, timeIncrement, staggerMin, undefined, sharedCtx);
     }
   }
 }
@@ -996,7 +1098,8 @@ function fillDocOpSlots(
   blocksByCategory: Map<string, BlockTypeInput[]>,
   timeIncrement: number,
   staggerOffsetMin: number = 0,
-  productionCap?: number
+  _productionCap?: number,
+  sharedProductionCtx?: { target: number; produced: number }
 ): void {
     // Get all available block types for this doctor
     const hpBlocks = getAllBlocksForCategory('HP', blocksByCategory, doc);
@@ -1013,26 +1116,19 @@ function fillDocOpSlots(
     
     if (blockPool.length === 0) return;
 
-    // For staggered columns: the fill function must respect the stagger window.
-    // Slots before the staggered start time are intentionally left empty — they
-    // represent the ramp-up period before this column's patients arrive.
-    const staggeredFillStart = toMinutes(doc.workingStart) + staggerOffsetMin;
+    // Sprint 6: If shared ctx exists and goal is already met, skip fill entirely.
+    if (sharedProductionCtx && sharedProductionCtx.produced >= sharedProductionCtx.target) return;
 
-    // If a production cap is set (multi-op doctors), pre-compute already-placed production
-    // and stop filling if we've already hit the cap.
-    let filledProduction = 0;
-    if (productionCap !== undefined) {
-      filledProduction = computeCurrentOpProduction(slots, ps, blocksByCategory);
-      if (filledProduction >= productionCap) return;
-    }
+    // For staggered columns: the fill function must respect the stagger window.
+    const staggeredFillStart = toMinutes(doc.workingStart) + staggerOffsetMin;
     
     // Shuffle and distribute blocks
     let safety = 0;
     while (safety < 20) {
       safety++;
-      
-      // Production cap guard: stop filling if per-op cap is reached
-      if (productionCap !== undefined && filledProduction >= productionCap) break;
+
+      // Sprint 6: Stop filling if shared goal is met
+      if (sharedProductionCtx && sharedProductionCtx.produced >= sharedProductionCtx.target) break;
 
       // Pick a random block type based on weights
       const totalWeight = blockPool.reduce((sum, item) => sum + item.weight, 0);
@@ -1049,12 +1145,10 @@ function fillDocOpSlots(
       
       const slotsNeeded = Math.ceil(selectedBlock.durationMin / timeIncrement);
 
-      // Production cap: skip this block if it would push past the cap
-      if (productionCap !== undefined) {
+      // Sprint 6: Skip block if it would push combined production too far over target
+      if (sharedProductionCtx) {
         const blockAmount = selectedBlock.minimumAmount ?? 0;
-        if (filledProduction + blockAmount > productionCap * 1.25) {
-          // Allow up to 25% over cap to avoid getting stuck (block granularity)
-          // If even 25% over is exceeded, try a smaller block or bail
+        if (sharedProductionCtx.produced + blockAmount > sharedProductionCtx.target * 1.25) {
           continue;
         }
       }
@@ -1084,7 +1178,7 @@ function fillDocOpSlots(
       }
       
       placeBlockInSlots(slots, targetRange, selectedBlock, doc, makeLabel(selectedBlock));
-      filledProduction += selectedBlock.minimumAmount ?? 0;
+      if (sharedProductionCtx) sharedProductionCtx.produced += selectedBlock.minimumAmount ?? 0;
     }
     // NOTE: intentionally leave ~15% of slots empty for click-to-add
 }
@@ -1289,10 +1383,24 @@ function calculateAllProductionSummaries(
         blockLabel: block.blockLabel,
         amount,
         minimumAmount: blockType?.minimumAmount ?? 0,
+        operatory: block.operatory,
       };
     });
 
-    return calculateProductionSummary(provider, scheduledBlocks);
+    const summary = calculateProductionSummary(provider, scheduledBlocks);
+
+    // Sprint 6: Compute per-op production breakdown for multi-op providers.
+    // Only include the breakdown when production actually spans multiple operatories.
+    const opAmounts = new Map<string, number>();
+    for (const sb of scheduledBlocks) {
+      opAmounts.set(sb.operatory, (opAmounts.get(sb.operatory) ?? 0) + sb.amount);
+    }
+    const opBreakdown: { operatory: string; amount: number }[] | undefined =
+      opAmounts.size > 1
+        ? [...opAmounts.entries()].map(([operatory, amount]) => ({ operatory, amount }))
+        : undefined;
+
+    return opBreakdown ? { ...summary, opBreakdown } : summary;
   });
 }
 

@@ -98,6 +98,8 @@ export interface ProviderProductionSummary {
   highProductionScheduled?: number;
   status: 'MET' | 'UNDER' | 'OVER';
   blocks: { label: string; amount: number; count: number }[];
+  /** Per-operatory production breakdown (only populated for multi-op doctors). */
+  opBreakdown?: { operatory: string; amount: number }[];
 }
 
 export type StaffingCode = 'D' | 'A' | 'H' | null;

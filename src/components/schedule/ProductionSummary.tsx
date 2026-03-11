@@ -16,6 +16,8 @@ export interface ProviderProductionSummary {
   actualScheduled: number;
   /** Sum of only blocks with minimumAmount >= role-based HP threshold (Dr≥$1k, Hyg≥$300) */
   highProductionScheduled: number;
+  /** Per-operatory production breakdown (Sprint 6 §5.4). Only present for multi-op doctors. */
+  opBreakdown?: { operatory: string; amount: number }[];
 }
 
 interface ProductionSummaryProps {
@@ -25,6 +27,7 @@ interface ProductionSummaryProps {
 
 export default function ProductionSummary({ summaries, alignmentScore }: ProductionSummaryProps) {
   const [alignmentExpanded, setAlignmentExpanded] = useState(false);
+  const [opBreakdownExpanded, setOpBreakdownExpanded] = useState<Record<number, boolean>>({});
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -125,6 +128,28 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
                 <span className="text-muted-foreground">Status:</span>
                 {getStatusBadge(summary.actualScheduled, summary.target75)}
               </div>
+
+              {/* Per-op breakdown (multi-op doctors only) */}
+              {summary.opBreakdown && summary.opBreakdown.length > 1 && (
+                <div>
+                  <button
+                    onClick={() => setOpBreakdownExpanded(prev => ({ ...prev, [index]: !prev[index] }))}
+                    className="text-xs text-accent hover:underline flex items-center gap-1"
+                  >
+                    {opBreakdownExpanded[index] ? "▾ Hide" : "▸ Show"} op breakdown
+                  </button>
+                  {opBreakdownExpanded[index] && (
+                    <div className="mt-1.5 space-y-1 border-l-2 border-border pl-3">
+                      {summary.opBreakdown.map(op => (
+                        <div key={op.operatory} className="flex justify-between items-center text-xs">
+                          <span className="text-muted-foreground font-mono">{op.operatory}</span>
+                          <span className="font-medium tabular-nums">{formatCurrency(op.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* High Production section */}
               <Separator />
