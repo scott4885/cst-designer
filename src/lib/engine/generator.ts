@@ -406,14 +406,55 @@ function recomputeSharedCtxFromSlots(
 // Main schedule generation — Rock-Sand-Water Algorithm
 // ---------------------------------------------------------------------------
 
+/**
+ * Resolve the effective working hours for a provider on a specific day.
+ * Returns null if the provider is disabled (off) for that day.
+ * Falls back to general working hours if no per-day override exists.
+ */
+export function resolveProviderDayHours(
+  provider: ProviderInput,
+  dayOfWeek: string
+): { workingStart: string; workingEnd: string; lunchStart?: string; lunchEnd?: string; lunchEnabled: boolean } | null {
+  const dayEntry = provider.providerSchedule?.[dayOfWeek];
+  if (dayEntry !== undefined) {
+    if (dayEntry.enabled === false) return null; // provider is off this day
+    return {
+      workingStart: dayEntry.workingStart || provider.workingStart,
+      workingEnd: dayEntry.workingEnd || provider.workingEnd,
+      lunchStart: dayEntry.lunchStart ?? provider.lunchStart,
+      lunchEnd: dayEntry.lunchEnd ?? provider.lunchEnd,
+      lunchEnabled: !!(dayEntry.lunchStart && dayEntry.lunchEnd),
+    };
+  }
+  // No per-day override — use general hours
+  return {
+    workingStart: provider.workingStart,
+    workingEnd: provider.workingEnd,
+    lunchStart: provider.lunchStart,
+    lunchEnd: provider.lunchEnd,
+    lunchEnabled: provider.lunchEnabled !== false,
+  };
+}
+
 export function generateSchedule(input: GenerationInput): GenerationResult {
   const { providers, blockTypes, rules, timeIncrement, dayOfWeek } = input;
   const warnings: string[] = [];
   const slots: TimeSlotOutput[] = [];
+  /** Providers that are active for this day (not disabled by providerSchedule), with per-day hour overrides applied */
+  const activeProviders: ProviderInput[] = [];
 
   // ─── Step 1: Create empty time slots for every provider × operatory ───
   for (const provider of providers) {
-    const timeSlots = generateTimeSlots(provider.workingStart, provider.workingEnd, timeIncrement);
+    // Resolve per-day hours (returns null if provider is disabled/off this day)
+    const dayHours = resolveProviderDayHours(provider, dayOfWeek);
+    if (dayHours === null) continue; // skip provider — off this day
+
+    // Override provider hours for this day
+    const effectiveProvider = dayHours.workingStart !== provider.workingStart || dayHours.workingEnd !== provider.workingEnd
+      ? { ...provider, workingStart: dayHours.workingStart, workingEnd: dayHours.workingEnd, lunchStart: dayHours.lunchStart, lunchEnd: dayHours.lunchEnd, lunchEnabled: dayHours.lunchEnabled }
+      : provider;
+
+    const timeSlots = generateTimeSlots(effectiveProvider.workingStart, effectiveProvider.workingEnd, timeIncrement);
     // Multi-op: create a slot sequence for EACH operatory.
     // When doubleBooking is disabled, doctors only use their FIRST operatory (single-column schedule).
     let allOperatories = provider.operatories.length > 0 ? provider.operatories : ['OP1'];
@@ -422,12 +463,12 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
       : allOperatories;
 
     // When lunchEnabled is explicitly false, treat no slots as lunch breaks
-    const lunchActive = provider.lunchEnabled !== false;
+    const lunchActive = effectiveProvider.lunchEnabled !== false;
 
     for (const operatory of operatories) {
       for (const time of timeSlots) {
         const isLunch = lunchActive
-          ? isLunchTime(time, provider.lunchStart, provider.lunchEnd)
+          ? isLunchTime(time, effectiveProvider.lunchStart, effectiveProvider.lunchEnd)
           : false;
 
         slots.push({
@@ -441,13 +482,16 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
         });
       }
     }
+    // Track effective provider (with per-day hour overrides applied) for block placement
+    activeProviders.push(effectiveProvider);
   }
 
-  const psMap = buildProviderSlotMap(slots, providers);
+  // Build map from active providers only (those not disabled for this day)
+  const psMap = buildProviderSlotMap(slots, activeProviders);
 
-  // Separate providers by role
-  const doctors = providers.filter(p => p.role === 'DOCTOR');
-  const hygienists = providers.filter(p => p.role === 'HYGIENIST');
+  // Separate providers by role (only active ones)
+  const doctors = activeProviders.filter(p => p.role === 'DOCTOR');
+  const hygienists = activeProviders.filter(p => p.role === 'HYGIENIST');
 
   // Group block types by category
   const blocksByCategory = new Map<string, BlockTypeInput[]>();
@@ -538,7 +582,7 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
   }
 
   // ─── Step 6: Calculate production summary ───
-  const productionSummary = calculateAllProductionSummaries(slots, providers, blockTypes);
+  const productionSummary = calculateAllProductionSummaries(slots, activeProviders, blockTypes);
 
   return {
     dayOfWeek,

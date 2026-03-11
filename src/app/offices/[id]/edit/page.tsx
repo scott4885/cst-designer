@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, Plus, Trash2, Save, HelpCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, HelpCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,12 @@ import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 // updateOffice uses API route
-import type { BlockTypeInput } from "@/lib/engine/types";
+import type { BlockTypeInput, ProviderDayScheduleEntry, ProviderSchedule } from "@/lib/engine/types";
+
+const DAYS_OF_WEEK = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'] as const;
+const DAY_LABELS: Record<string, string> = {
+  MONDAY: 'Mon', TUESDAY: 'Tue', WEDNESDAY: 'Wed', THURSDAY: 'Thu', FRIDAY: 'Fri',
+};
 
 // Form schema for editing
 const editOfficeSchema = z.object({
@@ -44,6 +49,7 @@ const editOfficeSchema = z.object({
       seesNewPatients: z.boolean().optional(),
       enabledBlockTypeIds: z.array(z.string()).optional(),
       assistedHygiene: z.boolean().optional(),
+      providerSchedule: z.record(z.any()).optional(),
     })
   ).min(1, "Add at least one provider"),
   scheduleRules: z.object({
@@ -72,6 +78,10 @@ export default function EditOfficePage() {
   const [providerToDelete, setProviderToDelete] = useState<number | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
+  /** Track which provider indices have "Detail by day" expanded (map of index → boolean) */
+  const [detailByDayMap, setDetailByDayMap] = useState<Record<number, boolean>>({});
+  /** Per-provider per-day schedule overrides (index → ProviderSchedule) */
+  const [providerScheduleMap, setProviderScheduleMap] = useState<Record<number, ProviderSchedule>>({});
   const DRAFT_KEY = `schedule-designer-draft-${officeId}`;
 
   const {
@@ -143,6 +153,20 @@ export default function EditOfficePage() {
       // Infer staggerMinutes from second doctor's staggerOffsetMin (= 1 * staggerMinutes)
       const doctors = currentOffice.providers?.filter(p => p.role === 'DOCTOR') || [];
       const inferredStagger = (doctors[1] as any)?.staggerOffsetMin ?? 0;
+
+      // Load per-day schedules into state
+      const scheduleMap: Record<number, ProviderSchedule> = {};
+      const detailMap: Record<number, boolean> = {};
+      (currentOffice.providers || []).forEach((p, i) => {
+        const ps = (p as any).providerSchedule;
+        if (ps && typeof ps === 'object' && Object.keys(ps).length > 0) {
+          scheduleMap[i] = ps as ProviderSchedule;
+          detailMap[i] = true;
+        }
+      });
+      setProviderScheduleMap(scheduleMap);
+      setDetailByDayMap(detailMap);
+
       reset({
         name: currentOffice.name,
         timeIncrement: currentOffice.timeIncrement ?? 10,
@@ -166,6 +190,7 @@ export default function EditOfficePage() {
           seesNewPatients: p.seesNewPatients !== false,
           enabledBlockTypeIds: p.enabledBlockTypeIds || [],
           assistedHygiene: (p as any).assistedHygiene === true,
+          providerSchedule: (p as any).providerSchedule || {},
         })) || [],
         scheduleRules: {
           npModel: rules?.npModel || "DOCTOR_ONLY",
@@ -227,9 +252,45 @@ export default function EditOfficePage() {
       seesNewPatients: true,
       enabledBlockTypeIds: [],
       assistedHygiene: false,
+      providerSchedule: {},
     });
     // Scroll to bottom after adding
     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
+  };
+
+  /** Toggle "detail by day" for a provider, initializing from general hours if first expand */
+  const toggleDetailByDay = (index: number) => {
+    const nowOn = !detailByDayMap[index];
+    setDetailByDayMap(prev => ({ ...prev, [index]: nowOn }));
+    if (nowOn && !providerScheduleMap[index]) {
+      // Initialize from general hours
+      const p = watchProviders?.[index];
+      const defaults: ProviderSchedule = {};
+      DAYS_OF_WEEK.forEach(day => {
+        defaults[day] = {
+          enabled: true,
+          workingStart: p?.workingStart || '07:00',
+          workingEnd: p?.workingEnd || '16:00',
+          lunchStart: p?.lunchEnabled !== false ? (p?.lunchStart || '12:00') : null,
+          lunchEnd: p?.lunchEnabled !== false ? (p?.lunchEnd || '13:00') : null,
+        };
+      });
+      setProviderScheduleMap(prev => ({ ...prev, [index]: defaults }));
+    }
+  };
+
+  /** Update a single day's field in providerScheduleMap */
+  const updateDayField = (
+    index: number,
+    day: string,
+    field: keyof ProviderDayScheduleEntry,
+    value: any
+  ) => {
+    setProviderScheduleMap(prev => {
+      const schedule = { ...(prev[index] || {}) };
+      schedule[day] = { ...(schedule[day] || { enabled: true }), [field]: value };
+      return { ...prev, [index]: schedule };
+    });
   };
 
   const onSubmit = async (data: EditOfficeFormData) => {
@@ -242,15 +303,18 @@ export default function EditOfficePage() {
 
       const staggerMin = data.staggerMinutes ?? 0;
       let doctorIdx = 0;
-      const providers = data.providers.map((provider) => {
+      const providers = data.providers.map((provider, idx) => {
         const isDoctor = provider.role === "DOCTOR";
         // Always persist staggerOffsetMin: 0 for non-doctors and first doctor, N*staggerMin for Nth doctor
         const staggerOffsetMin = isDoctor ? doctorIdx * staggerMin : 0;
         if (isDoctor) doctorIdx++;
+        // Merge per-day schedule overrides (from detailByDayMap state)
+        const providerSchedule = detailByDayMap[idx] ? (providerScheduleMap[idx] || {}) : {};
         return {
           ...provider,
           id: provider.id || generateId(),
           staggerOffsetMin,
+          providerSchedule,
           ...(provider.providerId ? { providerId: provider.providerId } : {}),
         };
       });
@@ -663,6 +727,100 @@ export default function EditOfficePage() {
                       </p>
                     )}
                   </div>
+                </div>
+
+                {/* Per-Day Working Hours */}
+                <div className="rounded-lg border border-border p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <Label className="font-medium">Per-Day Hours</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {detailByDayMap[index] ? 'Enabled' : 'Use general hours'}
+                      </span>
+                      <Switch
+                        checked={!!detailByDayMap[index]}
+                        onCheckedChange={() => toggleDetailByDay(index)}
+                      />
+                    </div>
+                  </div>
+                  {detailByDayMap[index] && providerScheduleMap[index] && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr className="text-muted-foreground">
+                            <th className="text-left pr-3 py-1 font-medium w-12">Day</th>
+                            <th className="text-left pr-2 py-1 font-medium">On?</th>
+                            <th className="text-left pr-2 py-1 font-medium">Start</th>
+                            <th className="text-left pr-2 py-1 font-medium">End</th>
+                            <th className="text-left pr-2 py-1 font-medium">Lunch</th>
+                            <th className="text-left py-1 font-medium">Lunch End</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {DAYS_OF_WEEK.map(day => {
+                            const dayEntry = providerScheduleMap[index]?.[day] || { enabled: true, workingStart: '07:00', workingEnd: '16:00' };
+                            const isEnabled = dayEntry.enabled !== false;
+                            return (
+                              <tr key={day} className={`border-t border-border/50 ${!isEnabled ? 'opacity-40' : ''}`}>
+                                <td className="pr-3 py-1.5 font-medium">{DAY_LABELS[day]}</td>
+                                <td className="pr-2 py-1.5">
+                                  <Switch
+                                    checked={isEnabled}
+                                    onCheckedChange={v => updateDayField(index, day, 'enabled', v)}
+                                    className="scale-75 origin-left"
+                                  />
+                                </td>
+                                <td className="pr-2 py-1.5">
+                                  <Input
+                                    type="time"
+                                    value={dayEntry.workingStart || '07:00'}
+                                    onChange={e => updateDayField(index, day, 'workingStart', e.target.value)}
+                                    disabled={!isEnabled}
+                                    className="h-7 text-xs w-24"
+                                  />
+                                </td>
+                                <td className="pr-2 py-1.5">
+                                  <Input
+                                    type="time"
+                                    value={dayEntry.workingEnd || '16:00'}
+                                    onChange={e => updateDayField(index, day, 'workingEnd', e.target.value)}
+                                    disabled={!isEnabled}
+                                    className="h-7 text-xs w-24"
+                                  />
+                                </td>
+                                <td className="pr-2 py-1.5">
+                                  <Input
+                                    type="time"
+                                    value={dayEntry.lunchStart || ''}
+                                    onChange={e => updateDayField(index, day, 'lunchStart', e.target.value || null)}
+                                    disabled={!isEnabled}
+                                    placeholder="—"
+                                    className="h-7 text-xs w-24"
+                                  />
+                                </td>
+                                <td className="py-1.5">
+                                  <Input
+                                    type="time"
+                                    value={dayEntry.lunchEnd || ''}
+                                    onChange={e => updateDayField(index, day, 'lunchEnd', e.target.value || null)}
+                                    disabled={!isEnabled}
+                                    placeholder="—"
+                                    className="h-7 text-xs w-24"
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Toggle off to mark a day as off. Leave lunch blank for no lunch break.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>

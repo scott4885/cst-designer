@@ -70,6 +70,7 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     color: p.color,
     seesNewPatients: p.seesNewPatients,
     staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
+    providerSchedule: safeParseJSON((p as any).providerSchedule, {}),
   }));
 
   const blockTypes: BlockTypeInput[] = (office.blockTypes || []).map((b: any) => ({
@@ -190,6 +191,7 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
           color: p.color,
           seesNewPatients: p.seesNewPatients !== false,
           staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
+          providerSchedule: JSON.stringify((p as any).providerSchedule ?? {}),
         })),
       },
       blockTypes: {
@@ -262,6 +264,7 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
         color: p.color,
         seesNewPatients: p.seesNewPatients !== false,
         staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
+        providerSchedule: JSON.stringify((p as any).providerSchedule ?? {}),
       })),
     });
   }

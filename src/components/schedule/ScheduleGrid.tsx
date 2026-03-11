@@ -19,6 +19,8 @@ export interface ProviderInput {
   /** "07:00" 24-hour format — used to gray out slots outside this provider's shift */
   workingStart?: string;
   workingEnd?: string;
+  /** When true, renders the entire column with an "OFF" overlay (provider is disabled this day) */
+  disabled?: boolean;
 }
 
 /** Convert "HH:MM" 24-hour string to minutes since midnight */
@@ -688,17 +690,21 @@ export default function ScheduleGrid({
                     <th
                       key={provider.id}
                       colSpan={2}
-                      className="px-2 py-1.5 text-sm font-semibold text-foreground border-b-2 border-border bg-surface"
+                      className={`px-2 py-1.5 text-sm font-semibold text-foreground border-b-2 border-border bg-surface ${provider.disabled ? 'opacity-50' : ''}`}
                       style={{ minWidth: colWidth + 28 }}
                     >
                       <div className="flex flex-col items-center gap-0.5">
-                        <div className="font-semibold text-xs" style={{ color: provider.color }}>
+                        <div className="font-semibold text-xs" style={{ color: provider.disabled ? '#999' : provider.color }}>
                           {provider.name}
                         </div>
                         <div className="text-[10px] text-muted-foreground font-normal">
                           {provider.role}
                         </div>
-                        {onGenerateProvider && (
+                        {provider.disabled ? (
+                          <span className="mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-muted text-muted-foreground border border-border/50">
+                            OFF TODAY
+                          </span>
+                        ) : onGenerateProvider && (
                           <button
                             onClick={() => onGenerateProvider(realProviderId)}
                             disabled={isGenerating || !!generatingProviderId}
@@ -757,6 +763,19 @@ export default function ScheduleGrid({
                     <TimeSlotCell time={row.time} />
                   </td>
                   {providers.map((provider) => {
+                    // Provider disabled for this day — render a greyed-out inert cell
+                    if (provider.disabled) {
+                      return (
+                        <Fragment key={provider.id}>
+                          <td className="px-1 py-0 border-b border-border/30 bg-muted/20 text-center" style={{ width: 28, minWidth: 28 }} />
+                          <td
+                            className="px-2 py-0 border-b border-border/30 bg-muted/20"
+                            style={{ minWidth: colWidth }}
+                          />
+                        </Fragment>
+                      );
+                    }
+
                     const slot = row.slots.find((s) => s.providerId === provider.id);
                     const timeStr = row.time;
                     const isLunchTime =

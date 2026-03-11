@@ -1,3 +1,19 @@
+/**
+ * Per-day working hours entry for a provider.
+ * When `enabled` is false, the provider is off that day (no slots generated).
+ * When `enabled` is true, use `workingStart`/`workingEnd`/`lunchStart`/`lunchEnd` for that day.
+ */
+export interface ProviderDayScheduleEntry {
+  enabled: boolean;
+  workingStart?: string;
+  workingEnd?: string;
+  lunchStart?: string | null;
+  lunchEnd?: string | null;
+}
+
+/** Per-day schedule overrides keyed by day of week ("MONDAY", "TUESDAY", etc.). */
+export type ProviderSchedule = Partial<Record<string, ProviderDayScheduleEntry>>;
+
 export interface ProviderInput {
   id: string;
   name: string;
@@ -18,6 +34,12 @@ export interface ProviderInput {
   assistedHygiene?: boolean;          // hygienists only: enables assisted hygiene (2-3 chair rotation) mode
   staggerOffsetMin?: number;          // doctor stagger override (auto-calculated if not set)
   columnStaggerIntervalMin?: number;  // minutes between each column's schedule offset (default 20). Used when provider works multiple operatories simultaneously.
+  /**
+   * Per-day working hours overrides.
+   * Empty object or undefined = use general workingStart/workingEnd for all days.
+   * Key: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY"
+   */
+  providerSchedule?: ProviderSchedule;
 }
 
 export interface BlockTypeInput {

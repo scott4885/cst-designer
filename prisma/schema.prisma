@@ -41,6 +41,7 @@ model Provider {
   color             String  @default("#666")
   seesNewPatients   Boolean @default(true)
   staggerOffsetMin  Int     @default(0)
+  providerSchedule  String  @default("{}")
   office            Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }
 

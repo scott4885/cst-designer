@@ -193,6 +193,12 @@ export default function TemplateBuilderPage() {
   const providers: ProviderInput[] = [];
   for (const p of (currentOffice.providers || [])) {
     const ops = p.operatories || [];
+    // Resolve per-day working hours for this active day
+    const dayEntry = (p as any).providerSchedule?.[activeDay];
+    const isDisabledToday = dayEntry !== undefined && dayEntry.enabled === false;
+    const effectiveStart = (dayEntry?.enabled !== false && dayEntry?.workingStart) ? dayEntry.workingStart : p.workingStart;
+    const effectiveEnd = (dayEntry?.enabled !== false && dayEntry?.workingEnd) ? dayEntry.workingEnd : p.workingEnd;
+
     // Always display all assigned operatories — never restrict to 1 based on doubleBooking flag
     if (ops.length > 1) {
       // Multi-op: create one display column per operatory with virtual ID
@@ -203,8 +209,9 @@ export default function TemplateBuilderPage() {
           role: p.role,
           color: p.color,
           operatories: [op],
-          workingStart: p.workingStart,
-          workingEnd: p.workingEnd,
+          workingStart: effectiveStart,
+          workingEnd: effectiveEnd,
+          disabled: isDisabledToday,
         });
       });
     } else {
@@ -215,8 +222,9 @@ export default function TemplateBuilderPage() {
         role: p.role,
         color: p.color,
         operatories: [singleOp],
-        workingStart: p.workingStart,
-        workingEnd: p.workingEnd,
+        workingStart: effectiveStart,
+        workingEnd: effectiveEnd,
+        disabled: isDisabledToday,
       });
     }
   }
