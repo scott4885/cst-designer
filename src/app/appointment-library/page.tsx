@@ -43,6 +43,16 @@ interface BlockTypeFormData {
   dTimeMin: string;
   /** A-time (Assistant-managed time) in minutes */
   aTimeMin: string;
+  /**
+   * H-time (Hygienist active time) in minutes. For hygiene appointments only.
+   * Represents the hygienist's active time before the doctor exam.
+   */
+  hTimeMin: string;
+  /**
+   * D-time start offset for hygiene (minutes from appointment start).
+   * Doctor exam begins at this offset. Must be ≥ 20.
+   */
+  dTimeOffsetMin: string;
 }
 
 const EMPTY_FORM: BlockTypeFormData = {
@@ -55,6 +65,8 @@ const EMPTY_FORM: BlockTypeFormData = {
   color: "#6366f1",
   dTimeMin: "",
   aTimeMin: "",
+  hTimeMin: "",
+  dTimeOffsetMin: "",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -128,6 +140,25 @@ function BlockTypeForm({ initial = EMPTY_FORM, onSave, onCancel, isSubmitting, m
     if (form.aTimeMin) {
       const a = Number(form.aTimeMin);
       if (isNaN(a) || a < 0) newErrors.aTimeMin = "Must be non-negative";
+    }
+
+    // Hygiene-specific: validate H-time and D-time offset
+    if (form.hTimeMin) {
+      const h = Number(form.hTimeMin);
+      if (isNaN(h) || h < 0) newErrors.hTimeMin = "Must be non-negative";
+    }
+
+    if (form.dTimeOffsetMin) {
+      const offset = Number(form.dTimeOffsetMin);
+      const dMin = Number(form.durationMin) || 0;
+      if (isNaN(offset) || offset < 0) {
+        newErrors.dTimeOffsetMin = "Must be non-negative";
+      } else if (form.appliesToRole !== "DOCTOR" && offset < 20) {
+        // For hygiene, D-time start must be ≥ minute 20 (§3.5)
+        newErrors.dTimeOffsetMin = "D-time start must be ≥ minute 20 for hygiene appointments";
+      } else if (dMin > 0 && offset >= dMin) {
+        newErrors.dTimeOffsetMin = `D-time start (${offset} min) must be before appointment end (${dMin} min)`;
+      }
     }
 
     setErrors(newErrors);
@@ -218,64 +249,132 @@ function BlockTypeForm({ initial = EMPTY_FORM, onSave, onCancel, isSubmitting, m
         </div>
       </div>
 
-      {/* D/A Time Split */}
-      <div className="space-y-2">
-        <Label className="flex items-center gap-1.5">
-          D/A Time Split
-          <span className="text-[10px] font-normal text-muted-foreground">(optional — for double-booking logic)</span>
-        </Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="bt-dtime" className="flex items-center gap-1">
-              <span className="inline-block w-4 h-4 rounded bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">D</span>
-              D-time (min)
-            </Label>
-            <Input
-              id="bt-dtime"
-              type="number"
-              min={0}
-              value={form.dTimeMin}
-              onChange={(e) => set("dTimeMin", e.target.value)}
-              placeholder="Doctor hands-on"
-              aria-invalid={!!errors.dTimeMin}
-            />
-            {errors.dTimeMin && <p className="text-xs text-destructive">{errors.dTimeMin}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="bt-atime" className="flex items-center gap-1">
-              <span className="inline-block w-4 h-4 rounded bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">A</span>
-              A-time (min)
-            </Label>
-            <Input
-              id="bt-atime"
-              type="number"
-              min={0}
-              value={form.aTimeMin}
-              onChange={(e) => set("aTimeMin", e.target.value)}
-              placeholder="Assistant managed"
-              aria-invalid={!!errors.aTimeMin}
-            />
-            {errors.aTimeMin && <p className="text-xs text-destructive">{errors.aTimeMin}</p>}
-          </div>
-        </div>
-        {form.dTimeMin && form.aTimeMin && Number(form.dTimeMin) > 0 && Number(form.aTimeMin) > 0 && (
-          <div className="flex items-center gap-2 mt-1">
-            <div className="flex-1 h-2 flex rounded-sm overflow-hidden bg-muted">
-              <div
-                className="bg-blue-500 transition-all"
-                style={{ width: `${Math.round((Number(form.dTimeMin) / (Number(form.dTimeMin) + Number(form.aTimeMin))) * 100)}%` }}
+      {/* D/A Time Split — Doctor appointments */}
+      {form.appliesToRole !== "HYGIENIST" && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5">
+            D/A Time Split
+            <span className="text-[10px] font-normal text-muted-foreground">(optional — for double-booking logic)</span>
+          </Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="bt-dtime" className="flex items-center gap-1">
+                <span className="inline-block w-4 h-4 rounded bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">D</span>
+                D-time (min)
+              </Label>
+              <Input
+                id="bt-dtime"
+                type="number"
+                min={0}
+                value={form.dTimeMin}
+                onChange={(e) => set("dTimeMin", e.target.value)}
+                placeholder="Doctor hands-on"
+                aria-invalid={!!errors.dTimeMin}
               />
-              <div className="bg-emerald-500 flex-1" />
+              {errors.dTimeMin && <p className="text-xs text-destructive">{errors.dTimeMin}</p>}
             </div>
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-              D·{form.dTimeMin}m / A·{form.aTimeMin}m
-            </span>
+            <div className="space-y-1.5">
+              <Label htmlFor="bt-atime" className="flex items-center gap-1">
+                <span className="inline-block w-4 h-4 rounded bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">A</span>
+                A-time (min)
+              </Label>
+              <Input
+                id="bt-atime"
+                type="number"
+                min={0}
+                value={form.aTimeMin}
+                onChange={(e) => set("aTimeMin", e.target.value)}
+                placeholder="Assistant managed"
+                aria-invalid={!!errors.aTimeMin}
+              />
+              {errors.aTimeMin && <p className="text-xs text-destructive">{errors.aTimeMin}</p>}
+            </div>
           </div>
-        )}
-        <p className="text-[10px] text-muted-foreground">
-          D = doctor hands-on time. A = assistant-managed time. Doctor can be in another chair during A-time (productive double-booking).
-        </p>
-      </div>
+          {form.dTimeMin && form.aTimeMin && Number(form.dTimeMin) > 0 && Number(form.aTimeMin) > 0 && (
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 h-2 flex rounded-sm overflow-hidden bg-muted">
+                <div
+                  className="bg-blue-500 transition-all"
+                  style={{ width: `${Math.round((Number(form.dTimeMin) / (Number(form.dTimeMin) + Number(form.aTimeMin))) * 100)}%` }}
+                />
+                <div className="bg-emerald-500 flex-1" />
+              </div>
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                D·{form.dTimeMin}m / A·{form.aTimeMin}m
+              </span>
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            D = doctor hands-on time. A = assistant-managed time. Doctor can be in another chair during A-time (productive double-booking).
+          </p>
+        </div>
+      )}
+
+      {/* H+D Time Model — Hygiene appointments (§3.5) */}
+      {form.appliesToRole !== "DOCTOR" && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5">
+            H+D Time Model
+            <span className="text-[10px] font-normal text-muted-foreground">(optional — hygiene H-time + doctor exam overlay)</span>
+          </Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="bt-htime" className="flex items-center gap-1">
+                <span className="inline-block w-4 h-4 rounded bg-teal-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">H</span>
+                H-time (min)
+              </Label>
+              <Input
+                id="bt-htime"
+                type="number"
+                min={0}
+                value={form.hTimeMin}
+                onChange={(e) => set("hTimeMin", e.target.value)}
+                placeholder="Hygienist active time"
+                aria-invalid={!!errors.hTimeMin}
+              />
+              {errors.hTimeMin && <p className="text-xs text-destructive">{errors.hTimeMin}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bt-dtime-offset" className="flex items-center gap-1">
+                <span className="inline-block w-4 h-4 rounded bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">D</span>
+                D-time start (min ≥ 20)
+              </Label>
+              <Input
+                id="bt-dtime-offset"
+                type="number"
+                min={20}
+                value={form.dTimeOffsetMin}
+                onChange={(e) => set("dTimeOffsetMin", e.target.value)}
+                placeholder="≥ 20"
+                aria-invalid={!!errors.dTimeOffsetMin}
+              />
+              {errors.dTimeOffsetMin && <p className="text-xs text-destructive">{errors.dTimeOffsetMin}</p>}
+            </div>
+          </div>
+          {form.hTimeMin && form.dTimeOffsetMin && Number(form.hTimeMin) > 0 && Number(form.dTimeOffsetMin) >= 20 && (
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 h-2 flex rounded-sm overflow-hidden bg-muted">
+                <div
+                  className="bg-teal-500 transition-all"
+                  style={{ width: `${Math.min(100, Math.round((Number(form.dTimeOffsetMin) / (Number(form.durationMin) || 60)) * 100))}%` }}
+                />
+                <div className="bg-blue-500" style={{ width: `${Math.min(100 - Math.round((Number(form.dTimeOffsetMin) / (Number(form.durationMin) || 60)) * 100), Math.round(((form.dTimeMin ? Number(form.dTimeMin) : 10) / (Number(form.durationMin) || 60)) * 100))}%` }} />
+              </div>
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                H·{form.hTimeMin}m / D@min {form.dTimeOffsetMin}
+              </span>
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            H = hygienist active time. Doctor exam starts at the specified minute offset (must be ≥ 20). Doctor CAN see other patients during H-time.
+          </p>
+          {form.dTimeOffsetMin && Number(form.dTimeOffsetMin) < 20 && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400">
+              ⚠ D-time start must be ≥ minute 20 for hygiene appointments
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Minimum Amount */}
       <div className="space-y-1.5">
@@ -379,6 +478,8 @@ export default function AppointmentLibraryPage() {
       color: data.color,
       dTimeMin: data.dTimeMin ? Number(data.dTimeMin) : 0,
       aTimeMin: data.aTimeMin ? Number(data.aTimeMin) : 0,
+      hTimeMin: data.hTimeMin ? Number(data.hTimeMin) : undefined,
+      dTimeOffsetMin: data.dTimeOffsetMin ? Number(data.dTimeOffsetMin) : undefined,
     });
 
     if (result.success) {
@@ -403,6 +504,8 @@ export default function AppointmentLibraryPage() {
       color: data.color,
       dTimeMin: data.dTimeMin ? Number(data.dTimeMin) : 0,
       aTimeMin: data.aTimeMin ? Number(data.aTimeMin) : 0,
+      hTimeMin: data.hTimeMin ? Number(data.hTimeMin) : undefined,
+      dTimeOffsetMin: data.dTimeOffsetMin ? Number(data.dTimeOffsetMin) : undefined,
     });
 
     if (success) {
@@ -447,6 +550,8 @@ export default function AppointmentLibraryPage() {
         color: editTarget.color ?? "#6366f1",
         dTimeMin: (editTarget.dTimeMin ?? 0) > 0 ? String(editTarget.dTimeMin) : "",
         aTimeMin: (editTarget.aTimeMin ?? 0) > 0 ? String(editTarget.aTimeMin) : "",
+        hTimeMin: (editTarget.hTimeMin ?? 0) > 0 ? String(editTarget.hTimeMin) : "",
+        dTimeOffsetMin: (editTarget.dTimeOffsetMin ?? 0) > 0 ? String(editTarget.dTimeOffsetMin) : "",
       } satisfies BlockTypeFormData)
     : EMPTY_FORM;
 
