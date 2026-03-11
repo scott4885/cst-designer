@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect, Fragment } from "react";
-import { ZoomIn, ZoomOut, ChevronsLeftRight, ChevronsRight } from "lucide-react";
+import { ZoomIn, ZoomOut, ChevronsLeftRight, ChevronsRight, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TimeSlotCell from "./TimeSlotCell";
 import BlockPicker from "./BlockPicker";
@@ -91,6 +91,13 @@ interface ScheduleGridProps {
   onRemoveBlock?: (time: string, providerId: string) => void;
   onMoveBlock?: (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => void;
   onUpdateBlock?: (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number, customProductionAmount?: number | null) => void;
+  /**
+   * Optional: called when the user clicks "Generate Smart Schedule" for a specific provider.
+   * The provider ID is the canonical real provider ID (not the virtual "id::OP" form).
+   */
+  onGenerateProvider?: (providerId: string) => void;
+  /** Set to true when a per-provider generation is in progress for the given ID */
+  generatingProviderId?: string | null;
 }
 
 // Drag state
@@ -121,6 +128,8 @@ export default function ScheduleGrid({
   onRemoveBlock,
   onMoveBlock,
   onUpdateBlock,
+  onGenerateProvider,
+  generatingProviderId,
 }: ScheduleGridProps) {
   // blockTypes may be undefined (fall back to global library in BlockPicker/BlockEditor)
   // or an explicit array of office-specific types
@@ -669,23 +678,48 @@ export default function ScheduleGrid({
                 >
                   Time
                 </th>
-                {providers.map((provider) => (
-                  <th
-                    key={provider.id}
-                    colSpan={2}
-                    className="px-3 py-2 text-sm font-semibold text-foreground border-b-2 border-border bg-surface"
-                    style={{ minWidth: colWidth + 28 }}
-                  >
-                    <div className="text-center">
-                      <div className="font-semibold text-xs" style={{ color: provider.color }}>
-                        {provider.name}
+                {providers.map((provider) => {
+                  // Strip virtual "id::OP" suffix to get real provider ID
+                  const realProviderId = provider.id.includes('::')
+                    ? provider.id.slice(0, provider.id.lastIndexOf('::'))
+                    : provider.id;
+                  const isGenerating = generatingProviderId === realProviderId;
+                  return (
+                    <th
+                      key={provider.id}
+                      colSpan={2}
+                      className="px-2 py-1.5 text-sm font-semibold text-foreground border-b-2 border-border bg-surface"
+                      style={{ minWidth: colWidth + 28 }}
+                    >
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="font-semibold text-xs" style={{ color: provider.color }}>
+                          {provider.name}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground font-normal">
+                          {provider.role}
+                        </div>
+                        {onGenerateProvider && (
+                          <button
+                            onClick={() => onGenerateProvider(realProviderId)}
+                            disabled={isGenerating || !!generatingProviderId}
+                            title={`Generate smart schedule for ${provider.name}`}
+                            className="mt-0.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium
+                              bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent
+                              disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            style={{ fontSize: '9px' }}
+                          >
+                            {isGenerating ? (
+                              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-2.5 h-2.5" />
+                            )}
+                            {isGenerating ? 'Generating…' : 'Smart Fill'}
+                          </button>
+                        )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
-                        {provider.role}
-                      </div>
-                    </div>
-                  </th>
-                ))}
+                    </th>
+                  );
+                })}
               </tr>
               {/* Row 3: Staffing / Block type sub-headers */}
               <tr>

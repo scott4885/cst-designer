@@ -71,6 +71,9 @@ export default function TemplateBuilderPage() {
   const [showGenerateWarning, setShowGenerateWarning] = useState(false);
   const [pendingGenerateAction, setPendingGenerateAction] = useState<'single' | 'all' | null>(null);
 
+  // Per-provider "Generate Smart Schedule" state
+  const [generatingProviderId, setGeneratingProviderId] = useState<string | null>(null);
+
   // Fetch office data on mount
   useEffect(() => {
     fetchOffice(officeId).catch((error) => {
@@ -368,6 +371,37 @@ export default function TemplateBuilderPage() {
       setGeneratingDay(null);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // Per-provider "Generate Smart Schedule" — generates only for the specified provider in the current day
+  const handleGenerateProvider = async (realProviderId: string) => {
+    if (!currentOffice) return;
+    setGeneratingProviderId(realProviderId);
+    try {
+      const res = await fetch(`/api/offices/${officeId}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ day: activeDay, providerId: realProviderId }),
+      });
+      if (!res.ok) throw new Error('Failed to generate schedule');
+      const data = await res.json();
+      // Merge the returned schedule into the store (preserving other days)
+      const existingSchedules = Object.values(generatedSchedules);
+      const mergedSchedule = data.schedule ?? data.schedules?.[0];
+      if (mergedSchedule) {
+        const others = existingSchedules.filter(s => s.dayOfWeek !== mergedSchedule.dayOfWeek);
+        setSchedules([...others, mergedSchedule], officeId);
+      } else if (data.schedules) {
+        setSchedules(data.schedules, officeId);
+      }
+      setIsDirty(true);
+      const providerName = fullProviders.find(p => p.id === realProviderId)?.name ?? 'Provider';
+      toast.success(`Smart schedule generated for ${providerName}!`);
+    } catch {
+      toast.error('Failed to generate provider schedule');
+    } finally {
+      setGeneratingProviderId(null);
     }
   };
 
@@ -1079,6 +1113,8 @@ export default function TemplateBuilderPage() {
                           onRemoveBlock={currentDaySchedule ? handleRemoveBlock : undefined}
                           onMoveBlock={currentDaySchedule ? handleMoveBlock : undefined}
                           onUpdateBlock={currentDaySchedule ? handleUpdateBlock : undefined}
+                          onGenerateProvider={currentDaySchedule ? handleGenerateProvider : undefined}
+                          generatingProviderId={generatingProviderId}
                         />
                       </div>
                     </CardContent>
