@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import KeyboardShortcutsModal from "@/components/KeyboardShortcutsModal";
+import { useKeyboardShortcuts } from "@/lib/keyboard-shortcuts";
 
 export default function ClientLayout({
   children,
@@ -12,6 +15,19 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const router = useRouter();
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts({
+    onHelp: useCallback(() => setShortcutsOpen(true), []),
+    onEscape: useCallback(() => setShortcutsOpen(false), []),
+    onGoOffices: useCallback(() => router.push("/"), [router]),
+    onGoAnalytics: useCallback(() => router.push("/analytics"), [router]),
+    onGoLibrary: useCallback(() => router.push("/templates"), [router]),
+    onGoRollup: useCallback(() => router.push("/rollup"), [router]),
+    onPrint: useCallback(() => window.print(), []),
+  });
 
   return (
     <TooltipProvider>
@@ -36,6 +52,12 @@ export default function ClientLayout({
           </main>
         </div>
       </div>
+
+      {/* Global keyboard shortcuts modal */}
+      <KeyboardShortcutsModal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
     </TooltipProvider>
   );
 }

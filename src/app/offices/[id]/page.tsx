@@ -33,6 +33,7 @@ import OptimizationPanel from "@/components/schedule/OptimizationPanel";
 import type { OptimizationSuggestion } from "@/lib/engine/optimizer";
 import { notify } from "@/lib/notifications";
 import PatientFlowPanel from "@/components/schedule/PatientFlowPanel";
+import GoalPacingPanel from "@/components/schedule/GoalPacingPanel";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import { detectConflicts } from "@/lib/engine/stagger";
 import type { ConflictResult } from "@/lib/engine/stagger";
@@ -1589,6 +1590,14 @@ export default function TemplateBuilderPage() {
                 schedule={currentDaySchedule}
                 blockTypes={blockTypesForStore}
                 providers={fullProviders}
+              />
+            )}
+            {/* Goal Pacing Panel — Sprint 16 */}
+            {currentDaySchedule && fullProviders.length > 0 && (
+              <GoalPacingPanel
+                providers={fullProviders}
+                slots={currentDaySchedule.slots}
+                blockTypes={blockTypesForStore}
               />
             )}
             <ConflictPanel
