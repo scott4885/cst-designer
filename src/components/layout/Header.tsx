@@ -6,6 +6,7 @@ import { Settings, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOfficeStore } from "@/store/office-store";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import NotificationBell from "@/components/NotificationBell";
 
 interface HeaderProps {
   onMobileMenuToggle?: () => void;
@@ -84,8 +85,9 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
         </div>
       </div>
 
-      {/* Right: theme toggle + settings */}
+      {/* Right: notifications + theme toggle + settings */}
       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+        <NotificationBell />
         <ThemeToggle />
         <Link href="/settings">
           <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 min-h-[44px] min-w-[44px]">

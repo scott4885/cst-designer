@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson, FileText, Save, CheckCircle2, Printer } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson, FileText, Save, CheckCircle2, Printer, Grid3X3 as MatrixIcon, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +31,8 @@ import { generateExcel, ExportInput, ExportDaySchedule } from "@/lib/export/exce
 import CloneTemplateModal from "@/components/schedule/CloneTemplateModal";
 import OptimizationPanel from "@/components/schedule/OptimizationPanel";
 import type { OptimizationSuggestion } from "@/lib/engine/optimizer";
+import { notify } from "@/lib/notifications";
+import PatientFlowPanel from "@/components/schedule/PatientFlowPanel";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import { detectConflicts } from "@/lib/engine/stagger";
 import type { ConflictResult } from "@/lib/engine/stagger";
@@ -417,12 +419,11 @@ export default function TemplateBuilderPage() {
 
     setIsDirty(false);
     setLastSavedAt(new Date());
-    toast.success(
-      ((currentOffice as any).rotationEnabled || (currentOffice as any).alternateWeekEnabled)
-        ? `Week ${activeWeek} template saved!`
-        : "Template saved!",
-      { duration: 2000 }
-    );
+    const savedLabel = ((currentOffice as any).rotationEnabled || (currentOffice as any).alternateWeekEnabled)
+      ? `Week ${activeWeek} template saved!`
+      : "Template saved!";
+    toast.success(savedLabel, { duration: 2000 });
+    notify.saved(`${getDayLabel(activeDay)} Week ${activeWeek}`);
   };
 
   // Clear all schedules and localStorage state, reset to empty
@@ -1049,6 +1050,42 @@ export default function TemplateBuilderPage() {
             </TooltipContent>
           </Tooltip>
           {getDpmsExportButton(currentOffice.dpmsSystem, currentDaySchedule, () => setShowODExportDialog(true))}
+          {/* Matrix View link */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0}>
+                <Link href={`/offices/${officeId}/matrix?day=${activeDay.toLowerCase()}`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="min-h-[44px]"
+                  >
+                    <MatrixIcon className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Matrix</span>
+                  </Button>
+                </Link>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Multi-provider scheduling matrix view</TooltipContent>
+          </Tooltip>
+          {/* Weekly Report link */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0}>
+                <Link href={`/offices/${officeId}/report`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="min-h-[44px]"
+                  >
+                    <BarChart2 className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Report</span>
+                  </Button>
+                </Link>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Weekly schedule report (print-ready)</TooltipContent>
+          </Tooltip>
           {/* Print View button */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1564,6 +1601,14 @@ export default function TemplateBuilderPage() {
               <div id="clinical-validation-panel">
                 <ClinicalValidationPanel warnings={clinicalWarnings} />
               </div>
+            )}
+            {/* Patient Flow Estimate — Sprint 15 */}
+            {currentDaySchedule && (
+              <PatientFlowPanel
+                schedule={currentDaySchedule}
+                providers={fullProviders}
+                timeIncrement={timeIncrement}
+              />
             )}
             {/* Optimization Advisor — Sprint 13 */}
             {currentDaySchedule && qualityScore && (

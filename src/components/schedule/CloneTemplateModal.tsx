@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { cloneTemplateToOffices, CloneResult } from "@/lib/clone-template";
 import type { ProviderInput } from "@/lib/engine/types";
 import type { OfficeData } from "@/lib/mock-data";
+import { notify } from "@/lib/notifications";
 
 interface CloneTemplateModalProps {
   open: boolean;
@@ -142,6 +143,10 @@ export default function CloneTemplateModal({
       setCloneResults(results);
       setTotalMismatches(tm);
       setStep('done');
+      const successCount = results.filter(r => r.success).length;
+      if (successCount > 0) {
+        notify.cloned(successCount);
+      }
     } finally {
       setIsCloning(false);
     }

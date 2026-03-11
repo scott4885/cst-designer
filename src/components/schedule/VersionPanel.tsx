@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { GenerationResult, ProviderProductionSummary } from "@/lib/engine/types";
+import { notify } from "@/lib/notifications";
 
 interface TemplateVersion {
   id: string;
@@ -112,6 +113,7 @@ export default function VersionPanel({
 
       onLoadVersion(schedule);
       toast.success(`Loaded version "${data.name}"`);
+      notify.versionRestored(data.name ?? `${data.dayOfWeek}`);
     } catch (error) {
       console.error("Error loading version:", error);
       toast.error("Failed to load version");
