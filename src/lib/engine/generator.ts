@@ -447,11 +447,16 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
       // Generate blocks INDEPENDENTLY on each operatory with a per-column stagger offset.
       // Each column's schedule is staggered so appointment start times differ across columns,
       // ensuring the provider is never scheduled in two places at the same instant.
+      //
+      // FIX (Sprint 5 §5.4): Divide the daily goal evenly across all operatories so the
+      // combined scheduled production doesn't exceed the provider's actual daily goal.
+      const perOpGoal = doc.dailyGoal / opSlots.length;
+      const docPerOp: ProviderInput = { ...doc, dailyGoal: perOpGoal };
       for (let oi = 0; oi < opSlots.length; oi++) {
         const columnOffset = calculateStaggerOffset(di, oi, columnStaggerInterval);
         const totalStagger = baseStaggerMin + columnOffset;
         doctorColumnStagger.set(`${doc.id}::${opSlots[oi].operatory}`, totalStagger);
-        placeDoctorBlocks(slots, opSlots[oi], doc, blocksByCategory, rules, timeIncrement, warnings, totalStagger, di, doctors.length);
+        placeDoctorBlocks(slots, opSlots[oi], docPerOp, blocksByCategory, rules, timeIncrement, warnings, totalStagger, di, doctors.length);
       }
     } else {
       // Single-column: place with base provider stagger only
@@ -565,8 +570,18 @@ function placeDoctorBlocks(
   let morningHPPlaced = 0;
 
   for (let i = 0; i < morningHPTarget; i++) {
+    // Production cap guard: stop placing HP blocks once we've hit the per-op target.
+    // This prevents multi-op doctors from over-scheduling when dailyGoal is divided per op.
+    if (totalScheduled >= targets.target75) break;
+
     const hp = hpBlocks[i % hpBlocks.length];
     if (!hp) break;
+
+    const hpAmount = hp.minimumAmount || hpMinPerBlock;
+    // Additional guard: if a single HP block would exceed the per-op target by 1.5×,
+    // skip HP placements entirely. This handles cases where the per-op goal is very
+    // small relative to block size (e.g. 3 ops with $3000 goal → target75 = $750, HP = $1200).
+    if (hpAmount > targets.target75 * 1.5) break;
 
     const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
@@ -577,9 +592,8 @@ function placeDoctorBlocks(
     const targetRange = amRanges[0] || fallbackAmRanges[0];
 
     if (targetRange) {
-      const amount = hp.minimumAmount || hpMinPerBlock;
-      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, amount));
-      totalScheduled += amount;
+      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, hpAmount));
+      totalScheduled += hpAmount;
       morningHPPlaced++;
     } else {
       break; // No more morning room
@@ -603,15 +617,19 @@ function placeDoctorBlocks(
   }
 
   // Fill remaining morning slots with more HP if available
-  if (morningHPPlaced < 4 && hpBlocks.length > 0) {
+  // Only fill if still under the per-op target (guards multi-op over-scheduling).
+  if (morningHPPlaced < 4 && hpBlocks.length > 0 && totalScheduled < targets.target75) {
     const hp = hpBlocks[0];
-    const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
-    const ranges = findAvailableRanges(slots, ps, slotsNeeded);
-    const amRanges = morningRanges(ranges, slots, doc);
-    if (amRanges.length > 0) {
-      const amount = hp.minimumAmount || hpMinPerBlock;
-      placeBlockInSlots(slots, amRanges[0], hp, doc, makeLabel(hp, amount));
-      totalScheduled += amount;
+    const fillHpAmount = hp.minimumAmount || hpMinPerBlock;
+    // Same block-size guard: skip if this HP block itself would exceed target by 1.5×
+    if (fillHpAmount <= targets.target75 * 1.5) {
+      const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
+      const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+      const amRanges = morningRanges(ranges, slots, doc);
+      if (amRanges.length > 0) {
+        placeBlockInSlots(slots, amRanges[0], hp, doc, makeLabel(hp, fillHpAmount));
+        totalScheduled += fillHpAmount;
+      }
     }
   }
 
@@ -620,25 +638,30 @@ function placeDoctorBlocks(
   // 2f. HP BLOCK (afternoon) — 1 HP block right after lunch
   // For staggered doctors: offset the first afternoon block to avoid lunch overlap.
   // If stagger offset > 0, give secondary doctors an earlier/later first-PM block.
-  if (hpBlocks.length > 0) {
+  // Guard: skip if we've already met the per-op target (multi-op doctors with divided goals).
+  if (hpBlocks.length > 0 && totalScheduled < targets.target75) {
     const hp = hpBlocks[0];
-    const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
-    const ranges = findAvailableRanges(slots, ps, slotsNeeded);
-    const pmRanges = afternoonRanges(ranges, slots, doc);
+    const pmHpAmount = hp.minimumAmount || hpMinPerBlock;
+    // Same block-size guard as morning: skip if single block far exceeds per-op target
+    if (pmHpAmount <= targets.target75 * 1.5) {
+      const slotsNeeded = Math.ceil(hp.durationMin / timeIncrement);
+      const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+      const pmRanges = afternoonRanges(ranges, slots, doc);
 
-    if (pmRanges.length > 0) {
-      // Stagger first afternoon HP: each additional doctor delays by stagger offset
-      const pmStaggerStart = getLunchMidpoint(doc) + staggerOffsetMin;
-      const staggeredPmRanges = rangesAfter(pmRanges, slots, pmStaggerStart);
-      const targetRange = staggeredPmRanges[0] || pmRanges[0];
-      const amount = hp.minimumAmount || hpMinPerBlock;
-      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, amount));
-      totalScheduled += amount;
+      if (pmRanges.length > 0) {
+        // Stagger first afternoon HP: each additional doctor delays by stagger offset
+        const pmStaggerStart = getLunchMidpoint(doc) + staggerOffsetMin;
+        const staggeredPmRanges = rangesAfter(pmRanges, slots, pmStaggerStart);
+        const targetRange = staggeredPmRanges[0] || pmRanges[0];
+        placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, pmHpAmount));
+        totalScheduled += pmHpAmount;
+      }
     }
   }
 
   // 2g. MP BLOCK — After afternoon HP
-  if (mpBlock) {
+  // Guard: skip if already at per-op target (multi-op doctors with divided goals).
+  if (mpBlock && totalScheduled < targets.target75 * 1.5) {
     const slotsNeeded = Math.ceil(mpBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     const pmRanges = afternoonRanges(ranges, slots, doc);
@@ -666,7 +689,8 @@ function placeDoctorBlocks(
   }
 
   // 2i. Second MP block — fill remaining afternoon gap
-  if (mpBlock) {
+  // Guard: skip if already at per-op target.
+  if (mpBlock && totalScheduled < targets.target75 * 1.5) {
     const slotsNeeded = Math.ceil(mpBlock.durationMin / timeIncrement);
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     const pmRanges = afternoonRanges(ranges, slots, doc);
@@ -914,6 +938,37 @@ function wouldExceedVarietyCap(
   return afterCount / totalNonBreak > MAX_SAME_TYPE_FRACTION;
 }
 
+/**
+ * Compute the production already scheduled for a provider in a specific operatory.
+ * Walks consecutive same-blockTypeId runs and sums their minimumAmount values.
+ * Used by fillDocOpSlots to enforce per-op production caps for multi-column doctors.
+ */
+function computeCurrentOpProduction(
+  slots: TimeSlotOutput[],
+  ps: ProviderSlots,
+  blocksByCategory: Map<string, BlockTypeInput[]>
+): number {
+  // Build a flat block-id → amount lookup
+  const btAmountMap = new Map<string, number>();
+  for (const bts of blocksByCategory.values()) {
+    for (const bt of bts) {
+      btAmountMap.set(bt.id, bt.minimumAmount ?? 0);
+    }
+  }
+  const opSlots = slots.filter(
+    s => s.providerId === ps.provider.id && s.operatory === ps.operatory && s.blockTypeId && !s.isBreak
+  );
+  let total = 0;
+  let currentBlockId: string | null = null;
+  for (const slot of opSlots) {
+    if (slot.blockTypeId !== currentBlockId) {
+      total += btAmountMap.get(slot.blockTypeId!) ?? 0;
+      currentBlockId = slot.blockTypeId;
+    }
+  }
+  return total;
+}
+
 function fillRemainingDoctorSlots(
   slots: TimeSlotOutput[],
   psMap: Map<string, ProviderSlots>,
@@ -924,9 +979,12 @@ function fillRemainingDoctorSlots(
 ): void {
   for (const doc of doctors) {
     const opSlotsList = getProviderOpSlots(psMap, doc.id);
+    // For multi-column doctors, cap per-op fill to dailyGoal / numOps so the
+    // fill step doesn't undo the per-op goal division applied in placeDoctorBlocks.
+    const perOpCap = opSlotsList.length > 1 ? doc.dailyGoal / opSlotsList.length : undefined;
     for (const ps of opSlotsList) {
       const staggerMin = columnStaggerMap?.get(`${doc.id}::${ps.operatory}`) ?? 0;
-      fillDocOpSlots(slots, ps, doc, blocksByCategory, timeIncrement, staggerMin);
+      fillDocOpSlots(slots, ps, doc, blocksByCategory, timeIncrement, staggerMin, perOpCap);
     }
   }
 }
@@ -937,7 +995,8 @@ function fillDocOpSlots(
   doc: ProviderInput,
   blocksByCategory: Map<string, BlockTypeInput[]>,
   timeIncrement: number,
-  staggerOffsetMin: number = 0
+  staggerOffsetMin: number = 0,
+  productionCap?: number
 ): void {
     // Get all available block types for this doctor
     const hpBlocks = getAllBlocksForCategory('HP', blocksByCategory, doc);
@@ -958,12 +1017,23 @@ function fillDocOpSlots(
     // Slots before the staggered start time are intentionally left empty — they
     // represent the ramp-up period before this column's patients arrive.
     const staggeredFillStart = toMinutes(doc.workingStart) + staggerOffsetMin;
+
+    // If a production cap is set (multi-op doctors), pre-compute already-placed production
+    // and stop filling if we've already hit the cap.
+    let filledProduction = 0;
+    if (productionCap !== undefined) {
+      filledProduction = computeCurrentOpProduction(slots, ps, blocksByCategory);
+      if (filledProduction >= productionCap) return;
+    }
     
     // Shuffle and distribute blocks
     let safety = 0;
     while (safety < 20) {
       safety++;
       
+      // Production cap guard: stop filling if per-op cap is reached
+      if (productionCap !== undefined && filledProduction >= productionCap) break;
+
       // Pick a random block type based on weights
       const totalWeight = blockPool.reduce((sum, item) => sum + item.weight, 0);
       let random = Math.random() * totalWeight;
@@ -978,6 +1048,16 @@ function fillDocOpSlots(
       }
       
       const slotsNeeded = Math.ceil(selectedBlock.durationMin / timeIncrement);
+
+      // Production cap: skip this block if it would push past the cap
+      if (productionCap !== undefined) {
+        const blockAmount = selectedBlock.minimumAmount ?? 0;
+        if (filledProduction + blockAmount > productionCap * 1.25) {
+          // Allow up to 25% over cap to avoid getting stuck (block granularity)
+          // If even 25% over is exceeded, try a smaller block or bail
+          continue;
+        }
+      }
 
       // Variety cap: if placing this block type would exceed MAX_SAME_TYPE_FRACTION,
       // skip it this iteration so a different type gets placed instead (§7 variety enforcement).
@@ -1004,6 +1084,7 @@ function fillDocOpSlots(
       }
       
       placeBlockInSlots(slots, targetRange, selectedBlock, doc, makeLabel(selectedBlock));
+      filledProduction += selectedBlock.minimumAmount ?? 0;
     }
     // NOTE: intentionally leave ~15% of slots empty for click-to-add
 }

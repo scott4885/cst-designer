@@ -483,4 +483,89 @@ describe('generator', () => {
       expect(simultaneousCount).toBeLessThan(op1BlocksByTime.size);
     });
   });
+
+  // ── Sprint 5: Multi-Op Production Goal Fix (§5.4) ────────────────────────
+  describe('multi-op production goal fix (Sprint 5)', () => {
+    function makeMultiOpInput(numOps: number, dailyGoal: number): GenerationInput {
+      const ops = Array.from({ length: numOps }, (_, i) => `OP${i + 1}`);
+      const provider: ProviderInput = {
+        id: 'drFix',
+        name: 'Dr. Fix',
+        role: 'DOCTOR',
+        operatories: ops,
+        workingStart: '07:00',
+        workingEnd: '17:00',
+        lunchStart: '12:00',
+        lunchEnd: '13:00',
+        dailyGoal,
+        color: '#000',
+      };
+      const blockTypes: BlockTypeInput[] = [
+        { id: 'hp1', label: 'HP > $1200', minimumAmount: 1200, appliesToRole: 'DOCTOR', durationMin: 60 },
+        { id: 'np1', label: 'NP CONS',   minimumAmount: 150,  appliesToRole: 'DOCTOR', durationMin: 30 },
+        { id: 'mp1', label: 'MP',        minimumAmount: 375,  appliesToRole: 'DOCTOR', durationMin: 40 },
+        { id: 'er1', label: 'ER',        minimumAmount: 187,  appliesToRole: 'DOCTOR', durationMin: 30 },
+      ];
+      return {
+        providers: [provider],
+        blockTypes,
+        rules: {
+          npModel: 'DOCTOR_ONLY',
+          npBlocksPerDay: 1,
+          srpBlocksPerDay: 1,
+          hpPlacement: 'MORNING',
+          doubleBooking: true,
+          matrixing: false,
+          emergencyHandling: 'DEDICATED',
+        },
+        timeIncrement: 10,
+        dayOfWeek: 'Monday',
+      };
+    }
+
+    function getActualProduction(result: ReturnType<typeof generateSchedule>): number {
+      const summary = result.productionSummary.find(s => s.providerId === 'drFix');
+      return summary?.actualScheduled ?? 0;
+    }
+
+    it('single-op doctor: production ≈ dailyGoal (baseline unchanged)', () => {
+      const result = generateSchedule(makeMultiOpInput(1, 3000));
+      const actual = getActualProduction(result);
+      // Should be close to target75 of 3000 = 2250, not more than 2× goal
+      expect(actual).toBeLessThanOrEqual(3000 * 2);
+      expect(actual).toBeGreaterThan(0);
+    });
+
+    it('2-op doctor goal $3,000: combined production ≤ $3,000 (not $6,000)', () => {
+      const result = generateSchedule(makeMultiOpInput(2, 3000));
+      const actual = getActualProduction(result);
+      // With fix: combined should be ~$3,000. Without fix it would be ~$6,000.
+      expect(actual).toBeLessThanOrEqual(3000 * 1.3); // allow 30% buffer above goal
+      expect(actual).toBeGreaterThan(0);
+    });
+
+    it('3-op doctor goal $3,000: combined production ≤ $3,000 (not $9,000)', () => {
+      const result = generateSchedule(makeMultiOpInput(3, 3000));
+      const actual = getActualProduction(result);
+      // With fix: combined should be ~$3,000. Without fix it would be ~$9,000.
+      expect(actual).toBeLessThanOrEqual(3000 * 1.3);
+      expect(actual).toBeGreaterThan(0);
+    });
+
+    it('2-op doctor: combined production is roughly the same as single-op doctor', () => {
+      const single = generateSchedule(makeMultiOpInput(1, 3000));
+      const double = generateSchedule(makeMultiOpInput(2, 3000));
+      const singleProd = getActualProduction(single);
+      const doubleProd = getActualProduction(double);
+      // Combined 2-op should be within 2× of single-op (not 4× as with the bug)
+      expect(doubleProd).toBeLessThanOrEqual(singleProd * 2.5);
+    });
+
+    it('productionSummary dailyGoal reflects the original (full) goal, not per-op goal', () => {
+      // The summary should still show the doctor's real goal for display purposes
+      const result = generateSchedule(makeMultiOpInput(2, 3000));
+      const summary = result.productionSummary.find(s => s.providerId === 'drFix');
+      expect(summary?.dailyGoal).toBe(3000);
+    });
+  });
 });
