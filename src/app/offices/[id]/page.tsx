@@ -65,6 +65,8 @@ export default function TemplateBuilderPage() {
   const [showODExportDialog, setShowODExportDialog] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
+  /** Shows a brief "Auto-loaded saved schedule" banner when schedule is restored from localStorage */
+  const [autoLoadedBanner, setAutoLoadedBanner] = useState(false);
 
   // Save state tracking
   const [isDirty, setIsDirty] = useState(false);
@@ -85,10 +87,19 @@ export default function TemplateBuilderPage() {
     });
   }, [officeId, fetchOffice, router]);
 
-  // Load schedules for this office from localStorage
+  // Load schedules for this office from localStorage — auto-populate on mount
   useEffect(() => {
-    loadSchedulesForOffice(officeId);
-  }, [officeId, loadSchedulesForOffice]);
+    loadSchedulesForOffice(officeId).then(() => {
+      // Show banner if schedules were restored from localStorage
+      const schedules = useScheduleStore.getState().generatedSchedules;
+      if (Object.keys(schedules).length > 0) {
+        setAutoLoadedBanner(true);
+        const t = setTimeout(() => setAutoLoadedBanner(false), 3000);
+        return () => clearTimeout(t);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [officeId]);
 
   // Set initial active day when office loads
   useEffect(() => {
@@ -1126,6 +1137,14 @@ export default function TemplateBuilderPage() {
 
         {/* Center Panel - Schedule Grid */}
         <div className="w-full lg:flex-1 flex flex-col lg:overflow-hidden">
+          {/* Auto-loaded banner — fades after 3s when a saved schedule is restored from localStorage */}
+          {autoLoadedBanner && (
+            <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-md bg-success/10 border border-success/20 text-success text-xs font-medium transition-opacity duration-500 w-fit">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Auto-loaded saved schedule
+            </div>
+          )}
+
           {/* Week A / Week B selector — shown only when alternateWeekEnabled */}
           {(currentOffice as any).alternateWeekEnabled && (
             <div className="flex items-center gap-2 mb-3">
