@@ -6,8 +6,11 @@ import type {
   BlockTypeInput,
   StaffingCode,
   ScheduleRules,
-  ProviderProductionSummary
+  ProviderProductionSummary,
+  ProcedureCategory,
+  ProcedureMix,
 } from './types';
+import { inferProcedureCategory } from './types';
 import { calculateTarget75, calculateProductionSummary } from './calculator';
 import { calculateStaggerOffset, DEFAULT_COLUMN_STAGGER_MIN, snapRotationTime } from './stagger';
 
@@ -19,6 +22,149 @@ export { snapRotationTime };
  * Enforces the "no single appointment type fills the entire day" variety requirement (§7).
  */
 export const MAX_SAME_TYPE_FRACTION = 0.65;
+
+// ---------------------------------------------------------------------------
+// Procedure Mix Intelligence — Sprint 9
+// ---------------------------------------------------------------------------
+
+/**
+ * Determine whether a future procedure mix is valid (set + sums to ~100).
+ */
+export function isMixValid(mix: ProcedureMix | undefined): boolean {
+  if (!mix || Object.keys(mix).length === 0) return false;
+  const total = Object.values(mix).reduce((s, v) => s + (v ?? 0), 0);
+  return total >= 95 && total <= 105;
+}
+
+/**
+ * Calculate target block counts per procedure category for a provider.
+ * Uses 75% of dailyGoal as the production target.
+ */
+export function calculateCategoryTargets(
+  provider: ProviderInput,
+  blockTypes: BlockTypeInput[],
+  mix: ProcedureMix
+): Partial<Record<ProcedureCategory, number>> {
+  const target75 = calculateTarget75(provider.dailyGoal);
+  const result: Partial<Record<ProcedureCategory, number>> = {};
+
+  for (const [cat, pct] of Object.entries(mix) as [ProcedureCategory, number][]) {
+    if (!pct || pct <= 0) continue;
+    const catBlocks = blockTypes.filter(bt => {
+      const btCat = bt.procedureCategory ?? inferProcedureCategory(bt.label);
+      return btCat === cat && (bt.appliesToRole === provider.role || bt.appliesToRole === 'BOTH');
+    });
+    if (catBlocks.length === 0) continue;
+    const avgValue = catBlocks.reduce((s, b) => s + (b.minimumAmount ?? 0), 0) / catBlocks.length;
+    const dollarTarget = target75 * (pct / 100);
+    result[cat] = avgValue > 0 ? Math.round(dollarTarget / avgValue) : 0;
+  }
+  return result;
+}
+
+/**
+ * Place blocks for a doctor using category-weighted procedure mix.
+ * Called when provider.futureProcedureMix is set and valid.
+ * Iterates categories in descending percentage order, placing blocks until target count met.
+ */
+function placeDoctorBlocksByMix(
+  slots: TimeSlotOutput[],
+  ps: ProviderSlots,
+  doc: ProviderInput,
+  blockTypes: BlockTypeInput[],
+  timeIncrement: number,
+  warnings: string[],
+  staggerOffsetMin: number,
+  sharedProductionCtx?: { target: number; produced: number }
+): void {
+  const futureMix = doc.futureProcedureMix!;
+  const categoryTargets = calculateCategoryTargets(doc, blockTypes, futureMix);
+
+  // Sort categories by percentage descending (highest priority first)
+  const sortedCategories = (Object.entries(futureMix) as [ProcedureCategory, number][])
+    .filter(([, pct]) => pct > 0)
+    .sort(([, a], [, b]) => b - a)
+    .map(([cat]) => cat);
+
+  const staggeredStartMin = toMinutes(doc.workingStart) + staggerOffsetMin;
+  let totalScheduled = 0;
+
+  const isGoalMet = () =>
+    sharedProductionCtx
+      ? sharedProductionCtx.produced >= sharedProductionCtx.target
+      : totalScheduled >= calculateTarget75(doc.dailyGoal);
+
+  const recordProd = (amount: number) => {
+    totalScheduled += amount;
+    if (sharedProductionCtx) sharedProductionCtx.produced += amount;
+  };
+
+  for (const cat of sortedCategories) {
+    if (isGoalMet()) break;
+    const targetCount = categoryTargets[cat] ?? 0;
+    if (targetCount <= 0) continue;
+
+    // Find block types for this category that apply to this provider
+    const catBlockTypes = blockTypes.filter(bt => {
+      const btCat = bt.procedureCategory ?? inferProcedureCategory(bt.label);
+      return btCat === cat && blockAppliesToProvider(bt, doc);
+    });
+    if (catBlockTypes.length === 0) continue;
+
+    // Sort by minimumAmount descending within category
+    catBlockTypes.sort((a, b) => (b.minimumAmount ?? 0) - (a.minimumAmount ?? 0));
+
+    let placed = 0;
+    let btIndex = 0;
+    while (placed < targetCount && !isGoalMet()) {
+      const bt = catBlockTypes[btIndex % catBlockTypes.length];
+      btIndex++;
+
+      const slotsNeeded = Math.ceil(bt.durationMin / timeIncrement);
+      const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+      if (ranges.length === 0) break;
+
+      // Prefer staggered morning slots, then any available
+      const availableRanges = rangesAfter(ranges, slots, staggeredStartMin);
+      const targetRange = availableRanges[0] ?? ranges[0];
+
+      const amount = bt.minimumAmount ?? 0;
+      placeBlockInSlots(slots, targetRange, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label);
+      recordProd(amount);
+      placed++;
+
+      // Prevent infinite loops if same block keeps cycling
+      if (btIndex > catBlockTypes.length * 3) break;
+    }
+  }
+
+  // Fill any remaining gap to reach target (goal-driven)
+  let safety = 0;
+  while (!isGoalMet() && safety < 10) {
+    safety++;
+    // Use all applicable blocks sorted by minimumAmount desc
+    const allBlocks = blockTypes
+      .filter(bt => blockAppliesToProvider(bt, doc))
+      .sort((a, b) => (b.minimumAmount ?? 0) - (a.minimumAmount ?? 0));
+
+    let filled = false;
+    for (const bt of allBlocks) {
+      const slotsNeeded = Math.ceil(bt.durationMin / timeIncrement);
+      const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+      if (ranges.length === 0) continue;
+      const amount = bt.minimumAmount ?? 0;
+      placeBlockInSlots(slots, ranges[0], bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label);
+      recordProd(amount);
+      filled = true;
+      break;
+    }
+    if (!filled) break;
+  }
+
+  if (!isGoalMet() && calculateTarget75(doc.dailyGoal) > 0) {
+    warnings.push(`Procedure mix placement: could not fully reach 75% target for ${doc.name}`);
+  }
+}
 
 /**
  * Generate time slots from start to end in specified increments (24h format: "07:00")
@@ -540,6 +686,9 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
     // A provider is "multi-column" when they are assigned to more than one operatory
     const isMultiColumn = opSlots.length > 1;
 
+    // Sprint 9: Use category-weighted placement when provider has a valid future procedure mix
+    const useMixPlacement = isMixValid(doc.futureProcedureMix);
+
     if (isMultiColumn) {
       // Sprint 6 FIX: Shared production pool — one target for ALL ops combined.
       // Instead of dividing dailyGoal / numOps (Sprint 5 approach), we use a mutable
@@ -553,7 +702,11 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
         const columnOffset = calculateStaggerOffset(di, oi, columnStaggerInterval);
         const totalStagger = baseStaggerMin + columnOffset;
         doctorColumnStagger.set(`${doc.id}::${opSlots[oi].operatory}`, totalStagger);
-        placeDoctorBlocks(slots, opSlots[oi], doc, blocksByCategory, rules, timeIncrement, warnings, totalStagger, di, doctors.length, oi, sharedProductionCtx);
+        if (useMixPlacement) {
+          placeDoctorBlocksByMix(slots, opSlots[oi], doc, blockTypes, timeIncrement, warnings, totalStagger, sharedProductionCtx);
+        } else {
+          placeDoctorBlocks(slots, opSlots[oi], doc, blocksByCategory, rules, timeIncrement, warnings, totalStagger, di, doctors.length, oi, sharedProductionCtx);
+        }
         // Recalibrate shared ctx after each op so the NEXT op's isGoalMet() check
         // uses summary-consistent merged-group production counts, not the raw
         // per-placement counts tracked by recordProd (which may overcount consecutive
@@ -564,7 +717,11 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
       // Single-column: place with base provider stagger only (no shared ctx needed)
       for (const ps of opSlots) {
         doctorColumnStagger.set(`${doc.id}::${ps.operatory}`, baseStaggerMin);
-        placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings, baseStaggerMin, di, doctors.length);
+        if (useMixPlacement) {
+          placeDoctorBlocksByMix(slots, ps, doc, blockTypes, timeIncrement, warnings, baseStaggerMin);
+        } else {
+          placeDoctorBlocks(slots, ps, doc, blocksByCategory, rules, timeIncrement, warnings, baseStaggerMin, di, doctors.length);
+        }
       }
     }
   }

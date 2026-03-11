@@ -18,7 +18,9 @@ import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 // updateOffice uses API route
-import type { BlockTypeInput, ProviderDayScheduleEntry, ProviderSchedule } from "@/lib/engine/types";
+import type { BlockTypeInput, ProviderDayScheduleEntry, ProviderSchedule, ProcedureMix, ProcedureCategory } from "@/lib/engine/types";
+import { ALL_PROCEDURE_CATEGORIES, PROCEDURE_CATEGORY_LABELS, PROCEDURE_MIX_BENCHMARKS } from "@/lib/engine/types";
+import { getMixTotal } from "@/lib/engine/procedure-mix";
 
 const DAYS_OF_WEEK = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'] as const;
 const DAY_LABELS: Record<string, string> = {
@@ -85,6 +87,14 @@ export default function EditOfficePage() {
   const [detailByDayMap, setDetailByDayMap] = useState<Record<number, boolean>>({});
   /** Per-provider per-day schedule overrides (index → ProviderSchedule) */
   const [providerScheduleMap, setProviderScheduleMap] = useState<Record<number, ProviderSchedule>>({});
+  /** Per-provider current procedure mix (index → ProcedureMix) */
+  const [currentMixMap, setCurrentMixMap] = useState<Record<number, ProcedureMix>>({});
+  /** Per-provider future procedure mix (index → ProcedureMix) */
+  const [futureMixMap, setFutureMixMap] = useState<Record<number, ProcedureMix>>({});
+  /** Track which providers have the procedure mix section expanded */
+  const [mixExpandedMap, setMixExpandedMap] = useState<Record<number, boolean>>({});
+  /** Active sub-tab for procedure mix (current or future) per provider */
+  const [mixTabMap, setMixTabMap] = useState<Record<number, 'current' | 'future'>>({});
   const DRAFT_KEY = `schedule-designer-draft-${officeId}`;
 
   const {
@@ -162,15 +172,23 @@ export default function EditOfficePage() {
       // Load per-day schedules into state
       const scheduleMap: Record<number, ProviderSchedule> = {};
       const detailMap: Record<number, boolean> = {};
+      const curMixMap: Record<number, ProcedureMix> = {};
+      const futMixMap: Record<number, ProcedureMix> = {};
       (currentOffice.providers || []).forEach((p, i) => {
         const ps = (p as any).providerSchedule;
         if (ps && typeof ps === 'object' && Object.keys(ps).length > 0) {
           scheduleMap[i] = ps as ProviderSchedule;
           detailMap[i] = true;
         }
+        const cur = (p as any).currentProcedureMix;
+        if (cur && typeof cur === 'object' && Object.keys(cur).length > 0) curMixMap[i] = cur as ProcedureMix;
+        const fut = (p as any).futureProcedureMix;
+        if (fut && typeof fut === 'object' && Object.keys(fut).length > 0) futMixMap[i] = fut as ProcedureMix;
       });
       setProviderScheduleMap(scheduleMap);
       setDetailByDayMap(detailMap);
+      setCurrentMixMap(curMixMap);
+      setFutureMixMap(futMixMap);
 
       reset({
         name: currentOffice.name,
@@ -326,6 +344,8 @@ export default function EditOfficePage() {
           id: provider.id || generateId(),
           staggerOffsetMin,
           providerSchedule,
+          currentProcedureMix: currentMixMap[idx] || {},
+          futureProcedureMix: futureMixMap[idx] || {},
           ...(provider.providerId ? { providerId: provider.providerId } : {}),
         };
       });
@@ -894,6 +914,141 @@ export default function EditOfficePage() {
                     </div>
                   )}
                 </div>
+
+                {/* Procedure Mix — Doctors only */}
+                {watchProviders?.[index]?.role === 'DOCTOR' && (
+                  <div className="rounded-lg border border-border p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="font-medium">Procedure Mix</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Current vs. target procedure distribution (drives smart generator)
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMixExpandedMap(prev => ({ ...prev, [index]: !prev[index] }))}
+                        className="text-xs text-accent hover:underline"
+                      >
+                        {mixExpandedMap[index] ? 'Collapse ▲' : 'Configure ▼'}
+                      </button>
+                    </div>
+                    {mixExpandedMap[index] && (
+                      <div className="space-y-3">
+                        {/* Sub-tabs: Current | Future */}
+                        <div className="flex gap-2 border-b border-border pb-2">
+                          {(['current', 'future'] as const).map(tab => (
+                            <button
+                              key={tab}
+                              type="button"
+                              onClick={() => setMixTabMap(prev => ({ ...prev, [index]: tab }))}
+                              className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                                (mixTabMap[index] ?? 'current') === tab
+                                  ? 'bg-accent text-accent-foreground'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                            >
+                              {tab === 'current' ? 'Current Mix' : 'Future Mix'}
+                            </button>
+                          ))}
+                          {/* Load Benchmarks */}
+                          <select
+                            className="ml-auto text-xs border border-border rounded-md px-2 py-1 bg-background text-foreground"
+                            defaultValue=""
+                            onChange={(e) => {
+                              if (!e.target.value) return;
+                              const preset = PROCEDURE_MIX_BENCHMARKS[e.target.value];
+                              if (!preset) return;
+                              const activeTab = mixTabMap[index] ?? 'current';
+                              if (activeTab === 'current') {
+                                setCurrentMixMap(prev => ({ ...prev, [index]: { ...preset } }));
+                              } else {
+                                setFutureMixMap(prev => ({ ...prev, [index]: { ...preset } }));
+                              }
+                              e.target.value = '';
+                            }}
+                          >
+                            <option value="">Load Benchmark...</option>
+                            {Object.keys(PROCEDURE_MIX_BENCHMARKS).map(name => (
+                              <option key={name} value={name}>{name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Mix fields */}
+                        {(() => {
+                          const activeTab = mixTabMap[index] ?? 'current';
+                          const mixMap = activeTab === 'current' ? currentMixMap : futureMixMap;
+                          const setMixMap = activeTab === 'current' ? setCurrentMixMap : setFutureMixMap;
+                          const mix = mixMap[index] ?? {};
+                          const total = getMixTotal(mix);
+                          const isValid = total >= 99 && total <= 101;
+
+                          return (
+                            <div className="space-y-2">
+                              {ALL_PROCEDURE_CATEGORIES.map(cat => (
+                                <div key={cat} className="flex items-center gap-3">
+                                  <label className="text-xs text-foreground/80 w-36 shrink-0">
+                                    {PROCEDURE_CATEGORY_LABELS[cat]}
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    step={1}
+                                    value={mix[cat] ?? ''}
+                                    onChange={e => {
+                                      const val = e.target.value === '' ? undefined : Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                      setMixMap(prev => {
+                                        const updated = { ...(prev[index] ?? {}) };
+                                        if (val === undefined) {
+                                          delete (updated as any)[cat];
+                                        } else {
+                                          (updated as any)[cat] = val;
+                                        }
+                                        return { ...prev, [index]: updated };
+                                      });
+                                    }}
+                                    placeholder="0"
+                                    className="w-16 h-8 text-xs text-right border border-border rounded-md px-2 bg-background"
+                                  />
+                                  <span className="text-xs text-muted-foreground">%</span>
+                                </div>
+                              ))}
+
+                              {/* Total & validation */}
+                              <div className={`flex items-center justify-between pt-2 border-t border-border text-xs font-semibold ${
+                                isValid ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                              }`}>
+                                <span>Total</span>
+                                <span>{total}%</span>
+                              </div>
+                              {!isValid && total > 0 && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400">
+                                  ⚠ Total must equal 100% (currently {total}%)
+                                </p>
+                              )}
+
+                              {/* Copy Current → Future */}
+                              {activeTab === 'future' && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const cur = currentMixMap[index] ?? {};
+                                    setFutureMixMap(prev => ({ ...prev, [index]: { ...cur } }));
+                                  }}
+                                  className="text-xs text-accent hover:underline"
+                                >
+                                  ← Copy Current → Future
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <Label className="mb-2 block">Operatory Assignment</Label>

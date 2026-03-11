@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, BookOpen, RefreshCw } from "lucide-react";
+import { ALL_PROCEDURE_CATEGORIES, PROCEDURE_CATEGORY_LABELS, inferProcedureCategory } from "@/lib/engine/types";
+import type { ProcedureCategory } from "@/lib/engine/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +55,8 @@ interface BlockTypeFormData {
    * Doctor exam begins at this offset. Must be ≥ 20.
    */
   dTimeOffsetMin: string;
+  /** Procedure category for mix intelligence (Sprint 9) */
+  procedureCategory: ProcedureCategory;
 }
 
 const EMPTY_FORM: BlockTypeFormData = {
@@ -67,6 +71,7 @@ const EMPTY_FORM: BlockTypeFormData = {
   aTimeMin: "",
   hTimeMin: "",
   dTimeOffsetMin: "",
+  procedureCategory: "BASIC_RESTORATIVE",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -104,7 +109,14 @@ function BlockTypeForm({ initial = EMPTY_FORM, onSave, onCancel, isSubmitting, m
   const [errors, setErrors] = useState<Partial<BlockTypeFormData>>({});
 
   const set = (field: keyof BlockTypeFormData, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const updated = { ...prev, [field]: value };
+      // Auto-assign procedureCategory when label changes (only if not manually overridden)
+      if (field === 'label' && value) {
+        updated.procedureCategory = inferProcedureCategory(value);
+      }
+      return updated;
+    });
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
@@ -215,6 +227,25 @@ function BlockTypeForm({ initial = EMPTY_FORM, onSave, onCancel, isSubmitting, m
             <SelectItem value="BOTH">Both</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Procedure Category — Sprint 9 */}
+      <div className="space-y-1.5">
+        <Label>Procedure Category</Label>
+        <Select
+          value={form.procedureCategory}
+          onValueChange={(v) => setForm(prev => ({ ...prev, procedureCategory: v as ProcedureCategory }))}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ALL_PROCEDURE_CATEGORIES.map(cat => (
+              <SelectItem key={cat} value={cat}>{PROCEDURE_CATEGORY_LABELS[cat]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[10px] text-muted-foreground">Auto-assigned from label keywords. Used by the smart generator for procedure mix targeting.</p>
       </div>
 
       {/* Durations */}
@@ -480,6 +511,7 @@ export default function AppointmentLibraryPage() {
       aTimeMin: data.aTimeMin ? Number(data.aTimeMin) : 0,
       hTimeMin: data.hTimeMin ? Number(data.hTimeMin) : undefined,
       dTimeOffsetMin: data.dTimeOffsetMin ? Number(data.dTimeOffsetMin) : undefined,
+      procedureCategory: data.procedureCategory,
     });
 
     if (result.success) {
@@ -506,6 +538,7 @@ export default function AppointmentLibraryPage() {
       aTimeMin: data.aTimeMin ? Number(data.aTimeMin) : 0,
       hTimeMin: data.hTimeMin ? Number(data.hTimeMin) : undefined,
       dTimeOffsetMin: data.dTimeOffsetMin ? Number(data.dTimeOffsetMin) : undefined,
+      procedureCategory: data.procedureCategory,
     });
 
     if (success) {
@@ -552,6 +585,7 @@ export default function AppointmentLibraryPage() {
         aTimeMin: (editTarget.aTimeMin ?? 0) > 0 ? String(editTarget.aTimeMin) : "",
         hTimeMin: (editTarget.hTimeMin ?? 0) > 0 ? String(editTarget.hTimeMin) : "",
         dTimeOffsetMin: (editTarget.dTimeOffsetMin ?? 0) > 0 ? String(editTarget.dTimeOffsetMin) : "",
+        procedureCategory: (editTarget.procedureCategory as ProcedureCategory) ?? inferProcedureCategory(editTarget.label),
       } satisfies BlockTypeFormData)
     : EMPTY_FORM;
 

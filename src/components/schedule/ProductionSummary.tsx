@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import type { AlignmentScore } from "@/lib/engine/ideal-day";
+import type { MixGapRow } from "@/lib/engine/types";
+import { computeMixGapAnalysis } from "@/lib/engine/procedure-mix";
+import type { ProcedureMix } from "@/lib/engine/types";
 
 export interface ProviderProductionSummary {
   providerName: string;
@@ -18,6 +21,10 @@ export interface ProviderProductionSummary {
   highProductionScheduled: number;
   /** Per-operatory production breakdown (Sprint 6 §5.4). Only present for multi-op doctors. */
   opBreakdown?: { operatory: string; amount: number }[];
+  /** Current procedure mix for gap analysis (Sprint 9). Only for DOCTOR providers. */
+  currentProcedureMix?: ProcedureMix;
+  /** Future/target procedure mix for gap analysis (Sprint 9). Only for DOCTOR providers. */
+  futureProcedureMix?: ProcedureMix;
 }
 
 interface ProductionSummaryProps {
@@ -28,6 +35,7 @@ interface ProductionSummaryProps {
 export default function ProductionSummary({ summaries, alignmentScore }: ProductionSummaryProps) {
   const [alignmentExpanded, setAlignmentExpanded] = useState(false);
   const [opBreakdownExpanded, setOpBreakdownExpanded] = useState<Record<number, boolean>>({});
+  const [mixGapExpanded, setMixGapExpanded] = useState<Record<number, boolean>>({});
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -190,6 +198,58 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
                   </span>
                 </div>
               </div>
+
+              {/* Mix Gap Analysis — Sprint 9 */}
+              {summary.providerRole === 'DOCTOR' &&
+                summary.currentProcedureMix && summary.futureProcedureMix &&
+                Object.keys(summary.currentProcedureMix).length > 0 &&
+                Object.keys(summary.futureProcedureMix).length > 0 && (() => {
+                  const gapRows = computeMixGapAnalysis(summary.currentProcedureMix!, summary.futureProcedureMix!);
+                  if (gapRows.length === 0) return null;
+                  return (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => setMixGapExpanded(prev => ({ ...prev, [index]: !prev[index] }))}
+                          className="text-xs font-semibold text-foreground/80 flex items-center gap-1 w-full text-left"
+                        >
+                          <span>📊 Mix Gap Analysis</span>
+                          <span className="text-muted-foreground font-normal ml-1">
+                            ({mixGapExpanded[index] ? 'hide' : `${gapRows.length} gap${gapRows.length !== 1 ? 's' : ''}`})
+                          </span>
+                        </button>
+                        {mixGapExpanded[index] && (
+                          <div className="space-y-1 text-xs">
+                            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 text-[10px] text-muted-foreground font-medium uppercase tracking-wide pb-1 border-b border-border">
+                              <span>Category</span>
+                              <span className="text-right">Now</span>
+                              <span className="text-right">Target</span>
+                              <span className="text-right">Gap</span>
+                            </div>
+                            {gapRows.map((row: MixGapRow) => (
+                              <div key={row.category} className="space-y-0.5">
+                                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 items-center">
+                                  <span className="text-foreground/80 truncate">{row.label}</span>
+                                  <span className="text-right tabular-nums text-muted-foreground">{row.currentPct}%</span>
+                                  <span className="text-right tabular-nums text-muted-foreground">{row.targetPct}%</span>
+                                  <span className={`text-right tabular-nums font-semibold ${
+                                    row.severity === 'red' ? 'text-red-600 dark:text-red-400' :
+                                    row.severity === 'amber' ? 'text-amber-600 dark:text-amber-400' :
+                                    'text-green-600 dark:text-green-400'
+                                  }`}>
+                                    {row.gap > 0 ? '+' : ''}{row.gap}%
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground pl-1 pb-1">→ {row.action}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
             </CardContent>
           </Card>
         );

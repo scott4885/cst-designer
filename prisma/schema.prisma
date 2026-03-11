@@ -44,6 +44,8 @@ model Provider {
   seesNewPatients   Boolean @default(true)
   staggerOffsetMin  Int     @default(0)
   providerSchedule  String  @default("{}")
+  currentProcedureMix String @default("{}")
+  futureProcedureMix  String @default("{}")
   office            Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }
 
@@ -60,6 +62,7 @@ model BlockType {
   isHygieneType Boolean @default(false)
   dTimeMin      Int     @default(0)
   aTimeMin      Int     @default(0)
+  procedureCategory String @default("BASIC_RESTORATIVE")
   office        Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }
 

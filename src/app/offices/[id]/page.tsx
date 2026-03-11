@@ -128,6 +128,8 @@ export default function TemplateBuilderPage() {
           actualScheduled: Number(summary.actualScheduled) || 0,
           highProductionScheduled: Number(summary.highProductionScheduled) || 0,
           opBreakdown: Array.isArray(summary.opBreakdown) ? summary.opBreakdown : undefined,
+          currentProcedureMix: (providerRecord as any)?.currentProcedureMix ?? {},
+          futureProcedureMix: (providerRecord as any)?.futureProcedureMix ?? {},
         };
       });
     } catch {

@@ -75,6 +75,8 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     seesNewPatients: p.seesNewPatients,
     staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
     providerSchedule: safeParseJSON((p as any).providerSchedule, {}),
+    currentProcedureMix: safeParseJSON((p as any).currentProcedureMix, {}),
+    futureProcedureMix: safeParseJSON((p as any).futureProcedureMix, {}),
   }));
 
   const blockTypes: BlockTypeInput[] = (office.blockTypes || []).map((b: any) => ({
@@ -89,6 +91,7 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     color: b.color || undefined,
     dTimeMin: b.dTimeMin ?? 0,
     aTimeMin: b.aTimeMin ?? 0,
+    procedureCategory: (b.procedureCategory || 'BASIC_RESTORATIVE') as BlockTypeInput['procedureCategory'],
   }));
 
   const r = office.rules;
@@ -198,6 +201,8 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
           seesNewPatients: p.seesNewPatients !== false,
           staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
           providerSchedule: JSON.stringify((p as any).providerSchedule ?? {}),
+          currentProcedureMix: JSON.stringify((p as any).currentProcedureMix ?? {}),
+          futureProcedureMix: JSON.stringify((p as any).futureProcedureMix ?? {}),
         })),
       },
       blockTypes: {
@@ -212,6 +217,7 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
           isHygieneType: b.appliesToRole === 'HYGIENIST',
           dTimeMin: (b as any).dTimeMin ?? 0,
           aTimeMin: (b as any).aTimeMin ?? 0,
+          procedureCategory: (b as any).procedureCategory || 'BASIC_RESTORATIVE',
         })),
       },
       rules: {
@@ -273,6 +279,8 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
         seesNewPatients: p.seesNewPatients !== false,
         staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
         providerSchedule: JSON.stringify((p as any).providerSchedule ?? {}),
+        currentProcedureMix: JSON.stringify((p as any).currentProcedureMix ?? {}),
+        futureProcedureMix: JSON.stringify((p as any).futureProcedureMix ?? {}),
       })),
     });
   }
@@ -293,6 +301,7 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
         isHygieneType: b.appliesToRole === 'HYGIENIST',
         dTimeMin: (b as any).dTimeMin ?? 0,
         aTimeMin: (b as any).aTimeMin ?? 0,
+        procedureCategory: (b as any).procedureCategory || 'BASIC_RESTORATIVE',
       })),
     });
   }
