@@ -8,20 +8,21 @@ datasource db {
 }
 
 model Office {
-  id               String   @id @default(cuid())
-  name             String
-  dpmsSystem       String   @default("OPEN_DENTAL")
-  workingDays      String   @default("[]")
-  timeIncrement    Int      @default(10)
-  feeModel         String   @default("UCR")
-  operatories      String   @default("[]")
-  schedulingRules  String   @default("")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  providers        Provider[]
-  blockTypes       BlockType[]
-  rules            ScheduleRule?
-  templates        ScheduleTemplate[]
+  id                   String   @id @default(cuid())
+  name                 String
+  dpmsSystem           String   @default("OPEN_DENTAL")
+  workingDays          String   @default("[]")
+  timeIncrement        Int      @default(10)
+  feeModel             String   @default("UCR")
+  operatories          String   @default("[]")
+  schedulingRules      String   @default("")
+  alternateWeekEnabled Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  providers            Provider[]
+  blockTypes           BlockType[]
+  rules                ScheduleRule?
+  templates            ScheduleTemplate[]
 }
 
 model Provider {
@@ -77,6 +78,7 @@ model ScheduleTemplate {
   officeId     String
   name         String
   dayOfWeek    String
+  weekType     String   @default("A")
   slotsJson    String   @default("[]")
   summaryJson  String   @default("[]")
   warningsJson String   @default("[]")

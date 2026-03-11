@@ -25,6 +25,7 @@ const editOfficeSchema = z.object({
   name: z.string().min(1, "Office name is required"),
   timeIncrement: z.number().min(10).max(15).optional(),
   staggerMinutes: z.number().min(0).max(120),
+  alternateWeekEnabled: z.boolean().optional(),
   providers: z.array(
     z.object({
       id: z.string().optional(),
@@ -87,6 +88,7 @@ export default function EditOfficePage() {
     defaultValues: {
       name: "",
       staggerMinutes: 0,
+      alternateWeekEnabled: false,
       providers: [],
       scheduleRules: {
         npModel: "DOCTOR_ONLY",
@@ -145,6 +147,7 @@ export default function EditOfficePage() {
         name: currentOffice.name,
         timeIncrement: currentOffice.timeIncrement ?? 10,
         staggerMinutes: inferredStagger,
+        alternateWeekEnabled: (currentOffice as any).alternateWeekEnabled ?? false,
         schedulingRules: (currentOffice as any).schedulingRules || '',
         providers: currentOffice.providers?.map(p => ({
           id: p.id,
@@ -271,6 +274,7 @@ export default function EditOfficePage() {
           providers,
           ...(rules ? { rules } : {}),
           schedulingRules: data.schedulingRules || '',
+          alternateWeekEnabled: data.alternateWeekEnabled ?? false,
         }),
       });
 
@@ -725,6 +729,31 @@ export default function EditOfficePage() {
                 </div>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        {/* Alternate Week Scheduling */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Alternate Week Scheduling</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="edit-alternateWeekEnabled"
+                key={`altWeek-${watch("alternateWeekEnabled")}`}
+                checked={watch("alternateWeekEnabled") === true}
+                onCheckedChange={(checked) => setValue("alternateWeekEnabled", checked, { shouldDirty: true })}
+              />
+              <div>
+                <Label htmlFor="edit-alternateWeekEnabled" className="cursor-pointer font-medium">
+                  Enable Week A / Week B schedules
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  When enabled, you can build independent Week A and Week B templates for offices that rotate schedules every other week (e.g. different hygienist or part-time doctor days).
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

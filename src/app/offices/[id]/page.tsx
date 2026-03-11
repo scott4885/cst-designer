@@ -40,7 +40,9 @@ export default function TemplateBuilderPage() {
   const {
     generatedSchedules,
     activeDay,
+    activeWeek,
     setActiveDay,
+    setActiveWeek,
     setSchedules,
     isGenerating,
     setGenerating,
@@ -288,9 +290,11 @@ export default function TemplateBuilderPage() {
   const handleSaveTemplate = () => {
     // The store already auto-saves to localStorage on every edit (placeBlock, removeBlock, etc.)
     // This explicit Save button provides user confirmation and resets the dirty state.
-    // Re-persist current state explicitly (idempotent — safe to call again)
+    // Re-persist current state explicitly (idempotent — safe to call again).
+    // Use week-aware key so Week A and Week B schedules are persisted separately.
     if (officeId && Object.keys(generatedSchedules).length > 0) {
-      const lsKey = `schedule-designer:schedule-state:${officeId}`;
+      const weekSuffix = activeWeek === 'B' ? ':weekB' : '';
+      const lsKey = `schedule-designer:schedule-state:${officeId}${weekSuffix}`;
       try {
         localStorage.setItem(lsKey, JSON.stringify(generatedSchedules));
       } catch (e) {
@@ -299,7 +303,12 @@ export default function TemplateBuilderPage() {
     }
     setIsDirty(false);
     setLastSavedAt(new Date());
-    toast.success("Template saved!", { duration: 2000 });
+    toast.success(
+      (currentOffice as any).alternateWeekEnabled
+        ? `Week ${activeWeek} template saved!`
+        : "Template saved!",
+      { duration: 2000 }
+    );
   };
 
   // Clear all schedules and localStorage state, reset to empty
@@ -318,7 +327,7 @@ export default function TemplateBuilderPage() {
       const res = await fetch(`/api/offices/${officeId}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ days: [activeDay] }),
+        body: JSON.stringify({ days: [activeDay], weekType: activeWeek }),
       });
       if (!res.ok) throw new Error('Failed to generate schedule');
       const data = await res.json();
@@ -350,7 +359,7 @@ export default function TemplateBuilderPage() {
         const genRes = await fetch(`/api/offices/${officeId}/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ days: [day] }),
+          body: JSON.stringify({ days: [day], weekType: activeWeek }),
         });
         if (!genRes.ok) throw new Error(`Failed to generate ${day}`);
         const genData = await genRes.json();
@@ -1071,6 +1080,52 @@ export default function TemplateBuilderPage() {
 
         {/* Center Panel - Schedule Grid */}
         <div className="w-full lg:flex-1 flex flex-col lg:overflow-hidden">
+          {/* Week A / Week B selector — shown only when alternateWeekEnabled */}
+          {(currentOffice as any).alternateWeekEnabled && (
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs text-muted-foreground font-medium">Week:</span>
+              <div className="flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeWeek !== 'A') {
+                      setActiveWeek('A');
+                    }
+                  }}
+                  className={`px-3 py-1.5 transition-colors ${
+                    activeWeek === 'A'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                  aria-pressed={activeWeek === 'A'}
+                  data-testid="week-toggle-a"
+                >
+                  Week A
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeWeek !== 'B') {
+                      setActiveWeek('B');
+                    }
+                  }}
+                  className={`px-3 py-1.5 border-l border-border transition-colors ${
+                    activeWeek === 'B'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                  aria-pressed={activeWeek === 'B'}
+                  data-testid="week-toggle-b"
+                >
+                  Week B
+                </button>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {activeWeek === 'A' ? 'Standard (odd) weeks' : 'Alternate (even) weeks'}
+              </span>
+            </div>
+          )}
+
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
             <TabsList className="flex w-full overflow-x-auto mb-4 h-10">
               {currentOffice.workingDays.map((day) => (
@@ -1174,6 +1229,7 @@ export default function TemplateBuilderPage() {
             <VersionPanel
               officeId={officeId}
               activeDay={activeDay}
+              activeWeek={activeWeek}
               currentSchedule={currentDaySchedule || null}
               onLoadVersion={(schedule) => {
                 setSchedules([...Object.values(generatedSchedules).filter(s => s.dayOfWeek !== schedule.dayOfWeek), schedule], officeId);

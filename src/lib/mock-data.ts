@@ -10,6 +10,8 @@ export interface OfficeData {
   providerCount: number;
   totalDailyGoal: number;
   updatedAt: string;
+  /** When true, the Template Builder shows Week A / Week B tabs */
+  alternateWeekEnabled?: boolean;
   providers?: ProviderInput[];
   blockTypes?: BlockTypeInput[];
   rules?: ScheduleRules;

@@ -8,10 +8,14 @@ import { detectDTimeConflicts } from '@/lib/engine/da-time';
 interface ScheduleState {
   generatedSchedules: Record<string, GenerationResult>; // keyed by dayOfWeek
   activeDay: string;
+  /** Active schedule week — 'A' for standard, 'B' for alternate week. */
+  activeWeek: 'A' | 'B';
   isGenerating: boolean;
   isExporting: boolean;
   currentOfficeId: string | null;
   setActiveDay: (day: string) => void;
+  /** Switch to a different week and reload persisted schedules for that week. */
+  setActiveWeek: (week: 'A' | 'B') => void;
   setSchedules: (schedules: GenerationResult[], officeId?: string) => void;
   setGenerating: (v: boolean) => void;
   setExporting: (v: boolean) => void;
@@ -143,24 +147,26 @@ function recalcProductionSummary(
 
 const LS_SCHEDULE_PREFIX = 'schedule-designer:schedule-state:';
 
-function lsKey(officeId: string): string {
-  return `${LS_SCHEDULE_PREFIX}${officeId}`;
+function lsKey(officeId: string, week: 'A' | 'B' = 'A'): string {
+  return week === 'A'
+    ? `${LS_SCHEDULE_PREFIX}${officeId}`
+    : `${LS_SCHEDULE_PREFIX}${officeId}:weekB`;
 }
 
-function persistSchedules(officeId: string, schedulesMap: Record<string, GenerationResult>): void {
+function persistSchedules(officeId: string, schedulesMap: Record<string, GenerationResult>, week: 'A' | 'B' = 'A'): void {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem(lsKey(officeId), JSON.stringify(schedulesMap));
+      localStorage.setItem(lsKey(officeId, week), JSON.stringify(schedulesMap));
     }
   } catch (e) {
     console.warn('Failed to persist schedules to localStorage:', e);
   }
 }
 
-function loadPersistedSchedules(officeId: string): Record<string, GenerationResult> | null {
+function loadPersistedSchedules(officeId: string, week: 'A' | 'B' = 'A'): Record<string, GenerationResult> | null {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const raw = localStorage.getItem(lsKey(officeId));
+      const raw = localStorage.getItem(lsKey(officeId, week));
       if (raw) return JSON.parse(raw) as Record<string, GenerationResult>;
     }
   } catch (e) {
@@ -169,10 +175,10 @@ function loadPersistedSchedules(officeId: string): Record<string, GenerationResu
   return null;
 }
 
-function clearPersistedSchedules(officeId: string): void {
+function clearPersistedSchedules(officeId: string, week: 'A' | 'B' = 'A'): void {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem(lsKey(officeId));
+      localStorage.removeItem(lsKey(officeId, week));
     }
   } catch (e) {
     console.warn('Failed to clear persisted schedules from localStorage:', e);
@@ -182,11 +188,23 @@ function clearPersistedSchedules(officeId: string): void {
 export const useScheduleStore = create<ScheduleState>((set, get) => ({
   generatedSchedules: {},
   activeDay: 'MONDAY',
+  activeWeek: 'A',
   isGenerating: false,
   isExporting: false,
   currentOfficeId: null,
 
   setActiveDay: (day: string) => set({ activeDay: day }),
+
+  setActiveWeek: (week: 'A' | 'B') => {
+    const { currentOfficeId } = get();
+    set({ activeWeek: week, generatedSchedules: {} });
+    if (currentOfficeId) {
+      const persisted = loadPersistedSchedules(currentOfficeId, week);
+      if (persisted && Object.keys(persisted).length > 0) {
+        set({ generatedSchedules: persisted });
+      }
+    }
+  },
 
   setSchedules: (schedules: GenerationResult[], officeId?: string) => {
     const schedulesMap: Record<string, GenerationResult> = {};
@@ -195,10 +213,11 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     });
 
     const resolvedOfficeId = officeId || get().currentOfficeId;
+    const { activeWeek } = get();
 
     // Persist to localStorage so schedule survives page refresh / navigation
     if (resolvedOfficeId) {
-      persistSchedules(resolvedOfficeId, schedulesMap);
+      persistSchedules(resolvedOfficeId, schedulesMap, activeWeek);
     }
 
     set({
@@ -211,23 +230,23 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
   setExporting: (v: boolean) => set({ isExporting: v }),
 
   clearSchedules: () => {
-    const { currentOfficeId } = get();
+    const { currentOfficeId, activeWeek } = get();
     if (currentOfficeId) {
-      clearPersistedSchedules(currentOfficeId);
+      clearPersistedSchedules(currentOfficeId, activeWeek);
     }
     set({ generatedSchedules: {} });
   },
 
   loadSchedulesForOffice: async (officeId: string) => {
-    const currentId = get().currentOfficeId;
+    const { currentOfficeId, activeWeek } = get();
 
-    // If already loaded for this office (e.g. navigated back in same session), keep in-memory state
-    if (currentId === officeId && Object.keys(get().generatedSchedules).length > 0) {
+    // If already loaded for this office+week (e.g. navigated back in same session), keep in-memory state
+    if (currentOfficeId === officeId && Object.keys(get().generatedSchedules).length > 0) {
       return;
     }
 
-    // Try to restore persisted schedules from localStorage
-    const persisted = loadPersistedSchedules(officeId);
+    // Try to restore persisted schedules from localStorage (week-aware)
+    const persisted = loadPersistedSchedules(officeId, activeWeek);
     if (persisted && Object.keys(persisted).length > 0) {
       set({
         currentOfficeId: officeId,
@@ -299,7 +318,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     set({ generatedSchedules: newSchedules });
     // Persist changes to localStorage
     const officeIdForPersist = get().currentOfficeId;
-    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules);
+    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules, get().activeWeek);
     return true;
   },
 
@@ -376,7 +395,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     set({ generatedSchedules: newSchedules });
     // Persist changes to localStorage
     const officeIdForPersist = get().currentOfficeId;
-    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules);
+    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules, get().activeWeek);
   },
 
   moveBlockInDay: (day, fromTime, fromProviderId, toTime, toProviderId, providers, blockTypes) => {
@@ -492,7 +511,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     set({ generatedSchedules: newSchedules });
     // Persist changes to localStorage
     const officeIdForPersist = get().currentOfficeId;
-    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules);
+    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules, get().activeWeek);
   },
 
   updateBlockInDay: (day, time, providerId, newBlockType, newDurationSlots, providers, blockTypes, customProductionAmount) => {
@@ -587,6 +606,6 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     set({ generatedSchedules: newSchedules });
     // Persist changes to localStorage
     const officeIdForPersist = get().currentOfficeId;
-    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules);
+    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules, get().activeWeek);
   },
 }));

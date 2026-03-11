@@ -33,6 +33,7 @@ export interface OfficeDetail {
   rules: ScheduleRules;
   totalDailyGoal: number;
   schedulingRules: string;
+  alternateWeekEnabled: boolean;
 }
 
 export interface CreateOfficeInput {
@@ -46,6 +47,7 @@ export interface CreateOfficeInput {
   blockTypes?: BlockTypeInput[];
   rules?: ScheduleRules;
   schedulingRules?: string;
+  alternateWeekEnabled?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,6 +114,7 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     rules,
     totalDailyGoal,
     schedulingRules: (office as any).schedulingRules || '',
+    alternateWeekEnabled: (office as any).alternateWeekEnabled ?? false,
   };
 }
 
@@ -236,6 +239,7 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
       ...(data.feeModel !== undefined && { feeModel: data.feeModel }),
       ...(data.operatories !== undefined && { operatories: JSON.stringify(data.operatories) }),
       ...(data.schedulingRules !== undefined && { schedulingRules: data.schedulingRules }),
+      ...(data.alternateWeekEnabled !== undefined && { alternateWeekEnabled: data.alternateWeekEnabled }),
     },
   });
 
@@ -324,7 +328,7 @@ export async function deleteOffice(id: string): Promise<boolean> {
 // Schedule generation (still uses the engine, now persists to DB)
 // ---------------------------------------------------------------------------
 
-export async function generateSchedule(officeId: string, days: string[]): Promise<GenerationResult[]> {
+export async function generateSchedule(officeId: string, days: string[], _weekType = 'A'): Promise<GenerationResult[]> {
   const office = await getOfficeById(officeId);
   if (!office) throw new Error('Office not found');
 
@@ -354,9 +358,12 @@ export async function generateSchedule(officeId: string, days: string[]): Promis
   return results;
 }
 
-export async function getScheduleTemplates(officeId: string) {
+export async function getScheduleTemplates(officeId: string, weekType?: string) {
   const templates = await prisma.scheduleTemplate.findMany({
-    where: { officeId },
+    where: {
+      officeId,
+      ...(weekType ? { weekType } : {}),
+    },
     orderBy: { updatedAt: 'desc' },
   });
 
@@ -364,6 +371,7 @@ export async function getScheduleTemplates(officeId: string) {
     id: t.id,
     name: t.name,
     dayOfWeek: t.dayOfWeek,
+    weekType: (t as any).weekType ?? 'A',
     slots: safeParseJSON(t.slotsJson, []),
     productionSummary: safeParseJSON(t.summaryJson, []),
     warnings: safeParseJSON(t.warningsJson, []),

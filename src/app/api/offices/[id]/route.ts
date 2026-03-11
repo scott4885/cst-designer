@@ -61,6 +61,7 @@ export async function PUT(
       blockTypes: body.blockTypes,
       rules: body.rules,
       schedulingRules: body.schedulingRules,
+      alternateWeekEnabled: body.alternateWeekEnabled,
     });
 
     if (!updatedOffice) {

@@ -13,11 +13,13 @@ export async function GET(
     const { id } = await params;
     const url = new URL(request.url);
     const day = url.searchParams.get('day');
+    const week = url.searchParams.get('week'); // 'A' or 'B'
 
     const templates = await prisma.scheduleTemplate.findMany({
       where: {
         officeId: id,
         ...(day ? { dayOfWeek: day } : {}),
+        ...(week ? { weekType: week } : {}),
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -27,6 +29,7 @@ export async function GET(
         id: t.id,
         name: t.name,
         dayOfWeek: t.dayOfWeek,
+        weekType: (t as any).weekType ?? 'A',
         isActive: t.isActive,
         createdAt: t.createdAt.toISOString(),
         updatedAt: t.updatedAt.toISOString(),
@@ -53,7 +56,7 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
 
-    const { name, dayOfWeek, slots, productionSummary, warnings } = body;
+    const { name, dayOfWeek, weekType, slots, productionSummary, warnings } = body;
 
     if (!name || !dayOfWeek) {
       return NextResponse.json(
@@ -67,6 +70,7 @@ export async function POST(
         officeId: id,
         name,
         dayOfWeek,
+        weekType: weekType ?? 'A',
         slotsJson: JSON.stringify(slots || []),
         summaryJson: JSON.stringify(productionSummary || []),
         warningsJson: JSON.stringify(warnings || []),
@@ -78,6 +82,7 @@ export async function POST(
       id: template.id,
       name: template.name,
       dayOfWeek: template.dayOfWeek,
+      weekType: (template as any).weekType ?? 'A',
       isActive: template.isActive,
       createdAt: template.createdAt.toISOString(),
       updatedAt: template.updatedAt.toISOString(),

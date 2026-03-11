@@ -21,6 +21,8 @@ interface TemplateVersion {
 interface VersionPanelProps {
   officeId: string;
   activeDay: string;
+  /** Active week ('A' or 'B') — passed through to template save/load for alternate-week offices. */
+  activeWeek?: 'A' | 'B';
   currentSchedule: GenerationResult | null;
   onLoadVersion: (schedule: GenerationResult) => void;
 }
@@ -28,6 +30,7 @@ interface VersionPanelProps {
 export default function VersionPanel({
   officeId,
   activeDay,
+  activeWeek = 'A',
   currentSchedule,
   onLoadVersion,
 }: VersionPanelProps) {
@@ -45,7 +48,8 @@ export default function VersionPanel({
   const fetchVersions = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/offices/${officeId}/templates?day=${activeDay}`);
+      const weekParam = activeWeek === 'B' ? `&week=B` : `&week=A`;
+      const res = await fetch(`/api/offices/${officeId}/templates?day=${activeDay}${weekParam}`);
       if (res.ok) {
         const data = await res.json();
         setVersions(data);
@@ -55,7 +59,7 @@ export default function VersionPanel({
     } finally {
       setLoading(false);
     }
-  }, [officeId, activeDay]);
+  }, [officeId, activeDay, activeWeek]);
 
   useEffect(() => {
     fetchVersions();
@@ -72,6 +76,7 @@ export default function VersionPanel({
         body: JSON.stringify({
           name: saveName.trim(),
           dayOfWeek: activeDay,
+          weekType: activeWeek,
           slots: currentSchedule.slots,
           productionSummary: currentSchedule.productionSummary,
           warnings: currentSchedule.warnings,
