@@ -616,12 +616,12 @@ export default function ScheduleGrid({
       </p>
 
       {/* ─── Schedule Grid ─────────────────────────────────────────────────── */}
-      {/* Outer container: vertical scroll with max height, horizontal scroll inside */}
+      {/* Outer container: scrollable with sticky column headers at top */}
       <div
-        className="schedule-grid border border-border rounded-lg overflow-hidden"
-        style={{ maxHeight: "calc(100vh - 280px)", minHeight: "400px" }}
+        className="schedule-grid border border-border rounded-lg overflow-y-auto overflow-x-auto"
+        style={{ maxHeight: "calc(100vh - 240px)", minHeight: "400px" }}
       >
-        <div className="overflow-y-auto overflow-x-auto h-full">
+        <div>
           <table
             className="border-collapse"
             style={{ tableLayout: "fixed", minWidth: `${80 + providers.length * (colWidth + 28)}px` }}

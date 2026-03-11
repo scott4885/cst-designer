@@ -35,11 +35,12 @@ model Provider {
   workingEnd      String  @default("16:00")
   lunchStart      String  @default("12:00")
   lunchEnd        String  @default("13:00")
-  lunchEnabled    Boolean @default(true)
-  dailyGoal       Float   @default(0)
-  color           String  @default("#666")
-  seesNewPatients Boolean @default(true)
-  office          Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  lunchEnabled      Boolean @default(true)
+  dailyGoal         Float   @default(0)
+  color             String  @default("#666")
+  seesNewPatients   Boolean @default(true)
+  staggerOffsetMin  Int     @default(0)
+  office            Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }
 
 model BlockType {

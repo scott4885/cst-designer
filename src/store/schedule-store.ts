@@ -78,15 +78,20 @@ function recalcProductionSummary(
       s => s.providerId === provider.id && s.blockTypeId !== null && !s.isBreak
     );
 
-    // Group consecutive slots by blockInstanceId (when available) or blockTypeId
-    // This ensures adjacent blocks of the same type placed as separate instances
-    // are counted separately (fixes Issue 5 + 6).
+    // Group consecutive slots by blockInstanceId (when available) or blockTypeId+operatory.
+    // This ensures:
+    //   1. Adjacent blocks of the same type placed as separate instances stay distinct (blockInstanceId)
+    //   2. Multi-op doctor slots interleaved in the array are counted per-operatory (blockTypeId::operatory)
+    //   3. Each multi-row block is counted ONCE (not per row) — fixes production per-appointment calc
     const blocks: { blockTypeId: string; blockLabel: string; customProductionAmount?: number | null }[] = [];
     let currentGroupKey: string | null = null;
 
     for (const slot of providerSlots) {
-      // Use blockInstanceId as group key when available, else fall back to blockTypeId
-      const groupKey = slot.blockInstanceId || slot.blockTypeId;
+      // Use blockInstanceId as group key when available (manually placed blocks)
+      // else fall back to blockTypeId::operatory to separate multi-op interleaved slots
+      const groupKey = slot.blockInstanceId
+        ? slot.blockInstanceId
+        : `${slot.blockTypeId}::${slot.operatory ?? ''}`;
       if (groupKey !== currentGroupKey) {
         blocks.push({
           blockTypeId: slot.blockTypeId!,

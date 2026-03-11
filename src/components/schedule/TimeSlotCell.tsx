@@ -140,21 +140,21 @@ export default function TimeSlotCell({
         backgroundColor: effectiveConflict
           ? (hasDTimeConflict && !hasConflict ? "rgba(249,115,22,0.10)" : "rgba(239,68,68,0.12)")
           : effectiveProviderColor + "30",
-        borderLeft: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${effectiveProviderColor}`,
-        borderRight: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${effectiveProviderColor}`,
+        borderLeft: effectiveConflict ? `4px solid ${conflictColor}` : `4px solid ${effectiveProviderColor}`,
+        borderRight: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${effectiveProviderColor}`,
         ...(isBlockFirst && {
-          borderTop: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${effectiveProviderColor}`,
+          borderTop: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${effectiveProviderColor}`,
           borderTopLeftRadius: '4px',
           borderTopRightRadius: '4px',
         }),
         ...(isBlockLast && {
-          borderBottom: effectiveConflict ? `2px solid ${conflictColor}` : `2px solid ${effectiveProviderColor}`,
+          borderBottom: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${effectiveProviderColor}`,
           borderBottomLeftRadius: '4px',
           borderBottomRightRadius: '4px',
         }),
       }
     : effectiveConflict
-    ? { borderLeft: `3px solid ${conflictColor}`, backgroundColor: hasDTimeConflict ? "rgba(249,115,22,0.08)" : "rgba(239,68,68,0.08)" }
+    ? { borderLeft: `4px solid ${conflictColor}`, backgroundColor: hasDTimeConflict ? "rgba(249,115,22,0.08)" : "rgba(239,68,68,0.08)" }
     : {};
 
   return (
@@ -184,7 +184,7 @@ export default function TimeSlotCell({
           )}
         </div>
       )}
-      {blockLabel && (
+      {blockLabel && isBlockFirst && (
         <div
           className="text-[11px] text-foreground/70 mt-0.5 leading-tight truncate max-w-[140px] flex items-center gap-1"
           title={blockLabel}

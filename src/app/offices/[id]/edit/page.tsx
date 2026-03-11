@@ -5,13 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
@@ -231,16 +232,17 @@ export default function EditOfficePage() {
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-      const staggerMin = data.staggerMinutes || 0;
+      const staggerMin = data.staggerMinutes ?? 0;
       let doctorIdx = 0;
       const providers = data.providers.map((provider) => {
         const isDoctor = provider.role === "DOCTOR";
-        const staggerOffsetMin = isDoctor && staggerMin > 0 ? doctorIdx * staggerMin : undefined;
+        // Always persist staggerOffsetMin: 0 for non-doctors and first doctor, N*staggerMin for Nth doctor
+        const staggerOffsetMin = isDoctor ? doctorIdx * staggerMin : 0;
         if (isDoctor) doctorIdx++;
         return {
           ...provider,
           id: provider.id || generateId(),
-          ...(staggerOffsetMin !== undefined && { staggerOffsetMin }),
+          staggerOffsetMin,
         };
       });
 
@@ -383,21 +385,44 @@ export default function EditOfficePage() {
             {/* Doctor start stagger */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
               <div className="flex-1">
-                <Label htmlFor="edit-staggerMinutes" className="font-medium">Doctor start stagger (min)</Label>
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="edit-staggerMinutes" className="font-medium">Doctor start stagger</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Stagger offsets each successive doctor&apos;s start time by this many minutes. This prevents all doctors from starting procedures simultaneously, reducing assistant bottlenecks.</p>
+                      <p className="mt-1 text-muted-foreground">Example (30 min stagger): Dr 1 starts at 7:00, Dr 2 at 7:30, Dr 3 at 8:00.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Each successive doctor starts this many minutes later (e.g. 30 → Dr 1 at 7:00, Dr 2 at 7:30). Set to 0 to disable.
+                  Each successive doctor starts this many minutes later. Must be a multiple of the office time increment ({currentOffice?.timeIncrement ?? 10} min). Set to 0 to disable.
                 </p>
               </div>
-              <Input
-                id="edit-staggerMinutes"
-                type="number"
-                min={0}
-                max={120}
-                step={15}
-                {...register("staggerMinutes", { valueAsNumber: true })}
-                className="w-24 shrink-0"
-                placeholder="0"
-              />
+              <Select
+                value={String(watch("staggerMinutes") ?? 0)}
+                onValueChange={(val) => setValue("staggerMinutes", Number(val), { shouldDirty: true })}
+              >
+                <SelectTrigger className="w-28 shrink-0">
+                  <SelectValue placeholder="0 min" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(() => {
+                    const increment = currentOffice?.timeIncrement ?? 10;
+                    const options = [];
+                    for (let m = 0; m <= 60; m += increment) {
+                      options.push(
+                        <SelectItem key={m} value={String(m)}>
+                          {m === 0 ? "Off (0 min)" : `${m} min`}
+                        </SelectItem>
+                      );
+                    }
+                    return options;
+                  })()}
+                </SelectContent>
+              </Select>
             </div>
             {providerFields.length === 0 && (
               <p className="text-muted-foreground text-center py-6">
@@ -433,9 +458,9 @@ export default function EditOfficePage() {
                     <Label>Role</Label>
                     <Select
                       onValueChange={(value) =>
-                        setValue(`providers.${index}.role`, value as any)
+                        setValue(`providers.${index}.role`, value as any, { shouldDirty: true })
                       }
-                      defaultValue={field.role}
+                      value={watchProviders?.[index]?.role || "DOCTOR"}
                     >
                       <SelectTrigger>
                         <SelectValue />

@@ -39,7 +39,7 @@ export const useOfficeStore = create<OfficeState>((set) => ({
   fetchOffice: async (id: string) => {
     set({ isLoading: true });
     try {
-      const res = await fetch(`/api/offices/${id}`);
+      const res = await fetch(`/api/offices/${id}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Failed to fetch office');
       const office = await res.json();
       const providerCount = office.providers?.length || 0;

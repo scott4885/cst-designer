@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson, FileText } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson, FileText, Save, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -63,6 +63,13 @@ export default function TemplateBuilderPage() {
   const [showODExportDialog, setShowODExportDialog] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
+
+  // Save state tracking
+  const [isDirty, setIsDirty] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  // Warning before regenerating when saved schedules exist
+  const [showGenerateWarning, setShowGenerateWarning] = useState(false);
+  const [pendingGenerateAction, setPendingGenerateAction] = useState<'single' | 'all' | null>(null);
 
   // Fetch office data on mount
   useEffect(() => {
@@ -170,18 +177,17 @@ export default function TemplateBuilderPage() {
 
   // Convert providers to ScheduleGrid format - expand multi-op doctors into separate display columns
   // Multi-op providers get virtual IDs: "${id}::${op}" so each op has its own column.
-  // When doubleBooking=false, doctors only get ONE column (their first operatory) since the
-  // generator only creates slots for a single operatory in that case.
+  // Always render one column per assigned operatory so multi-op providers are fully visible.
+  // doubleBooking flag controls the generator (whether to fill all op columns with blocks)
+  // but should never hide display columns that the user explicitly configured.
   const doubleBookingEnabled = currentOffice.rules?.doubleBooking !== false;
   const providers: ProviderInput[] = [];
   for (const p of (currentOffice.providers || [])) {
     const ops = p.operatories || [];
-    const isDoctor = p.role === 'DOCTOR';
-    // For non-double-booked doctors, only show 1 column regardless of operatory count
-    const displayOps = (!doubleBookingEnabled && isDoctor) ? ops.slice(0, 1) : ops;
-    if (displayOps.length > 1) {
+    // Always display all assigned operatories — never restrict to 1 based on doubleBooking flag
+    if (ops.length > 1) {
       // Multi-op: create one display column per operatory with virtual ID
-      displayOps.forEach((op) => {
+      ops.forEach((op) => {
         providers.push({
           id: `${p.id}::${op}`,
           name: p.name,
@@ -193,10 +199,9 @@ export default function TemplateBuilderPage() {
         });
       });
     } else {
-      const singleOp = displayOps.length > 0 ? displayOps[0] : (ops[0] || 'OP1');
+      const singleOp = ops.length > 0 ? ops[0] : 'OP1';
       providers.push({
-        // Use virtual ID with operatory when provider has multiple ops but we're showing one
-        id: (ops.length > 1 && !doubleBookingEnabled && isDoctor) ? `${p.id}::${singleOp}` : p.id,
+        id: p.id,
         name: p.name,
         role: p.role,
         color: p.color,
@@ -217,16 +222,10 @@ export default function TemplateBuilderPage() {
   const timeIncrement = currentOffice.timeIncrement || 10;
 
   // Build set of multi-op provider IDs for virtual ID conversion.
-  // When doubleBooking=false, doctors with multiple ops are treated as single-op for display purposes.
+  // Any provider with 2+ operatories gets virtual IDs ("realId::OP") for each column.
   const multiOpProviderIds = new Set<string>(
     (currentOffice.providers || [])
-      .filter(p => {
-        const hasMultipleOps = (p.operatories || []).length > 1;
-        if (!hasMultipleOps) return false;
-        // Doctors with doubleBooking=false only show 1 column, but their slots still use virtual ID
-        // because the generator assigns slots to the first operatory specifically.
-        return true;
-      })
+      .filter(p => (p.operatories || []).length > 1)
       .map(p => p.id)
   );
 
@@ -279,16 +278,35 @@ export default function TemplateBuilderPage() {
   // Whether there are any persisted/generated schedules for this office
   const hasSchedules = Object.keys(generatedSchedules).length > 0;
 
+  // Explicit Save: persists current state to localStorage, clears dirty flag, shows confirmation
+  const handleSaveTemplate = () => {
+    // The store already auto-saves to localStorage on every edit (placeBlock, removeBlock, etc.)
+    // This explicit Save button provides user confirmation and resets the dirty state.
+    // Re-persist current state explicitly (idempotent — safe to call again)
+    if (officeId && Object.keys(generatedSchedules).length > 0) {
+      const lsKey = `schedule-designer:schedule-state:${officeId}`;
+      try {
+        localStorage.setItem(lsKey, JSON.stringify(generatedSchedules));
+      } catch (e) {
+        console.warn('Failed to explicitly save template:', e);
+      }
+    }
+    setIsDirty(false);
+    setLastSavedAt(new Date());
+    toast.success("Template saved!", { duration: 2000 });
+  };
+
   // Clear all schedules and localStorage state, reset to empty
   const handleClearAndStartOver = () => {
     clearSchedules();
+    setIsDirty(false);
+    setLastSavedAt(null);
     toast.info("Schedules cleared. Click Generate to create a new schedule.");
   };
 
-  // Generate schedule for a single day
-  const handleGenerateSchedule = async () => {
+  // Internal: actually run single-day generation
+  const doGenerateSchedule = async () => {
     if (!currentOffice) return;
-
     setGenerating(true);
     try {
       const res = await fetch(`/api/offices/${officeId}/generate`, {
@@ -299,7 +317,9 @@ export default function TemplateBuilderPage() {
       if (!res.ok) throw new Error('Failed to generate schedule');
       const data = await res.json();
       setSchedules(data.schedules, officeId);
-      toast.success(`Schedule generated for ${activeDay}!`);
+      setIsDirty(false);
+      setLastSavedAt(new Date());
+      toast.success(`Schedule generated for ${getDayLabel(activeDay)}!`);
     } catch (error) {
       console.error("Error generating schedule:", error);
       toast.error("Failed to generate schedule");
@@ -308,22 +328,19 @@ export default function TemplateBuilderPage() {
     }
   };
 
-  // Generate schedules for all working days
-  const handleGenerateAllDays = async () => {
+  // Internal: actually run all-days generation
+  const doGenerateAllDays = async () => {
     if (!currentOffice || !currentOffice.workingDays.length) return;
-
     setGenerating(true);
     const totalDays = currentOffice.workingDays.length;
     let completedDays = 0;
     setGenerationProgress({ completed: 0, total: totalDays });
-    const allSchedules: any[] = [...Object.values(generatedSchedules)];
+    const allSchedules: any[] = [];
 
     try {
       for (const day of currentOffice.workingDays) {
         setGeneratingDay(day);
-
         await new Promise(resolve => setTimeout(resolve, 0));
-
         const genRes = await fetch(`/api/offices/${officeId}/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -331,17 +348,15 @@ export default function TemplateBuilderPage() {
         });
         if (!genRes.ok) throw new Error(`Failed to generate ${day}`);
         const genData = await genRes.json();
-        const schedules = genData.schedules;
-        allSchedules.push(...schedules);
-        setSchedules(allSchedules, officeId);
-
+        allSchedules.push(...genData.schedules);
+        setSchedules([...allSchedules], officeId);
         completedDays++;
         setGenerationProgress({ completed: completedDays, total: totalDays });
         toast.success(`Generated ${getDayLabel(day)} (${completedDays}/${totalDays})`);
-
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-
+      setIsDirty(false);
+      setLastSavedAt(new Date());
       toast.success("All schedules generated successfully!");
       setGeneratingDay(null);
     } catch (error) {
@@ -351,6 +366,37 @@ export default function TemplateBuilderPage() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  // Generate schedule for a single day — warn if saved template exists
+  const handleGenerateSchedule = async () => {
+    if (hasSchedules) {
+      setPendingGenerateAction('single');
+      setShowGenerateWarning(true);
+    } else {
+      await doGenerateSchedule();
+    }
+  };
+
+  // Generate schedules for all working days — warn if saved template exists
+  const handleGenerateAllDays = async () => {
+    if (hasSchedules) {
+      setPendingGenerateAction('all');
+      setShowGenerateWarning(true);
+    } else {
+      await doGenerateAllDays();
+    }
+  };
+
+  // Confirm generation after warning
+  const handleConfirmGenerate = async () => {
+    setShowGenerateWarning(false);
+    if (pendingGenerateAction === 'single') {
+      await doGenerateSchedule();
+    } else if (pendingGenerateAction === 'all') {
+      await doGenerateAllDays();
+    }
+    setPendingGenerateAction(null);
   };
 
   const handleDeleteOffice = async () => {
@@ -386,6 +432,7 @@ export default function TemplateBuilderPage() {
 
       const exportInput: ExportInput = {
         officeName: currentOffice.name,
+        timeIncrement: currentOffice.timeIncrement || 10,
         providers: (currentOffice.providers || []).map((p) => ({
           id: p.id,
           name: p.name,
@@ -582,6 +629,7 @@ export default function TemplateBuilderPage() {
   const handleAddBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number) => {
     const placed = placeBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypesForStore);
     if (placed) {
+      setIsDirty(true);
       toast.success(`${blockType.label} block added`);
       // Warn if placing this block created a D-time conflict for a doctor
       checkAndWarnDTimeConflicts(activeDay, providerId, time);
@@ -592,11 +640,13 @@ export default function TemplateBuilderPage() {
 
   const handleRemoveBlock = (time: string, providerId: string) => {
     removeBlockInDay(activeDay, time, providerId, fullProviders, blockTypesForStore);
+    setIsDirty(true);
     toast.success("Block removed");
   };
 
   const handleMoveBlock = (fromTime: string, fromProviderId: string, toTime: string, toProviderId: string) => {
     moveBlockInDay(activeDay, fromTime, fromProviderId, toTime, toProviderId, fullProviders, blockTypesForStore);
+    setIsDirty(true);
     toast.success("Block moved");
     // Warn if the move created a new D-time conflict
     checkAndWarnDTimeConflicts(activeDay, toProviderId, toTime);
@@ -604,6 +654,7 @@ export default function TemplateBuilderPage() {
 
   const handleUpdateBlock = (time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number, customProductionAmount?: number | null) => {
     updateBlockInDay(activeDay, time, providerId, blockType, durationSlots, fullProviders, blockTypesForStore, customProductionAmount);
+    setIsDirty(true);
     toast.success(`Block updated to ${blockType.label}`);
     // Warn if the update created a D-time conflict
     checkAndWarnDTimeConflicts(activeDay, providerId, time);
@@ -642,6 +693,35 @@ export default function TemplateBuilderPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {/* Save Template button — visible when schedule exists */}
+          {hasSchedules && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isDirty ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleSaveTemplate}
+                  className={`min-h-[44px] gap-1 ${isDirty ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
+                >
+                  {isDirty ? (
+                    <>
+                      <Save className="w-4 h-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Save</span>
+                      <span className="inline-block w-2 h-2 rounded-full bg-yellow-300 ml-1" title="Unsaved changes" />
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 sm:mr-1 text-green-500" />
+                      <span className="hidden sm:inline">{lastSavedAt ? "Saved" : "Save"}</span>
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isDirty ? "You have unsaved changes — click to save" : lastSavedAt ? `Saved at ${lastSavedAt.toLocaleTimeString()}` : "Save template"}
+              </TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0}>
@@ -787,6 +867,20 @@ export default function TemplateBuilderPage() {
         variant="destructive"
         onConfirm={handleDeleteOffice}
         isLoading={isDeleting}
+      />
+
+      {/* Generate Warning Dialog */}
+      <ConfirmDialog
+        open={showGenerateWarning}
+        onOpenChange={(open) => {
+          setShowGenerateWarning(open);
+          if (!open) setPendingGenerateAction(null);
+        }}
+        title="Overwrite Saved Schedule?"
+        description="This will overwrite your saved schedule with a newly generated one. Any manual edits you've made will be lost. Continue?"
+        confirmLabel="Yes, Regenerate"
+        variant="destructive"
+        onConfirm={handleConfirmGenerate}
       />
 
       {/* Generate All Days Progress Overlay */}

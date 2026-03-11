@@ -42,6 +42,8 @@ export interface ExportInput {
   providers: ExportProvider[];
   blockTypes: ExportBlockType[];
   daySchedules: ExportDaySchedule[];
+  /** Time increment in minutes for the office (10 or 15). Defaults to 10. */
+  timeIncrement?: number;
 }
 
 /**
@@ -61,8 +63,9 @@ export async function generateExcel(input: ExportInput): Promise<Buffer> {
   addGuidelinesSheet(workbook);
 
   // Add day schedule sheets
+  const increment = input.timeIncrement ?? 10;
   for (const daySchedule of input.daySchedules) {
-    addDayScheduleSheet(workbook, input, daySchedule);
+    addDayScheduleSheet(workbook, input, daySchedule, increment);
   }
 
   // Generate buffer
@@ -224,7 +227,8 @@ function addGuidelinesSheet(workbook: ExcelJS.Workbook) {
 function addDayScheduleSheet(
   workbook: ExcelJS.Workbook,
   input: ExportInput,
-  daySchedule: ExportDaySchedule
+  daySchedule: ExportDaySchedule,
+  timeIncrement: number = 10
 ) {
   // Format sheet name with date variant if provided
   const sheetName = daySchedule.variant 
@@ -324,6 +328,7 @@ function addDayScheduleSheet(
   currentRow++;
 
   // Group slots by time for easier lookup
+  // Schedule slots use 24-hour format: "07:00", "07:10", etc.
   const slotsByTime = new Map<string, ExportTimeSlot[]>();
   for (const slot of daySchedule.slots) {
     if (!slotsByTime.has(slot.time)) {
@@ -332,11 +337,11 @@ function addDayScheduleSheet(
     slotsByTime.get(slot.time)!.push(slot);
   }
 
-  // Use default time range 7:00 AM to 6:00 PM (standard office hours)
-  // This ensures consistent grid even with sparse slot data
+  // Use office's configured time increment for row granularity (matches slot time keys exactly)
+  // Keep standard 7AM-6PM range for a complete schedule view
   const startTime = '07:00';
   const endTime = '18:00';
-  const timeSlots = generateTimeSlots(startTime, endTime, 10);
+  const timeSlots = generateTimeSlots(startTime, endTime, timeIncrement);
 
   // Render each time slot row
   for (const timeSlot of timeSlots) {

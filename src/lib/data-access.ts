@@ -67,6 +67,7 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     dailyGoal: p.dailyGoal,
     color: p.color,
     seesNewPatients: p.seesNewPatients,
+    staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
   }));
 
   const blockTypes: BlockTypeInput[] = (office.blockTypes || []).map((b: any) => ({
@@ -185,6 +186,7 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
           dailyGoal: p.dailyGoal,
           color: p.color,
           seesNewPatients: p.seesNewPatients !== false,
+          staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
         })),
       },
       blockTypes: {
@@ -255,6 +257,7 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
         dailyGoal: p.dailyGoal,
         color: p.color,
         seesNewPatients: p.seesNewPatients !== false,
+        staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
       })),
     });
   }
