@@ -130,3 +130,13 @@ model ProviderAbsence {
   reason     String   @default("")
   provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 }
+
+// Sprint 14 — Treatment Sequence Templates
+model TreatmentSequence {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  isBuiltIn   Boolean  @default(false)
+  stepsJson   String   @default("[]")
+  createdAt   DateTime @default(now())
+}
