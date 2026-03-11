@@ -48,9 +48,10 @@ export async function POST(
 
     // Get days to generate from request or use office working days
     const daysToGenerate = body.days || office.workingDays;
+    const weekType = body.weekType || 'A';
 
     // Generate and save schedules to database
-    const schedules = await generateSchedule(id, daysToGenerate);
+    const schedules = await generateSchedule(id, daysToGenerate, weekType);
 
     return NextResponse.json({
       officeId: id,

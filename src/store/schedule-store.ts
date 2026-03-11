@@ -5,22 +5,29 @@ import { detectConflicts } from '@/lib/engine/stagger';
 import { parseAmountFromLabel } from '@/lib/engine/generator';
 import { detectDTimeConflicts } from '@/lib/engine/da-time';
 
+export type RotationWeek = 'A' | 'B' | 'C' | 'D';
+
 interface ScheduleState {
   generatedSchedules: Record<string, GenerationResult>; // keyed by dayOfWeek
   activeDay: string;
-  /** Active schedule week — 'A' for standard, 'B' for alternate week. */
-  activeWeek: 'A' | 'B';
+  /** Active schedule week — 'A' standard, 'B' alternate, 'C'/'D' for 4-week rotation. */
+  activeWeek: RotationWeek;
   isGenerating: boolean;
   isExporting: boolean;
   currentOfficeId: string | null;
   setActiveDay: (day: string) => void;
   /** Switch to a different week and reload persisted schedules for that week. */
-  setActiveWeek: (week: 'A' | 'B') => void;
+  setActiveWeek: (week: RotationWeek) => void;
   setSchedules: (schedules: GenerationResult[], officeId?: string) => void;
   setGenerating: (v: boolean) => void;
   setExporting: (v: boolean) => void;
   clearSchedules: () => void;
   loadSchedulesForOffice: (officeId: string) => Promise<void>;
+  /**
+   * Copy Week A's persisted schedules into the target week (B/C/D).
+   * Returns true if Week A had data to copy, false if Week A was empty.
+   */
+  copyWeekFromA: (targetWeek: RotationWeek, officeId: string) => boolean;
   // Interactive editing methods
   placeBlockInDay: (day: string, time: string, providerId: string, blockType: BlockTypeInput, durationSlots: number, providers: ProviderInput[], blockTypes: BlockTypeInput[]) => boolean;
   removeBlockInDay: (day: string, time: string, providerId: string, providers: ProviderInput[], blockTypes: BlockTypeInput[]) => void;
@@ -147,13 +154,13 @@ function recalcProductionSummary(
 
 const LS_SCHEDULE_PREFIX = 'schedule-designer:schedule-state:';
 
-function lsKey(officeId: string, week: 'A' | 'B' = 'A'): string {
+function lsKey(officeId: string, week: RotationWeek = 'A'): string {
   return week === 'A'
     ? `${LS_SCHEDULE_PREFIX}${officeId}`
-    : `${LS_SCHEDULE_PREFIX}${officeId}:weekB`;
+    : `${LS_SCHEDULE_PREFIX}${officeId}:week${week}`;
 }
 
-function persistSchedules(officeId: string, schedulesMap: Record<string, GenerationResult>, week: 'A' | 'B' = 'A'): void {
+function persistSchedules(officeId: string, schedulesMap: Record<string, GenerationResult>, week: RotationWeek = 'A'): void {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.setItem(lsKey(officeId, week), JSON.stringify(schedulesMap));
@@ -163,7 +170,7 @@ function persistSchedules(officeId: string, schedulesMap: Record<string, Generat
   }
 }
 
-function loadPersistedSchedules(officeId: string, week: 'A' | 'B' = 'A'): Record<string, GenerationResult> | null {
+function loadPersistedSchedules(officeId: string, week: RotationWeek = 'A'): Record<string, GenerationResult> | null {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       const raw = localStorage.getItem(lsKey(officeId, week));
@@ -175,7 +182,7 @@ function loadPersistedSchedules(officeId: string, week: 'A' | 'B' = 'A'): Record
   return null;
 }
 
-function clearPersistedSchedules(officeId: string, week: 'A' | 'B' = 'A'): void {
+function clearPersistedSchedules(officeId: string, week: RotationWeek = 'A'): void {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.removeItem(lsKey(officeId, week));
@@ -188,14 +195,14 @@ function clearPersistedSchedules(officeId: string, week: 'A' | 'B' = 'A'): void 
 export const useScheduleStore = create<ScheduleState>((set, get) => ({
   generatedSchedules: {},
   activeDay: 'MONDAY',
-  activeWeek: 'A',
+  activeWeek: 'A' as RotationWeek,
   isGenerating: false,
   isExporting: false,
   currentOfficeId: null,
 
   setActiveDay: (day: string) => set({ activeDay: day }),
 
-  setActiveWeek: (week: 'A' | 'B') => {
+  setActiveWeek: (week: RotationWeek) => {
     const { currentOfficeId } = get();
     set({ activeWeek: week, generatedSchedules: {} });
     if (currentOfficeId) {
@@ -512,6 +519,20 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     // Persist changes to localStorage
     const officeIdForPersist = get().currentOfficeId;
     if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules, get().activeWeek);
+  },
+
+  copyWeekFromA: (targetWeek: RotationWeek, officeId: string): boolean => {
+    const weekAData = loadPersistedSchedules(officeId, 'A');
+    if (!weekAData || Object.keys(weekAData).length === 0) {
+      return false;
+    }
+    persistSchedules(officeId, weekAData, targetWeek);
+    // If currently viewing the target week, load the copied data into memory
+    const { activeWeek } = get();
+    if (activeWeek === targetWeek) {
+      set({ generatedSchedules: weekAData, currentOfficeId: officeId });
+    }
+    return true;
   },
 
   updateBlockInDay: (day, time, providerId, newBlockType, newDurationSlots, providers, blockTypes, customProductionAmount) => {

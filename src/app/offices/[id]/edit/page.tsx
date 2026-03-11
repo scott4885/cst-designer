@@ -31,6 +31,8 @@ const editOfficeSchema = z.object({
   timeIncrement: z.number().min(10).max(15).optional(),
   staggerMinutes: z.number().min(0).max(120),
   alternateWeekEnabled: z.boolean().optional(),
+  rotationEnabled: z.boolean().optional(),
+  rotationWeeks: z.number().min(2).max(4).optional(),
   providers: z.array(
     z.object({
       id: z.string().optional(),
@@ -100,6 +102,8 @@ export default function EditOfficePage() {
       name: "",
       staggerMinutes: 0,
       alternateWeekEnabled: false,
+      rotationEnabled: false,
+      rotationWeeks: 2,
       providers: [],
       scheduleRules: {
         npModel: "DOCTOR_ONLY",
@@ -173,6 +177,8 @@ export default function EditOfficePage() {
         timeIncrement: currentOffice.timeIncrement ?? 10,
         staggerMinutes: inferredStagger,
         alternateWeekEnabled: (currentOffice as any).alternateWeekEnabled ?? false,
+        rotationEnabled: (currentOffice as any).rotationEnabled ?? false,
+        rotationWeeks: (currentOffice as any).rotationWeeks ?? 2,
         schedulingRules: (currentOffice as any).schedulingRules || '',
         providers: currentOffice.providers?.map(p => ({
           id: p.id,
@@ -344,6 +350,8 @@ export default function EditOfficePage() {
           ...(rules ? { rules } : {}),
           schedulingRules: data.schedulingRules || '',
           alternateWeekEnabled: data.alternateWeekEnabled ?? false,
+          rotationEnabled: data.rotationEnabled ?? false,
+          rotationWeeks: data.rotationWeeks ?? 2,
         }),
       });
 
@@ -793,12 +801,17 @@ export default function EditOfficePage() {
                             <th className="text-left pr-2 py-1 font-medium">End</th>
                             <th className="text-left pr-2 py-1 font-medium">Lunch</th>
                             <th className="text-left py-1 font-medium">Lunch End</th>
+                            {watch("rotationEnabled") && (
+                              <th className="text-left pl-3 py-1 font-medium">Weeks</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
                           {DAYS_OF_WEEK.map(day => {
                             const dayEntry = providerScheduleMap[index]?.[day] || { enabled: true, workingStart: '07:00', workingEnd: '16:00' };
                             const isEnabled = dayEntry.enabled !== false;
+                            const rotWeeks = watch("rotationWeeks") === 4 ? ['A','B','C','D'] : ['A','B'];
+                            const selectedRotWeeks: string[] = (dayEntry as any).rotationWeeks ?? rotWeeks; // default = all weeks
                             return (
                               <tr key={day} className={`border-t border-border/50 ${!isEnabled ? 'opacity-40' : ''}`}>
                                 <td className="pr-3 py-1.5 font-medium">{DAY_LABELS[day]}</td>
@@ -847,6 +860,29 @@ export default function EditOfficePage() {
                                     className="h-7 text-xs w-24"
                                   />
                                 </td>
+                                {watch("rotationEnabled") && (
+                                  <td className="pl-3 py-1.5">
+                                    <div className="flex gap-1">
+                                      {rotWeeks.map(w => (
+                                        <label key={w} className="flex items-center gap-0.5 cursor-pointer select-none">
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedRotWeeks.includes(w)}
+                                            disabled={!isEnabled}
+                                            onChange={e => {
+                                              const updated = e.target.checked
+                                                ? [...selectedRotWeeks, w]
+                                                : selectedRotWeeks.filter(x => x !== w);
+                                              updateDayField(index, day, 'rotationWeeks' as any, updated.length === rotWeeks.length ? undefined : updated);
+                                            }}
+                                            className="w-3 h-3"
+                                          />
+                                          <span className="text-[10px] font-medium">{w}</span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </td>
+                                )}
                               </tr>
                             );
                           })}
@@ -926,28 +962,54 @@ export default function EditOfficePage() {
           </CardContent>
         </Card>
 
-        {/* Alternate Week Scheduling */}
+        {/* Rotation Schedule */}
         <Card>
           <CardHeader>
-            <CardTitle>Alternate Week Scheduling</CardTitle>
+            <CardTitle>Rotation Schedule</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
               <Switch
-                id="edit-alternateWeekEnabled"
-                key={`altWeek-${watch("alternateWeekEnabled")}`}
-                checked={watch("alternateWeekEnabled") === true}
-                onCheckedChange={(checked) => setValue("alternateWeekEnabled", checked, { shouldDirty: true })}
+                id="edit-rotationEnabled"
+                key={`rotation-${watch("rotationEnabled")}`}
+                checked={watch("rotationEnabled") === true}
+                onCheckedChange={(checked) => {
+                  setValue("rotationEnabled", checked, { shouldDirty: true });
+                  // Also sync legacy field for backward compat
+                  setValue("alternateWeekEnabled", checked, { shouldDirty: true });
+                }}
               />
               <div>
-                <Label htmlFor="edit-alternateWeekEnabled" className="cursor-pointer font-medium">
-                  Enable Week A / Week B schedules
+                <Label htmlFor="edit-rotationEnabled" className="cursor-pointer font-medium">
+                  Enable Rotation Schedule
                 </Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  When enabled, you can build independent Week A and Week B templates for offices that rotate schedules every other week (e.g. different hygienist or part-time doctor days).
+                  Build independent schedule templates for each week of the rotation (e.g. different providers on alternating weeks).
                 </p>
               </div>
             </div>
+            {watch("rotationEnabled") && (
+              <div className="ml-1 space-y-2">
+                <Label htmlFor="edit-rotationWeeks">Rotation Length</Label>
+                <Select
+                  value={String(watch("rotationWeeks") ?? 2)}
+                  onValueChange={(val) => setValue("rotationWeeks", Number(val), { shouldDirty: true })}
+                >
+                  <SelectTrigger id="edit-rotationWeeks" className="w-56">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2">2 weeks (A / B)</SelectItem>
+                    <SelectItem value="4">4 weeks (A / B / C / D)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {watch("rotationWeeks") === 4
+                    ? "Template Builder will show Week A, B, C, and D tabs — each fully independent."
+                    : "Template Builder will show Week A and Week B tabs — each fully independent."}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

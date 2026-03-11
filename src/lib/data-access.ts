@@ -34,6 +34,8 @@ export interface OfficeDetail {
   totalDailyGoal: number;
   schedulingRules: string;
   alternateWeekEnabled: boolean;
+  rotationEnabled: boolean;
+  rotationWeeks: number;
 }
 
 export interface CreateOfficeInput {
@@ -48,6 +50,8 @@ export interface CreateOfficeInput {
   rules?: ScheduleRules;
   schedulingRules?: string;
   alternateWeekEnabled?: boolean;
+  rotationEnabled?: boolean;
+  rotationWeeks?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +120,8 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     totalDailyGoal,
     schedulingRules: (office as any).schedulingRules || '',
     alternateWeekEnabled: (office as any).alternateWeekEnabled ?? false,
+    rotationEnabled: (office as any).rotationEnabled ?? false,
+    rotationWeeks: (office as any).rotationWeeks ?? 2,
   };
 }
 
@@ -242,6 +248,8 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
       ...(data.operatories !== undefined && { operatories: JSON.stringify(data.operatories) }),
       ...(data.schedulingRules !== undefined && { schedulingRules: data.schedulingRules }),
       ...(data.alternateWeekEnabled !== undefined && { alternateWeekEnabled: data.alternateWeekEnabled }),
+      ...(data.rotationEnabled !== undefined && { rotationEnabled: data.rotationEnabled }),
+      ...(data.rotationWeeks !== undefined && { rotationWeeks: data.rotationWeeks }),
     },
   });
 
@@ -344,6 +352,7 @@ export async function generateSchedule(officeId: string, days: string[], _weekTy
       rules: office.rules,
       timeIncrement: office.timeIncrement,
       dayOfWeek: day,
+      activeWeek: _weekType,
     });
 
     // Detect conflicts

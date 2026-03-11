@@ -17,6 +17,8 @@ model Office {
   operatories          String   @default("[]")
   schedulingRules      String   @default("")
   alternateWeekEnabled Boolean  @default(false)
+  rotationEnabled      Boolean  @default(false)
+  rotationWeeks        Int      @default(2)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   providers            Provider[]

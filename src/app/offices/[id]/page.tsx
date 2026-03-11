@@ -206,7 +206,13 @@ export default function TemplateBuilderPage() {
     const ops = p.operatories || [];
     // Resolve per-day working hours for this active day
     const dayEntry = (p as any).providerSchedule?.[activeDay];
-    const isDisabledToday = dayEntry !== undefined && dayEntry.enabled === false;
+    // Provider disabled today if: explicit off-day OR rotation week exclusion
+    const rotationActive = (currentOffice as any).rotationEnabled || (currentOffice as any).alternateWeekEnabled;
+    const dayRotationWeeks: string[] | undefined = dayEntry?.rotationWeeks;
+    const excludedByRotation = rotationActive && dayRotationWeeks && dayRotationWeeks.length > 0
+      ? !dayRotationWeeks.includes(activeWeek)
+      : false;
+    const isDisabledToday = (dayEntry !== undefined && dayEntry.enabled === false) || excludedByRotation;
     const effectiveStart = (dayEntry?.enabled !== false && dayEntry?.workingStart) ? dayEntry.workingStart : p.workingStart;
     const effectiveEnd = (dayEntry?.enabled !== false && dayEntry?.workingEnd) ? dayEntry.workingEnd : p.workingEnd;
 
@@ -313,7 +319,7 @@ export default function TemplateBuilderPage() {
     // Re-persist current state explicitly (idempotent — safe to call again).
     // Use week-aware key so Week A and Week B schedules are persisted separately.
     if (officeId && Object.keys(generatedSchedules).length > 0) {
-      const weekSuffix = activeWeek === 'B' ? ':weekB' : '';
+      const weekSuffix = activeWeek === 'A' ? '' : `:week${activeWeek}`;
       const lsKey = `schedule-designer:schedule-state:${officeId}${weekSuffix}`;
       try {
         localStorage.setItem(lsKey, JSON.stringify(generatedSchedules));
@@ -324,7 +330,7 @@ export default function TemplateBuilderPage() {
     setIsDirty(false);
     setLastSavedAt(new Date());
     toast.success(
-      (currentOffice as any).alternateWeekEnabled
+      ((currentOffice as any).rotationEnabled || (currentOffice as any).alternateWeekEnabled)
         ? `Week ${activeWeek} template saved!`
         : "Template saved!",
       { duration: 2000 }
@@ -1145,51 +1151,73 @@ export default function TemplateBuilderPage() {
             </div>
           )}
 
-          {/* Week A / Week B selector — shown only when alternateWeekEnabled */}
-          {(currentOffice as any).alternateWeekEnabled && (
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs text-muted-foreground font-medium">Week:</span>
-              <div className="flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (activeWeek !== 'A') {
-                      setActiveWeek('A');
-                    }
-                  }}
-                  className={`px-3 py-1.5 transition-colors ${
-                    activeWeek === 'A'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background text-muted-foreground hover:bg-muted'
-                  }`}
-                  aria-pressed={activeWeek === 'A'}
-                  data-testid="week-toggle-a"
-                >
-                  Week A
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (activeWeek !== 'B') {
-                      setActiveWeek('B');
-                    }
-                  }}
-                  className={`px-3 py-1.5 border-l border-border transition-colors ${
-                    activeWeek === 'B'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background text-muted-foreground hover:bg-muted'
-                  }`}
-                  aria-pressed={activeWeek === 'B'}
-                  data-testid="week-toggle-b"
-                >
-                  Week B
-                </button>
+          {/* Rotation week selector — shown when rotationEnabled (or legacy alternateWeekEnabled) */}
+          {((currentOffice as any).rotationEnabled || (currentOffice as any).alternateWeekEnabled) && (() => {
+            // Determine rotation length: rotationWeeks takes priority, then fall back to 2 (legacy)
+            const rotLen: number = (currentOffice as any).rotationEnabled
+              ? ((currentOffice as any).rotationWeeks ?? 2)
+              : 2;
+            const weeks: Array<'A' | 'B' | 'C' | 'D'> = rotLen === 4
+              ? ['A', 'B', 'C', 'D']
+              : ['A', 'B'];
+            const weekDescriptions: Record<string, string> = {
+              A: 'Standard (odd) weeks',
+              B: 'Alternate (even) weeks',
+              C: 'Third-week schedule',
+              D: 'Fourth-week schedule',
+            };
+
+            // "Copy from Week A" — copies Week A localStorage data into current week
+            const handleCopyFromA = () => {
+              if (!currentOffice?.id) return;
+              const copied = useScheduleStore.getState().copyWeekFromA(activeWeek as 'A' | 'B' | 'C' | 'D', currentOffice.id);
+              if (copied) {
+                toast.success(`Week A schedule copied to Week ${activeWeek}`);
+              } else {
+                toast.error('Week A has no schedule to copy. Generate Week A first.');
+              }
+            };
+
+            const currentWeekIsEmpty = Object.keys(generatedSchedules).length === 0;
+
+            return (
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <span className="text-xs text-muted-foreground font-medium">Week:</span>
+                <div className="flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
+                  {weeks.map((w, i) => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => { if (activeWeek !== w) setActiveWeek(w); }}
+                      className={`px-3 py-1.5 transition-colors ${i > 0 ? 'border-l border-border' : ''} ${
+                        activeWeek === w
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-background text-muted-foreground hover:bg-muted'
+                      }`}
+                      aria-pressed={activeWeek === w}
+                      data-testid={`week-toggle-${w.toLowerCase()}`}
+                    >
+                      Week {w}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {weekDescriptions[activeWeek] ?? `Week ${activeWeek} schedule`}
+                </span>
+                {/* Copy from Week A — available for B/C/D when the week is empty */}
+                {activeWeek !== 'A' && currentWeekIsEmpty && (
+                  <button
+                    type="button"
+                    onClick={handleCopyFromA}
+                    className="ml-1 px-2.5 py-1 rounded-md text-xs font-medium border border-border bg-muted hover:bg-accent transition-colors"
+                    data-testid="copy-from-week-a"
+                  >
+                    Copy from Week A
+                  </button>
+                )}
               </div>
-              <span className="text-xs text-muted-foreground">
-                {activeWeek === 'A' ? 'Standard (odd) weeks' : 'Alternate (even) weeks'}
-              </span>
-            </div>
-          )}
+            );
+          })()}
 
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
             <TabsList className="flex w-full overflow-x-auto mb-4 h-10">

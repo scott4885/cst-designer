@@ -10,8 +10,12 @@ export interface OfficeData {
   providerCount: number;
   totalDailyGoal: number;
   updatedAt: string;
-  /** When true, the Template Builder shows Week A / Week B tabs */
+  /** When true, the Template Builder shows Week A / Week B tabs (legacy — use rotationEnabled) */
   alternateWeekEnabled?: boolean;
+  /** When true, multi-week rotation is active. Treated as rotationWeeks=2 when only alternateWeekEnabled was set. */
+  rotationEnabled?: boolean;
+  /** Number of rotation weeks: 2 (A/B) or 4 (A/B/C/D). Default 2. */
+  rotationWeeks?: number;
   providers?: ProviderInput[];
   blockTypes?: BlockTypeInput[];
   rules?: ScheduleRules;

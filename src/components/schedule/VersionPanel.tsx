@@ -22,7 +22,7 @@ interface VersionPanelProps {
   officeId: string;
   activeDay: string;
   /** Active week ('A' or 'B') — passed through to template save/load for alternate-week offices. */
-  activeWeek?: 'A' | 'B';
+  activeWeek?: 'A' | 'B' | 'C' | 'D';
   currentSchedule: GenerationResult | null;
   onLoadVersion: (schedule: GenerationResult) => void;
 }

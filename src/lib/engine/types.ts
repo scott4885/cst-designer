@@ -9,6 +9,12 @@ export interface ProviderDayScheduleEntry {
   workingEnd?: string;
   lunchStart?: string | null;
   lunchEnd?: string | null;
+  /**
+   * Which rotation weeks this provider works on this specific day.
+   * Undefined or empty = works all weeks (default).
+   * Example: ['A', 'C'] means provider only works Week A and Week C on this day.
+   */
+  rotationWeeks?: string[];
 }
 
 /** Per-day schedule overrides keyed by day of week ("MONDAY", "TUESDAY", etc.). */

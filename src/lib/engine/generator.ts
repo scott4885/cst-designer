@@ -436,8 +436,8 @@ export function resolveProviderDayHours(
   };
 }
 
-export function generateSchedule(input: GenerationInput): GenerationResult {
-  const { providers, blockTypes, rules, timeIncrement, dayOfWeek } = input;
+export function generateSchedule(input: GenerationInput & { activeWeek?: string }): GenerationResult {
+  const { providers, blockTypes, rules, timeIncrement, dayOfWeek, activeWeek } = input;
   const warnings: string[] = [];
   const slots: TimeSlotOutput[] = [];
   /** Providers that are active for this day (not disabled by providerSchedule), with per-day hour overrides applied */
@@ -448,6 +448,14 @@ export function generateSchedule(input: GenerationInput): GenerationResult {
     // Resolve per-day hours (returns null if provider is disabled/off this day)
     const dayHours = resolveProviderDayHours(provider, dayOfWeek);
     if (dayHours === null) continue; // skip provider — off this day
+
+    // If rotation is active and provider has per-day rotation weeks, skip if this week excluded
+    if (activeWeek) {
+      const dayEntry = provider.providerSchedule?.[dayOfWeek];
+      if (dayEntry?.rotationWeeks && dayEntry.rotationWeeks.length > 0) {
+        if (!dayEntry.rotationWeeks.includes(activeWeek)) continue; // provider off this week+day
+      }
+    }
 
     // Override provider hours for this day
     const effectiveProvider = dayHours.workingStart !== provider.workingStart || dayHours.workingEnd !== provider.workingEnd
