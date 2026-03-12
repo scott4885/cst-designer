@@ -35,7 +35,6 @@ COPY --from=builder /app/node_modules/bindings ./node_modules/bindings
 COPY --from=builder /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
 COPY --from=builder /tmp/seed.db /app/seed.db
 COPY --from=builder /app/src/generated ./src/generated
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
 RUN mkdir -p /app/data
 EXPOSE 3000
