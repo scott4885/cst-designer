@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Trash2, FileJson, Save, CheckCircle2, Grid3X3 as MatrixIcon, BarChart2, Info, Maximize, Minimize, Wand2 } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, ChevronDown, Loader2, Trash2, FileJson, Save, CheckCircle2, Grid3X3 as MatrixIcon, BarChart2, Info, Maximize, Minimize, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Card imports removed — grid renders directly without card wrapper
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -75,6 +75,7 @@ export default function TemplateBuilderPage() {
 
   const { fullScreen, setFullScreen } = useFullScreen();
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [fullScreenRibbonCollapsed, setFullScreenRibbonCollapsed] = useState(false);
   const [generatingDay, setGeneratingDay] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -88,6 +89,10 @@ export default function TemplateBuilderPage() {
   // Save state tracking
   const [isDirty, setIsDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (!fullScreen) setFullScreenRibbonCollapsed(false);
+  }, [fullScreen]);
   // Warning before regenerating when saved schedules exist
   const [showGenerateWarning, setShowGenerateWarning] = useState(false);
   const [pendingGenerateAction, setPendingGenerateAction] = useState<'single' | 'all' | null>(null);
@@ -989,7 +994,31 @@ export default function TemplateBuilderPage() {
   return (
     <div className="h-full min-h-0 flex flex-col gap-0">
       {/* Row 1: Office name + day tabs (inline) + primary actions */}
-      <div className={`flex items-center gap-1.5 mb-1 shrink-0 ${fullScreen ? 'min-h-[32px]' : 'min-h-[36px]'}`}>
+      {fullScreen && fullScreenRibbonCollapsed ? (
+        <div className="sticky top-0 z-30 mb-1 shrink-0">
+          <div className="flex items-center gap-2 rounded-b-md border border-t-0 border-border/70 bg-background/95 px-2 py-1 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={() => setFullScreenRibbonCollapsed(false)}
+              title="Show schedule controls"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </Button>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-semibold text-foreground">{currentOffice.name}</div>
+              <div className="text-[10px] text-muted-foreground">
+                {getDayLabel(activeDay)}{rotationEnabled ? ` · Week ${activeWeek}` : ''}
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setFullScreen(false)} title="Exit full screen">
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+      <div className={`flex items-center gap-1.5 mb-1 shrink-0 ${fullScreen ? 'min-h-[32px] sticky top-0 z-30 rounded-b-md border-b border-border/60 bg-background/95 px-1 py-1 backdrop-blur supports-[backdrop-filter]:bg-background/80' : 'min-h-[36px]'}`}>
         {fullScreen ? (
           <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setFullScreen(false)} title="Exit full screen">
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -1131,6 +1160,21 @@ export default function TemplateBuilderPage() {
               </Button>
             </>
           )}
+          {fullScreen && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFullScreenRibbonCollapsed(true)}
+                  className="h-7 px-1.5"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Collapse top ribbon</TooltipContent>
+            </Tooltip>
+          )}
           {/* Full Screen Toggle */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1147,6 +1191,7 @@ export default function TemplateBuilderPage() {
           </Tooltip>
         </div>
       </div>
+      )}
 
       <ConfirmDialog
         open={showDeleteDialog}
