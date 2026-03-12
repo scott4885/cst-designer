@@ -538,6 +538,9 @@ export default function AnalyticsPage() {
         </div>
         <LeagueTable rows={leagueRows} />
       </div>
+        </>
+      )}
     </div>
   );
 }
+
