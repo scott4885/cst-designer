@@ -71,8 +71,13 @@ export async function POST(request: Request) {
       emergencyHandling: 'ACCESS_BLOCKS' as 'DEDICATED' | 'FLEX' | 'ACCESS_BLOCKS',
     };
 
-    // Normalize working days
-    const workingDays = (body.workingDays || []).map((day: string) => {
+    // Normalize working days — accept array or comma-separated string
+    const rawDays = Array.isArray(body.workingDays)
+      ? body.workingDays
+      : typeof body.workingDays === 'string'
+        ? body.workingDays.split(',').map((d: string) => d.trim()).filter(Boolean)
+        : [];
+    const workingDays = rawDays.map((day: string) => {
       const dayMap: Record<string, string> = {
         Mon: 'MONDAY',
         Tue: 'TUESDAY',

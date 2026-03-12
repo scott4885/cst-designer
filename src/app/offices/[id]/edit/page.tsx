@@ -55,7 +55,7 @@ const editOfficeSchema = z.object({
       seesNewPatients: z.boolean().optional(),
       enabledBlockTypeIds: z.array(z.string()).optional(),
       assistedHygiene: z.boolean().optional(),
-      providerSchedule: z.record(z.any()).optional(),
+      providerSchedule: z.record(z.string(), z.any()).optional(),
       staggerOffsetMin: z.number().min(0).max(120).optional(),
     })
   ).min(1, "Add at least one provider"),

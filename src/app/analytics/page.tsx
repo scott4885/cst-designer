@@ -425,7 +425,7 @@ export default function AnalyticsPage() {
               <XAxis dataKey="label" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
               <Tooltip
-                formatter={(v: number) => [`${v} offices`, "Count"]}
+                formatter={(v: any) => [`${v} offices`, "Count"]}
                 contentStyle={{ fontSize: 12, borderRadius: 6 }}
               />
               <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} name="Offices" />
@@ -445,7 +445,7 @@ export default function AnalyticsPage() {
               <XAxis dataKey="day" tick={{ fontSize: 12 }} />
               <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 12 }} />
               <Tooltip
-                formatter={(v: number) => [`${v}%`, "% Meeting Target75"]}
+                formatter={(v: any) => [`${v}%`, "% Meeting Target75"]}
                 contentStyle={{ fontSize: 12, borderRadius: 6 }}
               />
               <Bar dataKey="pctMeetingTarget" fill="#22c55e" radius={[4, 4, 0, 0]} name="% Meeting Target75" />
@@ -466,7 +466,7 @@ export default function AnalyticsPage() {
               <XAxis type="number" tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} domain={[0, 40]} />
               <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={110} />
               <Tooltip
-                formatter={(v: number) => [`${v}%`, "Avg %"]}
+                formatter={(v: any) => [`${v}%`, "Avg %"]}
                 contentStyle={{ fontSize: 12, borderRadius: 6 }}
               />
               <Bar dataKey="avgPct" radius={[0, 4, 4, 0]} name="Avg %">
@@ -502,7 +502,7 @@ export default function AnalyticsPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(v: number, name: string) => [`${v} offices`, name]}
+                    formatter={(v: any, name: any) => [`${v} offices`, name]}
                     contentStyle={{ fontSize: 12, borderRadius: 6 }}
                   />
                 </PieChart>

@@ -28,6 +28,7 @@ export interface CloneResult {
   officeId: string;
   schedules: Record<string, GenerationResult>; // keyed by dayOfWeek
   mismatches: CloneMismatch[];
+  success: boolean;
 }
 
 /**
@@ -236,6 +237,7 @@ export function cloneTemplateToOffices(
       officeId: targetOffice.id,
       schedules: {},
       mismatches: [],
+      success: true,
     };
 
     for (const week of weeksToProcess) {

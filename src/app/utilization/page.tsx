@@ -423,7 +423,7 @@ export default function UtilizationPage() {
               />
               <YAxis tick={{ fontSize: 11 }} unit="h" />
               <Tooltip
-                formatter={(v: number, name: string) => [
+                formatter={(v: any, name: any) => [
                   `${v}h`,
                   name === "scheduled" ? "Scheduled" : "Empty",
                 ]}

@@ -123,7 +123,7 @@ export function computeOrgSummary(
     }
 
     // Production & goal
-    const weeklyProd = Object.values(data.productionByDay).reduce((s, v) => s + (v ?? 0), 0);
+    const weeklyProd = Object.values(data.productionByDay).reduce<number>((s, v) => s + (v ?? 0), 0);
     totalWeeklyProduction += weeklyProd;
 
     const goalPerDay = office.totalDailyGoal;
@@ -302,7 +302,7 @@ export function buildLeagueTable(
     const data = scheduleDataMap.get(office.id);
     const scheduledDays = data?.scheduledDays ?? [];
     const productionByDay = data?.productionByDay ?? {};
-    const weeklyProduction = Object.values(productionByDay).reduce((s, v) => s + (v ?? 0), 0);
+    const weeklyProduction = Object.values(productionByDay).reduce<number>((s, v) => s + (v ?? 0), 0);
     const daysScheduled = scheduledDays.length;
     const avgDailyProduction = daysScheduled > 0 ? weeklyProduction / daysScheduled : 0;
     const goalPerDay = office.totalDailyGoal;
@@ -335,7 +335,7 @@ export function buildProductionGapTable(
     const data = scheduleDataMap.get(office.id);
     const productionByDay = data?.productionByDay ?? {};
     const scheduledDays = data?.scheduledDays ?? [];
-    const weeklyTotal = Object.values(productionByDay).reduce((s, v) => s + (v ?? 0), 0);
+    const weeklyTotal = Object.values(productionByDay).reduce<number>((s, v) => s + (v ?? 0), 0);
     const goalPerDay = office.totalDailyGoal;
     const gap = weeklyTotal - goalPerDay * Math.max(office.workingDays.length, 1);
     const status = getScheduleStatus(office.workingDays, scheduledDays);
