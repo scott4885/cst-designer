@@ -164,6 +164,28 @@ function placeDoctorBlocksByMix(
   if (!isGoalMet() && calculateTarget75(doc.dailyGoal) > 0) {
     warnings.push(`Procedure mix placement: could not fully reach 75% target for ${doc.name}`);
   }
+
+  // Fill any remaining empty slots to ensure the full day is covered
+  let fillRemaining = 0;
+  const allApplicableBlocks = blockTypes
+    .filter(bt => blockAppliesToProvider(bt, doc))
+    .sort((a, b) => (a.minimumAmount ?? 0) - (b.minimumAmount ?? 0)); // lowest value first for remaining fill
+  while (fillRemaining < 30 && allApplicableBlocks.length > 0) {
+    fillRemaining++;
+    let filled = false;
+    for (const bt of allApplicableBlocks) {
+      const slotsNeeded = Math.ceil(bt.durationMin / timeIncrement);
+      const ranges = findAvailableRanges(slots, ps, slotsNeeded);
+      if (ranges.length === 0) continue;
+      if (wouldExceedVarietyCap(slots, ps, bt.id, slotsNeeded)) continue;
+      const amount = bt.minimumAmount ?? 0;
+      placeBlockInSlots(slots, ranges[0], bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label);
+      recordProd(amount);
+      filled = true;
+      break;
+    }
+    if (!filled) break;
+  }
 }
 
 /**
@@ -1063,6 +1085,35 @@ function placeDoctorBlocks(
     recordProd(amount);
   }
 
+  // ──────── FILL REMAINING EMPTY SLOTS ────────
+  // Even after production goal is met, fill ALL remaining empty slots to ensure
+  // the schedule shows a complete day (no gaps). Respects stagger offset.
+  let fillSafety = 0;
+  const fillBlocks = [mpBlock, erBlock, npBlock, nonProdBlock].filter(Boolean) as BlockTypeInput[];
+  while (fillSafety < 30 && fillBlocks.length > 0) {
+    fillSafety++;
+    let filled = false;
+    for (const bt of fillBlocks) {
+      const slotsNeeded = Math.ceil(bt.durationMin / timeIncrement);
+      // Respect stagger offset — only fill slots at or after the staggered start time
+      const allRanges = findAvailableRanges(slots, ps, slotsNeeded);
+      const staggeredRanges = staggerOffsetMin > 0
+        ? rangesAfter(allRanges, slots, staggeredStartMin)
+        : allRanges;
+      // If stagger is active, only use staggered ranges (don't fill pre-stagger slots)
+      const targetRanges = staggerOffsetMin > 0 ? staggeredRanges : allRanges;
+      if (targetRanges.length === 0) continue;
+      // Variety cap check
+      if (wouldExceedVarietyCap(slots, ps, bt.id, slotsNeeded)) continue;
+      const amount = bt.minimumAmount || 0;
+      placeBlockInSlots(slots, targetRanges[0], bt, doc, makeLabel(bt, amount));
+      recordProd(amount);
+      filled = true;
+      break;
+    }
+    if (!filled) break;
+  }
+
   // Warn only for single-op or after all ops (skip per-op warnings for multi-op doctors).
   // For multi-op doctors the combined total is checked after all ops are processed.
   if (!sharedProductionCtx && totalScheduled < targets.target75) {
@@ -1335,9 +1386,10 @@ function fillDocOpSlots(
     // For staggered columns: the fill function must respect the stagger window.
     const staggeredFillStart = toMinutes(doc.workingStart) + staggerOffsetMin;
     
-    // Shuffle and distribute blocks — UX-V3: increased safety limit to fill full day
+    // Shuffle and distribute blocks — fill the FULL day (all empty slots)
     let safety = 0;
-    while (safety < 60) {
+    let consecutiveSkips = 0;
+    while (safety < 120) {
       safety++;
 
       // Pick a random block type based on weights
@@ -1355,21 +1407,15 @@ function fillDocOpSlots(
       
       const slotsNeeded = Math.ceil(selectedBlock.durationMin / timeIncrement);
 
-      // UX-V3: When goal is already met, prefer lower-value blocks to fill remaining time
-      // but don't skip filling entirely — the full day must be covered
-      if (goalAlreadyMet) {
-        const blockAmount = selectedBlock.minimumAmount ?? 0;
-        // Skip high-value blocks when way over target, but always allow low-value ones
-        if (blockAmount > 500 && sharedProductionCtx && sharedProductionCtx.produced > sharedProductionCtx.target * 1.5) {
-          continue;
-        }
-      }
-
       // Variety cap: if placing this block type would exceed MAX_SAME_TYPE_FRACTION,
       // skip it this iteration so a different type gets placed instead (§7 variety enforcement).
       if (wouldExceedVarietyCap(slots, ps, selectedBlock.id, slotsNeeded)) {
+        consecutiveSkips++;
+        // If all block types are capped, break to avoid infinite loop
+        if (consecutiveSkips > blockPool.length * 3) break;
         continue;
       }
+      consecutiveSkips = 0;
 
       // Only consider slots at or after the staggered start time for this column
       const allRanges = findAvailableRanges(slots, ps, slotsNeeded);
@@ -1453,9 +1499,10 @@ function fillHygOpSlots(
     
     if (blockPool.length === 0) return;
     
-    // Shuffle and distribute blocks — UX-V3: increased limit to fill full day
+    // Fill the FULL day — all empty slots must get blocks
     let safety = 0;
-    while (safety < 60) {
+    let consecutiveSkips = 0;
+    while (safety < 120) {
       safety++;
       
       // Pick a random block type based on weights
@@ -1475,8 +1522,11 @@ function fillHygOpSlots(
 
       // Variety cap: prevent a single hygiene block type from filling >65% of the day (§7)
       if (wouldExceedVarietyCap(slots, ps, selectedBlock.id, slotsNeeded)) {
+        consecutiveSkips++;
+        if (consecutiveSkips > blockPool.length * 3) break;
         continue;
       }
+      consecutiveSkips = 0;
 
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) break;

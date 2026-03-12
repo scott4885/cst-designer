@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Trash2, FileJson, Save, CheckCircle2, Grid3X3 as MatrixIcon, BarChart2, Info } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Trash2, FileJson, Save, CheckCircle2, Grid3X3 as MatrixIcon, BarChart2, Info, Maximize, Minimize, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Card imports removed — grid renders directly without card wrapper
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -46,6 +46,7 @@ import { validateClinicalRules } from "@/lib/engine/clinical-rules";
 import type { ClinicalWarning } from "@/lib/engine/clinical-rules";
 import { calculateQualityScore } from "@/lib/engine/quality-score";
 import type { QualityScore } from "@/lib/engine/quality-score";
+import { useFullScreen } from "@/components/layout/ClientLayout";
 
 export default function TemplateBuilderPage() {
   const params = useParams();
@@ -72,6 +73,7 @@ export default function TemplateBuilderPage() {
     updateBlockInDay,
   } = useScheduleStore();
 
+  const { fullScreen, setFullScreen } = useFullScreen();
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [generatingDay, setGeneratingDay] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -975,21 +977,31 @@ export default function TemplateBuilderPage() {
     <div className="h-full flex flex-col gap-0">
       {/* Row 1: Office name + day tabs (inline) + primary actions */}
       <div className="flex items-center gap-1.5 mb-1 min-h-[36px]">
-        <Link href="/">
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+        {fullScreen ? (
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setFullScreen(false)} title="Exit full screen">
             <ArrowLeft className="w-3.5 h-3.5" />
           </Button>
-        </Link>
+        ) : (
+          <Link href="/">
+            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+        )}
         <div className="flex items-center gap-1 min-w-0">
           <h1 className="text-sm font-bold text-foreground leading-tight truncate">{currentOffice.name}</h1>
-          {qualityScore && <QualityScoreBadge score={qualityScore} />}
-          <Tooltip><TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setShowOfficeInfo(true)} title="Office info">
-              <Info className="w-3 h-3 text-muted-foreground" />
-            </Button>
-          </TooltipTrigger><TooltipContent>Office details & config</TooltipContent></Tooltip>
-          <span className="text-muted-foreground text-[10px] hidden sm:inline">·</span>
-          <span className="text-muted-foreground text-[10px] hidden sm:inline">{currentOffice.dpmsSystem}</span>
+          {!fullScreen && qualityScore && <QualityScoreBadge score={qualityScore} />}
+          {!fullScreen && (
+            <>
+              <Tooltip><TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setShowOfficeInfo(true)} title="Office info">
+                  <Info className="w-3 h-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger><TooltipContent>Office details & config</TooltipContent></Tooltip>
+              <span className="text-muted-foreground text-[10px] hidden sm:inline">·</span>
+              <span className="text-muted-foreground text-[10px] hidden sm:inline">{currentOffice.dpmsSystem}</span>
+            </>
+          )}
         </div>
 
         {/* Day tabs inline in header row */}
@@ -1018,6 +1030,28 @@ export default function TemplateBuilderPage() {
 
         {/* Primary actions */}
         <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Smart Fill All — moved from QuickActionsToolbar to header */}
+          {hasSchedules && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs gap-1"
+                  onClick={handleQuickSmartFillAll}
+                  disabled={generatingProviderId !== null}
+                >
+                  {generatingProviderId !== null ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-3 h-3" />
+                  )}
+                  <span className="hidden sm:inline">Smart Fill</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Smart Fill all providers on {getDayLabel(activeDay)}</TooltipContent>
+            </Tooltip>
+          )}
           {hasSchedules && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1041,24 +1075,42 @@ export default function TemplateBuilderPage() {
               <><Sparkles className="w-3 h-3 mr-1" /><span className="hidden sm:inline">{hasSchedules ? 'Regen All' : 'Gen All'}</span><span className="sm:hidden">All</span></>
             )}
           </Button>
-          <Button onClick={handleGenerateSchedule} disabled={isGenerating} size="sm" className="h-7 px-2 text-xs">
-            {isGenerating && !generatingDay ? (
-              <><Loader2 className="w-3 h-3 mr-1 animate-spin" /><span className="hidden sm:inline">Gen...</span></>
-            ) : (
-              <><Sparkles className="w-3 h-3 mr-1" /><span className="hidden sm:inline">{hasSchedules ? 'Regen' : 'Generate'}</span><span className="sm:hidden">Gen</span></>
-            )}
-          </Button>
-          {/* More actions dropdown-style icons */}
-          <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Button variant="outline" size="sm" onClick={handleExport} disabled={!hasSchedules || isExporting} className="h-7 px-1.5">{isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}</Button></span></TooltipTrigger><TooltipContent>{!hasSchedules ? "Generate first" : "Export Excel"}</TooltipContent></Tooltip>
-          {getDpmsExportButton(currentOffice.dpmsSystem, currentDaySchedule, () => setShowODExportDialog(true))}
-          <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Link href={`/offices/${officeId}/matrix?day=${activeDay.toLowerCase()}`}><Button variant="outline" size="sm" className="h-7 px-1.5"><MatrixIcon className="w-3 h-3" /></Button></Link></span></TooltipTrigger><TooltipContent>Matrix view</TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Link href={`/offices/${officeId}/report`}><Button variant="outline" size="sm" className="h-7 px-1.5"><BarChart2 className="w-3 h-3" /></Button></Link></span></TooltipTrigger><TooltipContent>Weekly report</TooltipContent></Tooltip>
-          {hasSchedules && (
-            <Tooltip><TooltipTrigger asChild><Button onClick={handleClearAndStartOver} disabled={isGenerating} variant="outline" size="sm" className="h-7 px-1.5 border-destructive/50 text-destructive hover:bg-destructive/10"><Trash2 className="w-3 h-3" /></Button></TooltipTrigger><TooltipContent>Clear &amp; start over</TooltipContent></Tooltip>
+          {!fullScreen && (
+            <>
+              <Button onClick={handleGenerateSchedule} disabled={isGenerating} size="sm" className="h-7 px-2 text-xs">
+                {isGenerating && !generatingDay ? (
+                  <><Loader2 className="w-3 h-3 mr-1 animate-spin" /><span className="hidden sm:inline">Gen...</span></>
+                ) : (
+                  <><Sparkles className="w-3 h-3 mr-1" /><span className="hidden sm:inline">{hasSchedules ? 'Regen' : 'Generate'}</span><span className="sm:hidden">Gen</span></>
+                )}
+              </Button>
+              {/* More actions dropdown-style icons */}
+              <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Button variant="outline" size="sm" onClick={handleExport} disabled={!hasSchedules || isExporting} className="h-7 px-1.5">{isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}</Button></span></TooltipTrigger><TooltipContent>{!hasSchedules ? "Generate first" : "Export Excel"}</TooltipContent></Tooltip>
+              {getDpmsExportButton(currentOffice.dpmsSystem, currentDaySchedule, () => setShowODExportDialog(true))}
+              <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Link href={`/offices/${officeId}/matrix?day=${activeDay.toLowerCase()}`}><Button variant="outline" size="sm" className="h-7 px-1.5"><MatrixIcon className="w-3 h-3" /></Button></Link></span></TooltipTrigger><TooltipContent>Matrix view</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Link href={`/offices/${officeId}/report`}><Button variant="outline" size="sm" className="h-7 px-1.5"><BarChart2 className="w-3 h-3" /></Button></Link></span></TooltipTrigger><TooltipContent>Weekly report</TooltipContent></Tooltip>
+              {hasSchedules && (
+                <Tooltip><TooltipTrigger asChild><Button onClick={handleClearAndStartOver} disabled={isGenerating} variant="outline" size="sm" className="h-7 px-1.5 border-destructive/50 text-destructive hover:bg-destructive/10"><Trash2 className="w-3 h-3" /></Button></TooltipTrigger><TooltipContent>Clear &amp; start over</TooltipContent></Tooltip>
+              )}
+              <Button variant="ghost" size="icon" onClick={() => setShowDeleteDialog(true)} title="Delete office" className="h-7 w-7">
+                <Trash2 className="w-3 h-3 text-destructive" />
+              </Button>
+            </>
           )}
-          <Button variant="ghost" size="icon" onClick={() => setShowDeleteDialog(true)} title="Delete office" className="h-7 w-7">
-            <Trash2 className="w-3 h-3 text-destructive" />
-          </Button>
+          {/* Full Screen Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFullScreen(!fullScreen)}
+                className="h-7 px-1.5"
+              >
+                {fullScreen ? <Minimize className="w-3 h-3" /> : <Maximize className="w-3 h-3" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{fullScreen ? "Exit full screen (Esc)" : "Full screen mode"}</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -1210,27 +1262,28 @@ export default function TemplateBuilderPage() {
           })()}
 
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
-            {/* Row 2: Quick Actions strip — compact, icon-heavy */}
-            <div className="mb-1">
-              <QuickActionsToolbar
-                activeDay={activeDay}
-                hasSchedule={!!currentDaySchedule}
-                hasAnySchedule={hasSchedules}
-                workingDays={currentOffice.workingDays}
-                isSmartFilling={generatingProviderId !== null}
-                onSmartFillAll={handleQuickSmartFillAll}
-                onCopyMondayToAll={handleQuickCopyFirstDayToAll}
-                onResetDay={handleQuickResetDay}
-                onValidate={() => {
-                  // Scroll to clinical validation panel in the right column
-                  const el = document.getElementById('clinical-validation-panel');
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                onPrint={() => window.open(`/offices/${officeId}/print?day=${activeDay.toLowerCase()}`, '_blank')}
-                onExport={handleExport}
-                onClone={() => setShowCloneModal(true)}
-              />
-            </div>
+            {/* Row 2: Quick Actions strip — compact, icon-heavy (hidden in full screen) */}
+            {!fullScreen && (
+              <div className="mb-1">
+                <QuickActionsToolbar
+                  activeDay={activeDay}
+                  hasSchedule={!!currentDaySchedule}
+                  hasAnySchedule={hasSchedules}
+                  workingDays={currentOffice.workingDays}
+                  isSmartFilling={generatingProviderId !== null}
+                  onSmartFillAll={handleQuickSmartFillAll}
+                  onCopyMondayToAll={handleQuickCopyFirstDayToAll}
+                  onResetDay={handleQuickResetDay}
+                  onValidate={() => {
+                    const el = document.getElementById('clinical-validation-panel');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  onPrint={() => window.open(`/offices/${officeId}/print?day=${activeDay.toLowerCase()}`, '_blank')}
+                  onExport={handleExport}
+                  onClone={() => setShowCloneModal(true)}
+                />
+              </div>
+            )}
 
             <div className="flex-1 overflow-auto">
               {currentOffice.workingDays.map((day) => (
@@ -1263,10 +1316,10 @@ export default function TemplateBuilderPage() {
           </Tabs>
         </div>
 
-        {/* Right Panel - Production Summary (collapsible) */}
+        {/* Right Panel - Production Summary (collapsible, hidden in full screen) */}
         <div
           className={`transition-all duration-200 w-full lg:flex-shrink-0 ${
-            rightPanelCollapsed ? "lg:w-8" : "lg:w-72 xl:w-80"
+            fullScreen ? "hidden" : rightPanelCollapsed ? "lg:w-8" : "lg:w-72 xl:w-80"
           }`}
         >
           {/* On mobile, always show content. On desktop, respect collapsed state. */}

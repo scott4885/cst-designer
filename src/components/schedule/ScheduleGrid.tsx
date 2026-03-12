@@ -113,9 +113,26 @@ interface DragState {
 
 // Row height zoom levels (px per 10-min slot)
 // UX-V3: Smaller defaults so 8am-5pm (54 rows) fits on screen without scrolling
-const ROW_HEIGHT_LEVELS = [12, 14, 16, 20, 24, 32, 40];
-const DEFAULT_ROW_HEIGHT = 16;
+const ROW_HEIGHT_LEVELS = [10, 12, 14, 16, 20, 24, 32, 40];
+const DEFAULT_ROW_HEIGHT = 14;
 const LS_ROW_HEIGHT_KEY = "schedule-row-height";
+
+/**
+ * Auto-calculate row height to fit full day on screen.
+ * Returns a height that, when multiplied by the number of time slots,
+ * fits within the available viewport height.
+ */
+function autoCalculateRowHeight(totalSlots: number): number {
+  if (typeof window === 'undefined' || totalSlots === 0) return DEFAULT_ROW_HEIGHT;
+  // Reserve space for header bar (~90px) and table header (~80px)
+  const availableHeight = window.innerHeight - 170;
+  const calculated = Math.max(10, Math.floor(availableHeight / totalSlots));
+  // Snap to nearest valid level
+  const nearest = ROW_HEIGHT_LEVELS.reduce((prev, curr) =>
+    Math.abs(curr - calculated) < Math.abs(prev - calculated) ? curr : prev
+  );
+  return nearest;
+}
 
 // Column width modes
 const COL_WIDTH_COMPACT = 120;
@@ -143,7 +160,7 @@ export default function ScheduleGrid({
   const [rowHeight, setRowHeight] = useState<number>(DEFAULT_ROW_HEIGHT);
   const [columnsExpanded, setColumnsExpanded] = useState(false);
 
-  // Load rowHeight from localStorage on mount
+  // Load rowHeight from localStorage on mount, or auto-calculate if not stored
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = localStorage.getItem(LS_ROW_HEIGHT_KEY);
@@ -152,13 +169,17 @@ export default function ScheduleGrid({
       if (ROW_HEIGHT_LEVELS.includes(parsed)) {
         setRowHeight(parsed);
       } else if (parsed >= ROW_HEIGHT_LEVELS[0] && parsed <= ROW_HEIGHT_LEVELS[ROW_HEIGHT_LEVELS.length - 1]) {
-        // Snap to nearest valid level if old value doesn't match
         const nearest = ROW_HEIGHT_LEVELS.reduce((prev, curr) =>
           Math.abs(curr - parsed) < Math.abs(prev - parsed) ? curr : prev
         );
         setRowHeight(nearest);
       }
+    } else {
+      // Auto-calculate: fit full day on screen
+      const totalSlots = slots.length > 0 ? slots.length : 54; // default 54 for 8am-5pm @ 10min
+      setRowHeight(autoCalculateRowHeight(totalSlots));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Persist rowHeight changes to localStorage
@@ -639,7 +660,7 @@ export default function ScheduleGrid({
         <div>
           <table
             className="border-collapse"
-            style={{ tableLayout: "fixed", minWidth: `${80 + providers.length * (colWidth + 28)}px` }}
+            style={{ tableLayout: "fixed", borderCollapse: "collapse", borderSpacing: 0, minWidth: `${80 + providers.length * (colWidth + 28)}px` }}
           >
             <thead className="sticky top-0 z-20">
               {/* Row 1: Operatory name header */}
@@ -753,16 +774,19 @@ export default function ScheduleGrid({
               </tr>
             </thead>
             <tbody>
-              {timeSlots.map((row, rowIdx) => (
+              {timeSlots.map((row, rowIdx) => {
+                // Compact mode: hide D/A split bars, DA labels, HP badge when rows are tiny
+                const isCompactRow = rowHeight < 20;
+                return (
                 <tr
                   key={rowIdx}
                   className="hover:bg-muted/30 transition-colors"
-                  style={{ height: rowHeight }}
+                  style={{ height: rowHeight, maxHeight: rowHeight }}
                 >
                   {/* Sticky time cell */}
                   <td
                     className="p-0 border-b border-border sticky left-0 z-10 bg-surface"
-                    style={{ width: 80, minWidth: 80 }}
+                    style={{ width: 80, minWidth: 80, height: rowHeight, maxHeight: rowHeight, overflow: 'hidden' }}
                   >
                     <TimeSlotCell time={row.time} />
                   </td>
@@ -771,10 +795,10 @@ export default function ScheduleGrid({
                     if (provider.disabled) {
                       return (
                         <Fragment key={provider.id}>
-                          <td className="px-1 py-0 border-b border-border/30 bg-muted/20 text-center" style={{ width: 28, minWidth: 28 }} />
+                          <td className="p-0 border-b border-border/30 bg-muted/20 text-center" style={{ width: 28, minWidth: 28, height: rowHeight, maxHeight: rowHeight, overflow: 'hidden' }} />
                           <td
-                            className="px-2 py-0 border-b border-border/30 bg-muted/20"
-                            style={{ minWidth: colWidth }}
+                            className="p-0 border-b border-border/30 bg-muted/20"
+                            style={{ minWidth: colWidth, height: rowHeight, maxHeight: rowHeight, overflow: 'hidden' }}
                           />
                         </Fragment>
                       );
@@ -841,7 +865,14 @@ export default function ScheduleGrid({
 
                     return (
                       <Fragment key={provider.id}>
-                        <td className={`p-0 ${isBlockCellNotLast ? '' : 'border-b border-border'}`} style={{ width: 28, minWidth: 28 }}>
+                        <td
+                          className={`p-0 ${isBlockCellNotLast ? '' : 'border-b border-border'}`}
+                          style={{
+                            width: 28, minWidth: 28,
+                            height: rowHeight, maxHeight: rowHeight, overflow: 'hidden',
+                            ...(isBlockCellNotLast ? { borderBottom: 'none' } : {}),
+                          }}
+                        >
                           <TimeSlotCell
                             staffingCode={slot?.staffingCode}
                             providerColor={slot?.staffingCode ? provider.color : undefined}
@@ -849,9 +880,17 @@ export default function ScheduleGrid({
                             isDrExam={slot?.staffingCode === 'D' && provider.role === 'HYGIENIST'}
                           />
                         </td>
-                        <td className={`p-0 ${isBlockCellNotLast ? '' : 'border-b border-border'}`} style={{ minWidth: colWidth }}>
+                        <td
+                          className={`p-0 ${isBlockCellNotLast ? '' : 'border-b border-border'}`}
+                          style={{
+                            minWidth: colWidth,
+                            height: rowHeight, maxHeight: rowHeight, overflow: 'hidden',
+                            ...(isBlockCellNotLast ? { borderBottom: 'none' } : {}),
+                          }}
+                        >
                           <div
                             data-testid={`block-cell-${row.time}-${provider.id}`}
+                            style={{ height: rowHeight, maxHeight: rowHeight, overflow: 'hidden' }}
                             draggable={hasBlock && !!onMoveBlock && !outsideHours}
                             onDragStart={(e) => hasBlock && !outsideHours && handleDragStart(e, row.time, provider.id)}
                             onDragOver={(e) => !outsideHours && (isEmpty || sidebarDragging) && handleDragOver(e, row.time, provider.id)}
@@ -882,10 +921,10 @@ export default function ScheduleGrid({
                               isDragging={isDraggingSource}
                               hasConflict={cellHasConflict}
                               conflictTooltip={conflictTooltip ?? dTimeConflictTooltip}
-                              dTimeMin={cellDTimeMin}
-                              aTimeMin={cellATimeMin}
+                              dTimeMin={isCompactRow ? 0 : cellDTimeMin}
+                              aTimeMin={isCompactRow ? 0 : cellATimeMin}
                               hasDTimeConflict={hasDTimeConflict}
-                              isHighProduction={isHighProduction}
+                              isHighProduction={isCompactRow ? false : isHighProduction}
                             />
                           </div>
                         </td>
@@ -893,7 +932,7 @@ export default function ScheduleGrid({
                     );
                   })}
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>
