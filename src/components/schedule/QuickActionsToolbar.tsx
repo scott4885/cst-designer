@@ -62,7 +62,7 @@ export default function QuickActionsToolbar({
   return (
     <>
       <div
-        className="flex items-center gap-1 px-2 py-1.5 rounded-lg border bg-muted/40 flex-wrap"
+        className="flex items-center gap-0.5 px-1.5 py-1 rounded-md border bg-muted/40 flex-wrap"
         role="toolbar"
         aria-label="Quick actions"
         data-testid="quick-actions-toolbar"

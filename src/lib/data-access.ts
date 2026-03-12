@@ -146,7 +146,7 @@ function safeParseJSON<T>(value: string | null | undefined, fallback: T): T {
 
 export async function getOffices(): Promise<OfficeListItem[]> {
   const offices = await prisma.office.findMany({
-    include: { providers: true },
+    include: { providers: { orderBy: { id: 'asc' } } },
     orderBy: { name: 'asc' },
   });
 
@@ -170,7 +170,7 @@ export async function getOffices(): Promise<OfficeListItem[]> {
 export async function getOfficeById(id: string): Promise<OfficeDetail | null> {
   const office = await prisma.office.findUnique({
     where: { id },
-    include: { providers: true, blockTypes: true, rules: true },
+    include: { providers: { orderBy: { id: 'asc' } }, blockTypes: true, rules: true },
   });
   if (!office) return null;
   return dbOfficeToDetail(office);
@@ -263,11 +263,27 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
     },
   });
 
-  // Replace providers if provided
+  // Replace providers if provided — preserve existing IDs to avoid orphaned references
   if (data.providers) {
-    await prisma.provider.deleteMany({ where: { officeId: id } });
-    await prisma.provider.createMany({
-      data: data.providers.map((p) => ({
+    // Collect IDs that should be kept; any provider in DB but not in payload gets deleted
+    const incomingIds = data.providers
+      .map((p) => (p as any).id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+    // Delete providers that are no longer in the payload
+    if (incomingIds.length > 0) {
+      await prisma.provider.deleteMany({
+        where: { officeId: id, id: { notIn: incomingIds } },
+      });
+    } else {
+      await prisma.provider.deleteMany({ where: { officeId: id } });
+    }
+
+    // Upsert each provider individually to preserve IDs and role integrity
+    for (let i = 0; i < data.providers.length; i++) {
+      const p = data.providers[i];
+      const providerId = (p as any).id;
+      const providerData = {
         officeId: id,
         name: p.name,
         role: p.role,
@@ -285,8 +301,18 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
         providerSchedule: JSON.stringify((p as any).providerSchedule ?? {}),
         currentProcedureMix: JSON.stringify((p as any).currentProcedureMix ?? {}),
         futureProcedureMix: JSON.stringify((p as any).futureProcedureMix ?? {}),
-      })),
-    });
+      };
+
+      if (providerId) {
+        await prisma.provider.upsert({
+          where: { id: providerId },
+          update: providerData,
+          create: { id: providerId, ...providerData },
+        });
+      } else {
+        await prisma.provider.create({ data: providerData });
+      }
+    }
   }
 
   // Replace block types if provided

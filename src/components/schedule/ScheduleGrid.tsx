@@ -588,72 +588,46 @@ export default function ScheduleGrid({
         />
       )}
 
-      {/* ─── Controls bar ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 px-2 py-1.5 bg-muted/30 rounded-md border border-border/50">
-        {/* Column width controls */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground hidden sm:inline">Columns:</span>
+      {/* ─── Controls bar — compact single row ────────────────────────────── */}
+      <div className="flex items-center justify-between gap-2 px-2 py-1 bg-muted/30 rounded-md border border-border/50">
+        <div className="flex items-center gap-1">
           <Button
             size="sm"
             variant={!columnsExpanded ? "secondary" : "ghost"}
-            className="min-h-[44px] px-2 text-xs"
+            className="h-7 px-2 text-[11px]"
             onClick={() => setColumnsExpanded(false)}
-            title="Compact column view"
+            title="Compact columns"
           >
-            <ChevronsRight className="w-3 h-3 mr-1" />
-            Compact
+            <ChevronsRight className="w-3 h-3 mr-0.5" />
+            <span className="hidden sm:inline">Compact</span>
           </Button>
           <Button
             size="sm"
             variant={columnsExpanded ? "secondary" : "ghost"}
-            className="min-h-[44px] px-2 text-xs"
+            className="h-7 px-2 text-[11px]"
             onClick={() => setColumnsExpanded(true)}
-            title="Expanded column view"
+            title="Expanded columns"
           >
-            <ChevronsLeftRight className="w-3 h-3 mr-1" />
-            Expanded
+            <ChevronsLeftRight className="w-3 h-3 mr-0.5" />
+            <span className="hidden sm:inline">Wide</span>
           </Button>
         </div>
-
-        {/* Zoom controls */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground hidden sm:inline">Zoom:</span>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="min-h-[44px] min-w-[44px]"
-            onClick={zoomOut}
-            disabled={!canZoomOut}
-            title="Zoom out (smaller rows)"
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-0.5">
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={zoomOut} disabled={!canZoomOut} title="Zoom out">
+            <ZoomOut className="w-3 h-3" />
           </Button>
-          <span className="text-xs text-muted-foreground w-10 text-center tabular-nums">
-            {rowHeight}px
-          </span>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="min-h-[44px] min-w-[44px]"
-            onClick={zoomIn}
-            disabled={!canZoomIn}
-            title="Zoom in (taller rows)"
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
+          <span className="text-[10px] text-muted-foreground w-8 text-center tabular-nums">{rowHeight}px</span>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={zoomIn} disabled={!canZoomIn} title="Zoom in">
+            <ZoomIn className="w-3 h-3" />
           </Button>
         </div>
       </div>
-
-      {/* Mobile swipe hint */}
-      <p className="text-xs text-muted-foreground text-center sm:hidden">
-        ← Swipe to scroll the schedule →
-      </p>
 
       {/* ─── Schedule Grid ─────────────────────────────────────────────────── */}
       {/* Outer container: scrollable with sticky column headers at top */}
       <div
         className="schedule-grid border border-border rounded-lg overflow-y-auto overflow-x-auto"
-        style={{ maxHeight: "calc(100vh - 240px)", minHeight: "400px" }}
+        style={{ maxHeight: "calc(100vh - 200px)", minHeight: "300px" }}
       >
         <div>
           <table

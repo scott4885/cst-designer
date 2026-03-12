@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson, FileText, Save, CheckCircle2, Printer, Grid3X3 as MatrixIcon, BarChart2 } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson, FileText, Save, CheckCircle2, Printer, Grid3X3 as MatrixIcon, BarChart2, Users, Calendar, Monitor, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -71,8 +71,18 @@ export default function TemplateBuilderPage() {
     updateBlockInDay,
   } = useScheduleStore();
 
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  // Sidebar collapse state — default collapsed on Template Builder for max grid space
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = localStorage.getItem('schedule-designer:left-panel-collapsed');
+    return stored !== null ? stored === 'true' : true; // default: collapsed
+  });
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+
+  // Persist sidebar collapse state to localStorage
+  useEffect(() => {
+    localStorage.setItem('schedule-designer:left-panel-collapsed', String(leftPanelCollapsed));
+  }, [leftPanelCollapsed]);
   const [generatingDay, setGeneratingDay] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -972,26 +982,26 @@ export default function TemplateBuilderPage() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4 sm:mb-6">
-        <div className="flex items-center gap-3">
+      {/* Header — compact single row with grouped actions */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
           <Link href="/">
-            <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]">
-              <ArrowLeft className="w-5 h-5" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+              <ArrowLeft className="w-4 h-4" />
             </Button>
           </Link>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight">{currentOffice.name}</h1>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h1 className="text-base sm:text-lg font-bold text-foreground leading-tight truncate">{currentOffice.name}</h1>
               {qualityScore && <QualityScoreBadge score={qualityScore} />}
             </div>
-            <p className="text-muted-foreground text-xs sm:text-sm">
+            <p className="text-muted-foreground text-[11px] leading-tight">
               {currentOffice.dpmsSystem} &bull; Template Builder
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {/* Save Template button — visible when schedule exists */}
+        <div className="flex items-center gap-1 flex-wrap justify-end">
+          {/* Save */}
           {hasSchedules && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -999,196 +1009,97 @@ export default function TemplateBuilderPage() {
                   variant={isDirty ? "default" : "outline"}
                   size="sm"
                   onClick={handleSaveTemplate}
-                  className={`min-h-[44px] gap-1 ${isDirty ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
+                  className={`h-8 px-2 gap-1 ${isDirty ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
                 >
-                  {isDirty ? (
-                    <>
-                      <Save className="w-4 h-4 sm:mr-1" />
-                      <span className="hidden sm:inline">Save</span>
-                      <span className="inline-block w-2 h-2 rounded-full bg-yellow-300 ml-1" title="Unsaved changes" />
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 sm:mr-1 text-green-500" />
-                      <span className="hidden sm:inline">{lastSavedAt ? "Saved" : "Save"}</span>
-                    </>
-                  )}
+                  {isDirty ? <Save className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />}
+                  <span className="hidden lg:inline text-xs">{isDirty ? "Save" : "Saved"}</span>
+                  {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-yellow-300" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                {isDirty ? "You have unsaved changes — click to save" : lastSavedAt ? `Saved at ${lastSavedAt.toLocaleTimeString()}` : "Save template"}
-              </TooltipContent>
+              <TooltipContent>{isDirty ? "Unsaved changes" : lastSavedAt ? `Saved ${lastSavedAt.toLocaleTimeString()}` : "Save template"}</TooltipContent>
             </Tooltip>
           )}
+          {/* Export Excel */}
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExport}
-                  disabled={Object.keys(generatedSchedules).length === 0 || isExporting}
-                  className="min-h-[44px]"
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
-                      <span className="hidden sm:inline">Exporting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4 sm:mr-2" />
-                      <span className="hidden sm:inline">Export</span>
-                    </>
-                  )}
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={!hasSchedules || isExporting} className="h-8 px-2">
+                  {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>
-              {Object.keys(generatedSchedules).length === 0
-                ? "Generate a schedule first"
-                : "Export all generated schedules to Excel"}
-            </TooltipContent>
+            <TooltipContent>{!hasSchedules ? "Generate first" : "Export Excel"}</TooltipContent>
           </Tooltip>
+          {/* DPMS Export */}
           {getDpmsExportButton(currentOffice.dpmsSystem, currentDaySchedule, () => setShowODExportDialog(true))}
-          {/* Matrix View link */}
+          {/* Icon-only secondary actions */}
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0}>
                 <Link href={`/offices/${officeId}/matrix?day=${activeDay.toLowerCase()}`}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="min-h-[44px]"
-                  >
-                    <MatrixIcon className="w-4 h-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Matrix</span>
-                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 px-2"><MatrixIcon className="w-3.5 h-3.5" /></Button>
                 </Link>
               </span>
             </TooltipTrigger>
-            <TooltipContent>Multi-provider scheduling matrix view</TooltipContent>
+            <TooltipContent>Matrix view</TooltipContent>
           </Tooltip>
-          {/* Weekly Report link */}
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0}>
                 <Link href={`/offices/${officeId}/report`}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="min-h-[44px]"
-                  >
-                    <BarChart2 className="w-4 h-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Report</span>
-                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 px-2"><BarChart2 className="w-3.5 h-3.5" /></Button>
                 </Link>
               </span>
             </TooltipTrigger>
-            <TooltipContent>Weekly schedule report (print-ready)</TooltipContent>
+            <TooltipContent>Weekly report</TooltipContent>
           </Tooltip>
-          {/* Print View button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`/offices/${officeId}/print?day=${activeDay.toLowerCase()}`, '_blank')}
-                  disabled={!currentDaySchedule}
-                  className="min-h-[44px]"
-                >
-                  <Printer className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Print</span>
+                <Button variant="outline" size="sm" onClick={() => window.open(`/offices/${officeId}/print?day=${activeDay.toLowerCase()}`, '_blank')} disabled={!currentDaySchedule} className="h-8 px-2">
+                  <Printer className="w-3.5 h-3.5" />
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>
-              {!currentDaySchedule ? 'Generate a schedule first' : `Open print view for ${getDayLabel(activeDay)}`}
-            </TooltipContent>
+            <TooltipContent>{!currentDaySchedule ? "Generate first" : "Print view"}</TooltipContent>
           </Tooltip>
-
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={0}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportPdf}
-                  disabled={!currentDaySchedule || isExportingPdf}
-                  className="min-h-[44px]"
-                >
-                  {isExportingPdf ? (
-                    <>
-                      <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
-                      <span className="hidden sm:inline">Exporting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4 sm:mr-2" />
-                      <span className="hidden sm:inline">Export PDF</span>
-                    </>
-                  )}
+                <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={!currentDaySchedule || isExportingPdf} className="h-8 px-2">
+                  {isExportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>
-              {!currentDaySchedule
-                ? "Generate a schedule first"
-                : `Export ${getDayLabel(activeDay)} schedule as PDF`}
-            </TooltipContent>
+            <TooltipContent>{!currentDaySchedule ? "Generate first" : "Export PDF"}</TooltipContent>
           </Tooltip>
           {hasSchedules && (
-            <Button
-              onClick={handleClearAndStartOver}
-              disabled={isGenerating}
-              variant="outline"
-              size="sm"
-              className="min-h-[44px] border-destructive/50 text-destructive hover:bg-destructive/10"
-              title="Wipe all schedules and start fresh"
-            >
-              <Trash2 className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Clear &amp; Start Over</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleClearAndStartOver} disabled={isGenerating} variant="outline" size="sm" className="h-8 px-2 border-destructive/50 text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Clear &amp; start over</TooltipContent>
+            </Tooltip>
           )}
-          <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary" size="sm" className="min-h-[44px]">
+          {/* Primary generate buttons */}
+          <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary" size="sm" className="h-8 px-2 text-xs">
             {isGenerating && generatingDay ? (
-              <>
-                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
-                <span className="hidden sm:inline">Generating {getDayShort(generatingDay)}...</span>
-                <span className="sm:hidden">Gen All...</span>
-              </>
+              <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /><span className="hidden sm:inline">Gen {getDayShort(generatingDay)}...</span></>
             ) : (
-              <>
-                <Sparkles className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">{hasSchedules ? 'Regenerate All Days' : 'Generate All Days'}</span>
-                <span className="sm:hidden">All Days</span>
-              </>
+              <><Sparkles className="w-3.5 h-3.5 mr-1" /><span className="hidden sm:inline">{hasSchedules ? 'Regen All' : 'Gen All'}</span><span className="sm:hidden">All</span></>
             )}
           </Button>
-          <Button onClick={handleGenerateSchedule} disabled={isGenerating} size="sm" className="min-h-[44px]">
+          <Button onClick={handleGenerateSchedule} disabled={isGenerating} size="sm" className="h-8 px-2 text-xs">
             {isGenerating && !generatingDay ? (
-              <>
-                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
-                <span className="hidden sm:inline">Generating...</span>
-                <span className="sm:hidden">Gen...</span>
-              </>
+              <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /><span className="hidden sm:inline">Gen...</span></>
             ) : (
-              <>
-                <Sparkles className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">{hasSchedules ? `Regenerate ${getDayLabel(activeDay)}` : `Generate ${getDayLabel(activeDay)}`}</span>
-                <span className="sm:hidden">{hasSchedules ? 'Regenerate' : 'Generate'}</span>
-              </>
+              <><Sparkles className="w-3.5 h-3.5 mr-1" /><span className="hidden sm:inline">{hasSchedules ? 'Regen' : 'Generate'}</span><span className="sm:hidden">Gen</span></>
             )}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowDeleteDialog(true)}
-            title="Delete office"
-            className="min-h-[44px] min-w-[44px]"
-          >
-            <Trash2 className="w-4 h-4 text-destructive" />
+          <Button variant="ghost" size="icon" onClick={() => setShowDeleteDialog(true)} title="Delete office" className="h-8 w-8">
+            <Trash2 className="w-3.5 h-3.5 text-destructive" />
           </Button>
         </div>
       </div>
@@ -1237,21 +1148,63 @@ export default function TemplateBuilderPage() {
 
       {/* 3-Panel Layout */}
       <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 overflow-auto lg:overflow-hidden">
-        {/* Left Panel - Office Info (hidden on mobile) */}
+        {/* Left Panel - Office Info (hidden on mobile) — collapsible icon rail / expanded sidebar */}
         <div
-          className={`transition-all duration-300 hidden lg:block ${
-            leftPanelCollapsed ? "w-12" : "w-80"
-          } flex-shrink-0`}
+          className={`transition-all duration-300 hidden lg:flex flex-col flex-shrink-0 ${
+            leftPanelCollapsed ? "w-12" : "w-[280px] max-w-[280px]"
+          }`}
         >
           {leftPanelCollapsed ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLeftPanelCollapsed(false)}
-              className="w-full h-12"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </Button>
+            /* ── Icon Rail (48px collapsed) ─────────────────────────── */
+            <div className="flex flex-col items-center gap-1 pt-2 h-full border-r border-border/50 bg-surface/30 rounded-lg">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setLeftPanelCollapsed(false)}
+                    className="w-10 h-10"
+                  >
+                    <PanelLeftOpen className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Expand sidebar</TooltipContent>
+              </Tooltip>
+              <Separator className="my-1 w-8" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="relative">
+                    <Link href={`/offices/${officeId}/edit`}>
+                      <Button variant="ghost" size="icon" className="w-10 h-10">
+                        <Users className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                    {(currentOffice.providers || []).length > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent text-[9px] font-bold text-white flex items-center justify-center">
+                        {currentOffice.providers!.length}
+                      </span>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">Providers ({(currentOffice.providers || []).length})</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="w-10 h-10">
+                    <Calendar className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Working Days: {currentOffice.workingDays.map(d => d[0]).join('')}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="w-10 h-10">
+                    <Monitor className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{currentOffice.dpmsSystem}</TooltipContent>
+              </Tooltip>
+            </div>
           ) : (
             <Card className="h-full overflow-auto">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -1261,8 +1214,9 @@ export default function TemplateBuilderPage() {
                   size="icon"
                   onClick={() => setLeftPanelCollapsed(true)}
                   className="h-8 w-8"
+                  title="Collapse sidebar"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <PanelLeftClose className="w-4 h-4" />
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1476,7 +1430,7 @@ export default function TemplateBuilderPage() {
           })()}
 
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
-            <TabsList className="flex w-full overflow-x-auto mb-2 h-10">
+            <TabsList className="flex w-full overflow-x-auto mb-1 h-8">
               {currentOffice.workingDays.map((day) => (
                 <TabsTrigger key={day} value={day} className="flex-1 min-w-[52px] sm:min-w-[100px] text-xs sm:text-sm px-1 sm:px-3">
                   <span className="sm:hidden">{getDayShort(day)}</span>
@@ -1496,8 +1450,8 @@ export default function TemplateBuilderPage() {
               ))}
             </TabsList>
 
-            {/* Quick Actions Toolbar — below day selector, above schedule grid */}
-            <div className="mb-3">
+            {/* Quick Actions Toolbar — compact, below day selector */}
+            <div className="mb-1">
               <QuickActionsToolbar
                 activeDay={activeDay}
                 hasSchedule={!!currentDaySchedule}
