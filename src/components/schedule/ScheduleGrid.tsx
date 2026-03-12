@@ -124,8 +124,8 @@ const LS_ROW_HEIGHT_KEY = "schedule-row-height";
  */
 function autoCalculateRowHeight(totalSlots: number): number {
   if (typeof window === 'undefined' || totalSlots === 0) return DEFAULT_ROW_HEIGHT;
-  // Reserve space for header bar (~90px) and table header (~80px)
-  const availableHeight = window.innerHeight - 170;
+  // Reserve space for app header, page row 1, toolbar, grid controls, table thead
+  const availableHeight = window.innerHeight - 250;
   const calculated = Math.max(10, Math.floor(availableHeight / totalSlots));
   // Snap to nearest valid level
   const nearest = ROW_HEIGHT_LEVELS.reduce((prev, curr) =>
@@ -583,7 +583,7 @@ export default function ScheduleGrid({
   const canZoomOut = zoomLevelIdx > 0;
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col h-full min-h-0 gap-2">
       {/* Block Picker (click-to-add) — always falls back to global Appointment Library */}
       {pickerOpen && pickerPosition && (
         <BlockPicker
@@ -617,7 +617,7 @@ export default function ScheduleGrid({
       )}
 
       {/* ─── Controls bar — compact single row ────────────────────────────── */}
-      <div className="flex items-center justify-between gap-2 px-2 py-1 bg-muted/30 rounded-md border border-border/50">
+      <div className="flex items-center justify-between gap-2 px-2 py-1 bg-muted/30 rounded-md border border-border/50 shrink-0">
         <div className="flex items-center gap-1">
           <Button
             size="sm"
