@@ -33,9 +33,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /tmp/seed.db /app/seed.db
 COPY --from=builder /app/src/generated ./src/generated
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 RUN mkdir -p /app/data
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-# On startup: seed DB if new, run migrations to apply schema changes, then start
-CMD ["sh", "-c", "[ ! -f /app/data/schedules.db ] && cp /app/seed.db /app/data/schedules.db; DATABASE_URL=file:/app/data/schedules.db ./node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma 2>&1 || true; node server.js"]
+# On startup: seed DB if new, run migrations via prisma.config.ts, then start
+CMD ["sh", "-c", "[ ! -f /app/data/schedules.db ] && cp /app/seed.db /app/data/schedules.db; DATABASE_URL=file:/app/data/schedules.db ./node_modules/.bin/prisma migrate deploy --config /app/prisma.config.ts 2>&1 || true; node server.js"]
