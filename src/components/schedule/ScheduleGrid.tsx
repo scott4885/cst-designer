@@ -655,7 +655,7 @@ export default function ScheduleGrid({
       {/* Outer container: scrollable with sticky column headers at top */}
       {/* UX-V3: No maxHeight — grid uses full remaining viewport height */}
       <div
-        className="schedule-grid border border-border rounded-lg overflow-y-auto overflow-x-auto flex-1"
+        className="schedule-grid min-h-0 min-w-0 border border-border rounded-lg overflow-y-auto overflow-x-auto flex-1"
       >
         <div>
           <table

@@ -974,9 +974,9 @@ export default function TemplateBuilderPage() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-0">
+    <div className="h-full min-h-0 flex flex-col gap-0">
       {/* Row 1: Office name + day tabs (inline) + primary actions */}
-      <div className="flex items-center gap-1.5 mb-1 min-h-[36px]">
+      <div className="flex items-center gap-1.5 mb-1 min-h-[36px] shrink-0">
         {fullScreen ? (
           <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setFullScreen(false)} title="Exit full screen">
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -1157,12 +1157,12 @@ export default function TemplateBuilderPage() {
       </Dialog>
 
       {/* 2-Panel Layout: Schedule Grid (full width) + Right sidebar */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-0 lg:gap-2 overflow-auto lg:overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-0 lg:gap-2 overflow-hidden">
         {/* Schedule Grid — fills all remaining space */}
-        <div className="w-full lg:flex-1 flex flex-col lg:overflow-hidden">
+        <div className="w-full lg:flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Auto-loaded banner — fades after 3s when a saved schedule is restored from localStorage */}
           {autoLoadedBanner && (
-            <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-md bg-success/10 border border-success/20 text-success text-xs font-medium transition-opacity duration-500 w-fit">
+            <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-md bg-success/10 border border-success/20 text-success text-xs font-medium transition-opacity duration-500 w-fit shrink-0">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Auto-loaded saved schedule
             </div>
@@ -1183,7 +1183,7 @@ export default function TemplateBuilderPage() {
             });
             if (relevant.length === 0) return null;
             return (
-              <div className="flex flex-col gap-1 mb-2">
+              <div className="flex flex-col gap-1 mb-2 shrink-0">
                 {relevant.map((a, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs font-medium w-fit">
                     ⚠️ {a.providerName} is marked absent on {a.date}{a.reason ? ` (${a.reason})` : ''}
@@ -1223,7 +1223,7 @@ export default function TemplateBuilderPage() {
             const currentWeekIsEmpty = Object.keys(generatedSchedules).length === 0;
 
             return (
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <div className="flex items-center gap-2 mb-1 flex-wrap shrink-0">
                 <span className="text-xs text-muted-foreground font-medium">Week:</span>
                 <div className="flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
                   {weeks.map((w, i) => (
@@ -1261,10 +1261,10 @@ export default function TemplateBuilderPage() {
             );
           })()}
 
-          <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
+          <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 min-h-0 flex flex-col">
             {/* Row 2: Quick Actions strip — compact, icon-heavy (hidden in full screen) */}
             {!fullScreen && (
-              <div className="mb-1">
+              <div className="mb-1 shrink-0">
                 <QuickActionsToolbar
                   activeDay={activeDay}
                   hasSchedule={!!currentDaySchedule}
@@ -1285,13 +1285,14 @@ export default function TemplateBuilderPage() {
               </div>
             )}
 
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 min-h-0 overflow-hidden">
               {currentOffice.workingDays.map((day) => (
-                <TabsContent key={day} value={day} className="h-full mt-0">
-                  <div className="h-full overflow-x-auto">
+                <TabsContent key={day} value={day} className="h-full min-h-0 mt-0">
+                  <div className="h-full min-h-0 overflow-hidden">
                     <div
                       ref={day === activeDay ? scheduleGridRef : undefined}
                       data-pdf-capture="true"
+                      className="h-full min-h-0"
                       style={{ background: "var(--background)" }}
                     >
                         <ScheduleGrid
@@ -1318,7 +1319,7 @@ export default function TemplateBuilderPage() {
 
         {/* Right Panel - Production Summary (collapsible, hidden in full screen) */}
         <div
-          className={`transition-all duration-200 w-full lg:flex-shrink-0 ${
+          className={`transition-all duration-200 w-full min-h-0 lg:flex-shrink-0 ${
             fullScreen ? "hidden" : rightPanelCollapsed ? "lg:w-8" : "lg:w-72 xl:w-80"
           }`}
         >
@@ -1336,7 +1337,7 @@ export default function TemplateBuilderPage() {
               </Button>
             </div>
           ) : null}
-          <div className={`${rightPanelCollapsed ? "lg:hidden" : ""} overflow-auto space-y-3 lg:space-y-3 lg:h-full`}>
+          <div className={`${rightPanelCollapsed ? "lg:hidden" : ""} min-h-0 overflow-auto space-y-3 lg:space-y-3 lg:h-full`}>
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Production</span>
               <Button

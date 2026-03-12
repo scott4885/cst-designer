@@ -54,7 +54,7 @@ export default function ClientLayout({
   return (
     <FullScreenContext.Provider value={{ fullScreen, setFullScreen }}>
       <TooltipProvider>
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-screen min-h-0 overflow-hidden">
           {/* Mobile overlay backdrop */}
           {mobileSidebarOpen && !fullScreen && (
             <div
@@ -70,11 +70,11 @@ export default function ClientLayout({
             />
           )}
 
-          <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden min-w-0">
             {!fullScreen && (
               <Header onMobileMenuToggle={() => setMobileSidebarOpen((v) => !v)} />
             )}
-            <main className={`flex-1 overflow-auto bg-background ${fullScreen ? "p-0" : isBuilder ? "p-2" : "p-4 sm:p-6"}`}>
+            <main className={`flex-1 min-h-0 overflow-auto bg-background ${fullScreen ? "p-0" : isBuilder ? "p-2" : "p-4 sm:p-6"}`}>
               <ErrorBoundary>{children}</ErrorBoundary>
             </main>
           </div>
