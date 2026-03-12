@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma as db } from '@/lib/db';
 import { BUILT_IN_SEQUENCES, serializeSteps } from '@/lib/treatment-sequences';
 
 // Seed built-in sequences if none exist

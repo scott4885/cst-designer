@@ -16,6 +16,8 @@ export interface OfficeData {
   rotationEnabled?: boolean;
   /** Number of rotation weeks: 2 (A/B) or 4 (A/B/C/D). Default 2. */
   rotationWeeks?: number;
+  /** JSON array of SchedulingWindow objects for smart scheduling windows (Sprint 17) */
+  schedulingWindows?: string;
   providers?: ProviderInput[];
   blockTypes?: BlockTypeInput[];
   rules?: ScheduleRules;

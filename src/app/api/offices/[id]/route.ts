@@ -64,6 +64,7 @@ export async function PUT(
       alternateWeekEnabled: body.alternateWeekEnabled,
       rotationEnabled: body.rotationEnabled,
       rotationWeeks: body.rotationWeeks,
+      schedulingWindows: body.schedulingWindows,
     });
 
     if (!updatedOffice) {

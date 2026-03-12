@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useOfficeStore } from "@/store/office-store";
+import RecallCapacityPanel from "@/components/schedule/RecallCapacityPanel";
 import {
   computeOrgSummary,
   computeQualityDistribution,
@@ -278,9 +279,12 @@ function LeagueTable({ rows }: { rows: OfficeLeagueRow[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+type AnalyticsTab = "overview" | "recall";
+
 export default function AnalyticsPage() {
   const { offices, isLoading, fetchOffices } = useOfficeStore();
   const [scheduleDataMap, setScheduleDataMap] = useState<Map<string, OfficeScheduleData>>(new Map());
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>("overview");
 
   useEffect(() => {
     fetchOffices().catch(console.error);
@@ -354,6 +358,32 @@ export default function AnalyticsPage() {
           Org-level schedule performance across {offices.length} offices
         </p>
       </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-border">
+        {(["overview", "recall"] as AnalyticsTab[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors capitalize ${
+              activeTab === tab
+                ? "border-accent text-accent"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab === "recall" ? "Recall Capacity" : "Overview"}
+          </button>
+        ))}
+      </div>
+
+      {/* Recall Tab */}
+      {activeTab === "recall" && (
+        <RecallCapacityPanel offices={offices} />
+      )}
+
+      {/* Overview Tab — only render when active */}
+      {activeTab !== "recall" && (
+        <>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

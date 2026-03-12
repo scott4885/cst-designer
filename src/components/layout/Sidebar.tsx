@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Settings, BookOpen, Library, X, BarChart2, TrendingUp, Layers, SearchCode, Award } from "lucide-react";
+import { Building2, Settings, BookOpen, Library, X, BarChart2, TrendingUp, Layers, SearchCode, Award, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { href: "/", label: "Offices", icon: Building2 },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/utilization", label: "Chair Utilization", icon: Activity },
   { href: "/rollup", label: "Production Rollup", icon: TrendingUp },
   { href: "/audit", label: "Block Audit", icon: SearchCode },
   { href: "/benchmarks", label: "Benchmarks", icon: Award },

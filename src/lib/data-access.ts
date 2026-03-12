@@ -36,6 +36,7 @@ export interface OfficeDetail {
   alternateWeekEnabled: boolean;
   rotationEnabled: boolean;
   rotationWeeks: number;
+  schedulingWindows: string;
 }
 
 export interface CreateOfficeInput {
@@ -52,6 +53,7 @@ export interface CreateOfficeInput {
   alternateWeekEnabled?: boolean;
   rotationEnabled?: boolean;
   rotationWeeks?: number;
+  schedulingWindows?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +127,7 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     alternateWeekEnabled: (office as any).alternateWeekEnabled ?? false,
     rotationEnabled: (office as any).rotationEnabled ?? false,
     rotationWeeks: (office as any).rotationWeeks ?? 2,
+    schedulingWindows: (office as any).schedulingWindows || '[]',
   };
 }
 
@@ -256,6 +259,7 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
       ...(data.alternateWeekEnabled !== undefined && { alternateWeekEnabled: data.alternateWeekEnabled }),
       ...(data.rotationEnabled !== undefined && { rotationEnabled: data.rotationEnabled }),
       ...(data.rotationWeeks !== undefined && { rotationWeeks: data.rotationWeeks }),
+      ...(data.schedulingWindows !== undefined && { schedulingWindows: data.schedulingWindows }),
     },
   });
 
