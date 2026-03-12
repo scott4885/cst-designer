@@ -57,7 +57,7 @@ export default function TimeSlotCell({
   // Time column cell
   if (time) {
     return (
-      <div className="time-slot-cell bg-surface font-medium text-muted-foreground sticky left-0 z-10 text-xs px-2 py-1.5 whitespace-nowrap">
+      <div className="time-slot-cell bg-surface font-medium text-muted-foreground sticky left-0 z-10 text-[10px] px-1 py-0 whitespace-nowrap leading-none h-full flex items-center">
         {time}
       </div>
     );
@@ -67,7 +67,7 @@ export default function TimeSlotCell({
   if (isOutsideHours) {
     return (
       <div
-        className="provider-cell px-2 py-1.5 min-h-[28px] bg-muted/60 cursor-not-allowed"
+        className="provider-cell px-1 py-0 h-full bg-muted/60 cursor-not-allowed"
         title="Outside provider's scheduled hours"
       />
     );
@@ -77,7 +77,7 @@ export default function TimeSlotCell({
   if (isBreak || (!staffingCode && !blockLabel)) {
     return (
       <div
-        className={`provider-cell px-2 py-1.5 min-h-[28px] ${
+        className={`provider-cell px-1 py-0 h-full ${
           isBreak
             ? "bg-muted/40"
             : isDragOver
@@ -90,12 +90,12 @@ export default function TimeSlotCell({
         }`}
         onClick={!isBreak ? onClick : undefined}
       >
-        {isBreak && <span className="text-muted-foreground text-[10px] font-medium">LUNCH</span>}
+        {isBreak && <span className="text-muted-foreground text-[10px] font-medium leading-none">LUNCH</span>}
         {isDragOver && !isBreak && (
-          <span className="text-accent/70 text-[10px] font-medium select-none">Drop here</span>
+          <span className="text-accent/70 text-[10px] font-medium select-none leading-none">Drop here</span>
         )}
         {isClickable && !isBreak && !isDragOver && (
-          <span className="text-muted-foreground/40 text-xs transition-opacity opacity-0 group-hover/cell:opacity-100">+</span>
+          <span className="text-muted-foreground/40 text-xs transition-opacity opacity-0 group-hover/cell:opacity-100 leading-none">+</span>
         )}
       </div>
     );
@@ -105,7 +105,7 @@ export default function TimeSlotCell({
   if (staffingCode !== undefined && !blockLabel) {
     return (
       <div
-        className={`flex items-center justify-center w-7 min-h-[28px] px-0 py-1.5 ${
+        className={`flex items-center justify-center w-7 h-full px-0 py-0 ${
           isBreak ? "bg-muted/40" : ""
         }`}
         style={providerColor && !isBreak ? {
@@ -114,10 +114,10 @@ export default function TimeSlotCell({
         } : {}}
       >
         {staffingCode && !isBreak && (
-          <span className="text-[10px] font-bold text-foreground/80">{staffingCode}</span>
+          <span className="text-[10px] font-bold text-foreground/80 leading-none">{staffingCode}</span>
         )}
         {isDrExam && !isBreak && (
-          <span className="text-[8px] text-blue-600">Dr</span>
+          <span className="text-[8px] text-blue-600 leading-none">Dr</span>
         )}
       </div>
     );
@@ -136,6 +136,9 @@ export default function TimeSlotCell({
   // Assisted Hygiene blocks get a distinct teal/cyan color overriding the provider color
   const isAssistedHyg = !!(blockLabel && (blockLabel.toUpperCase().includes('ASSISTED HYG') || blockLabel.toUpperCase().includes('ASSISTED HYGIENE')));
   const effectiveProviderColor = isAssistedHyg ? '#8b5cf6' : providerColor;
+
+  // Outside provider work hours — gray, non-interactive (compact)
+  // (duplicated here intentionally for flow control)
 
   // Provider cell with data
   const cellStyle = effectiveProviderColor
@@ -162,7 +165,7 @@ export default function TimeSlotCell({
 
   return (
     <div
-      className={`provider-cell relative group px-2 py-1.5 min-h-[28px] transition-all ${
+      className={`provider-cell relative group px-1 py-0 h-full transition-all ${
         isClickable ? "cursor-pointer hover:brightness-110" : ""
       } ${
         isDragging
@@ -189,7 +192,7 @@ export default function TimeSlotCell({
       )}
       {blockLabel && isBlockFirst && (
         <div
-          className="text-[11px] text-foreground/70 mt-0.5 leading-tight truncate max-w-[140px] flex items-center gap-1"
+          className="text-[10px] text-foreground/70 leading-none truncate max-w-[140px] flex items-center gap-0.5"
           title={blockLabel}
         >
           {isAssistedHyg && isBlockFirst && (

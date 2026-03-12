@@ -112,8 +112,9 @@ interface DragState {
 }
 
 // Row height zoom levels (px per 10-min slot)
-const ROW_HEIGHT_LEVELS = [24, 32, 40, 48, 56];
-const DEFAULT_ROW_HEIGHT = 32;
+// UX-V3: Smaller defaults so 8am-5pm (54 rows) fits on screen without scrolling
+const ROW_HEIGHT_LEVELS = [12, 14, 16, 20, 24, 32, 40];
+const DEFAULT_ROW_HEIGHT = 16;
 const LS_ROW_HEIGHT_KEY = "schedule-row-height";
 
 // Column width modes
@@ -150,6 +151,12 @@ export default function ScheduleGrid({
       const parsed = parseInt(stored, 10);
       if (ROW_HEIGHT_LEVELS.includes(parsed)) {
         setRowHeight(parsed);
+      } else if (parsed >= ROW_HEIGHT_LEVELS[0] && parsed <= ROW_HEIGHT_LEVELS[ROW_HEIGHT_LEVELS.length - 1]) {
+        // Snap to nearest valid level if old value doesn't match
+        const nearest = ROW_HEIGHT_LEVELS.reduce((prev, curr) =>
+          Math.abs(curr - parsed) < Math.abs(prev - parsed) ? curr : prev
+        );
+        setRowHeight(nearest);
       }
     }
   }, []);
@@ -625,9 +632,9 @@ export default function ScheduleGrid({
 
       {/* ─── Schedule Grid ─────────────────────────────────────────────────── */}
       {/* Outer container: scrollable with sticky column headers at top */}
+      {/* UX-V3: No maxHeight — grid uses full remaining viewport height */}
       <div
-        className="schedule-grid border border-border rounded-lg overflow-y-auto overflow-x-auto"
-        style={{ maxHeight: "calc(100vh - 200px)", minHeight: "300px" }}
+        className="schedule-grid border border-border rounded-lg overflow-y-auto overflow-x-auto flex-1"
       >
         <div>
           <table

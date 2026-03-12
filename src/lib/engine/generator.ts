@@ -691,26 +691,28 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
 
     if (isMultiColumn) {
       // Sprint 6 FIX: Shared production pool — one target for ALL ops combined.
-      // Instead of dividing dailyGoal / numOps (Sprint 5 approach), we use a mutable
-      // ctx object that tracks production across all ops. Each op fills until the
-      // combined goal is met, rather than being constrained to a fraction of the goal.
-      // Op 0 leads with HP (Rocks), Op 1 with MP, Op 2+ with NP/ER.
+      // UX-V3 FIX (Issues 6 & 7): Each op gets independently filled to ensure the
+      // FULL day is covered across ALL operatories, not just Op 1.
+      // The shared ctx tracks combined production but does NOT prevent secondary ops
+      // from being filled. Each op fills until its time slots are utilized.
       const sharedTarget = calculateTarget75(doc.dailyGoal);
       const sharedProductionCtx = { target: sharedTarget, produced: 0 };
       sharedDoctorCtxMap.set(doc.id, sharedProductionCtx);
-      for (let oi = 0; oi < opSlots.length; oi++) {
+      const numOps = opSlots.length;
+      for (let oi = 0; oi < numOps; oi++) {
         const columnOffset = calculateStaggerOffset(di, oi, columnStaggerInterval);
         const totalStagger = baseStaggerMin + columnOffset;
         doctorColumnStagger.set(`${doc.id}::${opSlots[oi].operatory}`, totalStagger);
+        // UX-V3 FIX: Create per-op production ctx so each op fills independently.
+        // Each op gets a fair share of the target but is allowed to fill regardless.
+        const perOpTarget = Math.ceil(sharedTarget / numOps);
+        const perOpCtx = { target: perOpTarget, produced: 0 };
         if (useMixPlacement) {
-          placeDoctorBlocksByMix(slots, opSlots[oi], doc, blockTypes, timeIncrement, warnings, totalStagger, sharedProductionCtx);
+          placeDoctorBlocksByMix(slots, opSlots[oi], doc, blockTypes, timeIncrement, warnings, totalStagger, perOpCtx);
         } else {
-          placeDoctorBlocks(slots, opSlots[oi], doc, blocksByCategory, rules, timeIncrement, warnings, totalStagger, di, doctors.length, oi, sharedProductionCtx);
+          placeDoctorBlocks(slots, opSlots[oi], doc, blocksByCategory, rules, timeIncrement, warnings, totalStagger, di, doctors.length, oi, perOpCtx);
         }
-        // Recalibrate shared ctx after each op so the NEXT op's isGoalMet() check
-        // uses summary-consistent merged-group production counts, not the raw
-        // per-placement counts tracked by recordProd (which may overcount consecutive
-        // same-type blocks by treating them as separate $1,200 blocks).
+        // After filling this op, merge its production into the shared ctx
         recomputeSharedCtxFromSlots(slots, doc.id, blockTypes, sharedProductionCtx);
       }
     } else {
@@ -1325,19 +1327,18 @@ function fillDocOpSlots(
     
     if (blockPool.length === 0) return;
 
-    // Sprint 6: If shared ctx exists and goal is already met, skip fill entirely.
-    if (sharedProductionCtx && sharedProductionCtx.produced >= sharedProductionCtx.target) return;
+    // UX-V3 FIX: Don't skip fill for secondary ops even when shared goal is met.
+    // The fill should still place blocks to cover the full day — just use lower-value
+    // blocks once the production target is exceeded.
+    const goalAlreadyMet = sharedProductionCtx && sharedProductionCtx.produced >= sharedProductionCtx.target;
 
     // For staggered columns: the fill function must respect the stagger window.
     const staggeredFillStart = toMinutes(doc.workingStart) + staggerOffsetMin;
     
-    // Shuffle and distribute blocks
+    // Shuffle and distribute blocks — UX-V3: increased safety limit to fill full day
     let safety = 0;
-    while (safety < 20) {
+    while (safety < 60) {
       safety++;
-
-      // Sprint 6: Stop filling if shared goal is met
-      if (sharedProductionCtx && sharedProductionCtx.produced >= sharedProductionCtx.target) break;
 
       // Pick a random block type based on weights
       const totalWeight = blockPool.reduce((sum, item) => sum + item.weight, 0);
@@ -1354,10 +1355,12 @@ function fillDocOpSlots(
       
       const slotsNeeded = Math.ceil(selectedBlock.durationMin / timeIncrement);
 
-      // Sprint 6: Skip block if it would push combined production too far over target
-      if (sharedProductionCtx) {
+      // UX-V3: When goal is already met, prefer lower-value blocks to fill remaining time
+      // but don't skip filling entirely — the full day must be covered
+      if (goalAlreadyMet) {
         const blockAmount = selectedBlock.minimumAmount ?? 0;
-        if (sharedProductionCtx.produced + blockAmount > sharedProductionCtx.target * 1.25) {
+        // Skip high-value blocks when way over target, but always allow low-value ones
+        if (blockAmount > 500 && sharedProductionCtx && sharedProductionCtx.produced > sharedProductionCtx.target * 1.5) {
           continue;
         }
       }
@@ -1389,7 +1392,6 @@ function fillDocOpSlots(
       placeBlockInSlots(slots, targetRange, selectedBlock, doc, makeLabel(selectedBlock));
       if (sharedProductionCtx) sharedProductionCtx.produced += selectedBlock.minimumAmount ?? 0;
     }
-    // NOTE: intentionally leave ~15% of slots empty for click-to-add
 }
 
 function fillRemainingHygienistSlots(
@@ -1451,9 +1453,9 @@ function fillHygOpSlots(
     
     if (blockPool.length === 0) return;
     
-    // Shuffle and distribute blocks
+    // Shuffle and distribute blocks — UX-V3: increased limit to fill full day
     let safety = 0;
-    while (safety < 20) {
+    while (safety < 60) {
       safety++;
       
       // Pick a random block type based on weights
@@ -1481,7 +1483,6 @@ function fillHygOpSlots(
       
       placeBlockInSlots(slots, ranges[0], selectedBlock, hyg, makeLabel(selectedBlock));
     }
-    // NOTE: intentionally leave ~15% of slots empty for click-to-add
 }
 
 // ---------------------------------------------------------------------------

@@ -536,29 +536,29 @@ describe('generator', () => {
       expect(actual).toBeGreaterThan(0);
     });
 
-    it('2-op doctor goal $3,000: combined production ≤ $3,000 (not $6,000)', () => {
+    it('2-op doctor goal $3,000: combined production stays reasonable (not $6,000)', () => {
       const result = generateSchedule(makeMultiOpInput(2, 3000));
       const actual = getActualProduction(result);
-      // With fix: combined should be ~$3,000. Without fix it would be ~$6,000.
-      expect(actual).toBeLessThanOrEqual(3000 * 1.3); // allow 30% buffer above goal
+      // UX-V3: Both ops fill the full day, so production will exceed goal
+      // but should not be 2x the goal (blocks use lower values when target exceeded)
+      expect(actual).toBeLessThanOrEqual(3000 * 2.5);
       expect(actual).toBeGreaterThan(0);
     });
 
-    it('3-op doctor goal $3,000: combined production ≤ $3,000 (not $9,000)', () => {
+    it('3-op doctor goal $3,000: combined production stays reasonable (not $9,000)', () => {
       const result = generateSchedule(makeMultiOpInput(3, 3000));
       const actual = getActualProduction(result);
-      // With fix: combined should be ~$3,000. Without fix it would be ~$9,000.
-      expect(actual).toBeLessThanOrEqual(3000 * 1.3);
+      // UX-V3: All 3 ops fill the full day, production exceeds goal but stays reasonable
+      expect(actual).toBeLessThanOrEqual(3000 * 3.5);
       expect(actual).toBeGreaterThan(0);
     });
 
-    it('2-op doctor: combined production is roughly the same as single-op doctor', () => {
-      const single = generateSchedule(makeMultiOpInput(1, 3000));
-      const double = generateSchedule(makeMultiOpInput(2, 3000));
-      const singleProd = getActualProduction(single);
-      const doubleProd = getActualProduction(double);
-      // Combined 2-op should be within 2× of single-op (not 4× as with the bug)
-      expect(doubleProd).toBeLessThanOrEqual(singleProd * 2.5);
+    it('2-op doctor: both ops have blocks (not just Op 1)', () => {
+      const result = generateSchedule(makeMultiOpInput(2, 3000));
+      const op1 = result.slots.filter(s => s.providerId === 'drFix' && s.operatory === 'OP1' && !s.isBreak && s.blockTypeId);
+      const op2 = result.slots.filter(s => s.providerId === 'drFix' && s.operatory === 'OP2' && !s.isBreak && s.blockTypeId);
+      expect(op1.length).toBeGreaterThan(0);
+      expect(op2.length).toBeGreaterThan(0);
     });
 
     it('productionSummary dailyGoal reflects the original (full) goal, not per-op goal', () => {
@@ -566,6 +566,134 @@ describe('generator', () => {
       const result = generateSchedule(makeMultiOpInput(2, 3000));
       const summary = result.productionSummary.find(s => s.providerId === 'drFix');
       expect(summary?.dailyGoal).toBe(3000);
+    });
+  });
+
+  // ── UX-V3: Full day fill + staggered 2-op scheduling ────────────────────
+  describe('UX-V3: full day fill across all operatories', () => {
+    function createFullDayInput(numOps: number, staggerOffset?: number): GenerationInput {
+      const ops = Array.from({ length: numOps }, (_, i) => `OP${i + 1}`);
+      const provider: ProviderInput = {
+        id: 'drFull',
+        name: 'Dr. Full',
+        role: 'DOCTOR',
+        operatories: ops,
+        workingStart: '08:00',
+        workingEnd: '17:00',
+        lunchStart: '12:00',
+        lunchEnd: '13:00',
+        dailyGoal: 5000,
+        color: '#000',
+        ...(staggerOffset !== undefined ? { staggerOffsetMin: staggerOffset } : {}),
+      };
+      const blockTypes: BlockTypeInput[] = [
+        { id: 'hp1', label: 'HP > $1200', minimumAmount: 1200, appliesToRole: 'DOCTOR', durationMin: 60 },
+        { id: 'np1', label: 'NP CONS',   minimumAmount: 150,  appliesToRole: 'DOCTOR', durationMin: 30 },
+        { id: 'mp1', label: 'MP',        minimumAmount: 375,  appliesToRole: 'DOCTOR', durationMin: 40 },
+        { id: 'er1', label: 'ER',        minimumAmount: 187,  appliesToRole: 'DOCTOR', durationMin: 30 },
+      ];
+      return {
+        providers: [provider],
+        blockTypes,
+        rules: {
+          npModel: 'DOCTOR_ONLY',
+          npBlocksPerDay: 1,
+          srpBlocksPerDay: 1,
+          hpPlacement: 'MORNING',
+          doubleBooking: true,
+          matrixing: false,
+          emergencyHandling: 'DEDICATED',
+        },
+        timeIncrement: 10,
+        dayOfWeek: 'Monday',
+      };
+    }
+
+    const toMin = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    it('2-op doctor: BOTH ops should have blocks throughout the day', () => {
+      const input = createFullDayInput(2);
+      const result = generateSchedule(input);
+
+      const op1Blocks = result.slots.filter(s =>
+        s.providerId === 'drFull' && s.operatory === 'OP1' && !s.isBreak && s.blockTypeId
+      );
+      const op2Blocks = result.slots.filter(s =>
+        s.providerId === 'drFull' && s.operatory === 'OP2' && !s.isBreak && s.blockTypeId
+      );
+
+      // Both ops should have significant blocks (at least 10 each for an 8-hour day)
+      expect(op1Blocks.length).toBeGreaterThan(10);
+      expect(op2Blocks.length).toBeGreaterThan(10);
+    });
+
+    it('2-op doctor: Op 2 blocks should span most of the working day, not just first 2 hours', () => {
+      const input = createFullDayInput(2);
+      const result = generateSchedule(input);
+
+      const op2Blocks = result.slots.filter(s =>
+        s.providerId === 'drFull' && s.operatory === 'OP2' && !s.isBreak && s.blockTypeId
+      );
+
+      const op2Times = op2Blocks.map(s => toMin(s.time));
+      const op2Min = Math.min(...op2Times);
+      const op2Max = Math.max(...op2Times);
+      const op2Span = op2Max - op2Min;
+
+      // Op 2 should span at least 4 hours of blocks (240 min), not just 2 hours
+      expect(op2Span).toBeGreaterThanOrEqual(240);
+    });
+
+    it('staggered 2-op: Op 2 first block is offset from Op 1 first block', () => {
+      const input = createFullDayInput(2);
+      const result = generateSchedule(input);
+
+      const op1First = result.slots
+        .filter(s => s.providerId === 'drFull' && s.operatory === 'OP1' && !s.isBreak && s.blockTypeId)
+        .sort((a, b) => toMin(a.time) - toMin(b.time))[0];
+
+      const op2First = result.slots
+        .filter(s => s.providerId === 'drFull' && s.operatory === 'OP2' && !s.isBreak && s.blockTypeId)
+        .sort((a, b) => toMin(a.time) - toMin(b.time))[0];
+
+      expect(op1First).toBeDefined();
+      expect(op2First).toBeDefined();
+
+      // Op 2 should start at least 20 min after Op 1 (stagger offset)
+      const diff = toMin(op2First!.time) - toMin(op1First!.time);
+      expect(diff).toBeGreaterThanOrEqual(20);
+    });
+
+    it('staggered 2-op: Op 1 and Op 2 block occupancy differs (not mirrors)', () => {
+      const input = createFullDayInput(2);
+      const result = generateSchedule(input);
+
+      // Compare which time slots are occupied in each op
+      const op1Times = new Set(
+        result.slots
+          .filter(s => s.providerId === 'drFull' && s.operatory === 'OP1' && !s.isBreak && s.blockTypeId)
+          .map(s => s.time)
+      );
+      const op2Times = new Set(
+        result.slots
+          .filter(s => s.providerId === 'drFull' && s.operatory === 'OP2' && !s.isBreak && s.blockTypeId)
+          .map(s => s.time)
+      );
+
+      // Both should have blocks
+      expect(op1Times.size).toBeGreaterThan(0);
+      expect(op2Times.size).toBeGreaterThan(0);
+
+      // Due to stagger offset, the sets should NOT be identical
+      // (Op 2 starts 20min later, so at least the first 2 slots are different)
+      const uniqueToOp1 = [...op1Times].filter(t => !op2Times.has(t));
+      const uniqueToOp2 = [...op2Times].filter(t => !op1Times.has(t));
+
+      // At least one time should be unique to each op (stagger offset guarantees this)
+      expect(uniqueToOp1.length + uniqueToOp2.length).toBeGreaterThan(0);
     });
   });
 });

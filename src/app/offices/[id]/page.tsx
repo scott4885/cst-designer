@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Trash2, FileJson, Save, CheckCircle2, Grid3X3 as MatrixIcon, BarChart2 } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Trash2, FileJson, Save, CheckCircle2, Grid3X3 as MatrixIcon, BarChart2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Card imports removed — grid renders directly without card wrapper
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -29,6 +29,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 // CRUD operations go through API routes (Prisma backend)
 import { generateExcel, ExportInput, ExportDaySchedule } from "@/lib/export/excel";
 import CloneTemplateModal from "@/components/schedule/CloneTemplateModal";
+import OfficeInfoDrawer from "@/components/schedule/OfficeInfoDrawer";
 import OptimizationPanel from "@/components/schedule/OptimizationPanel";
 import type { OptimizationSuggestion } from "@/lib/engine/optimizer";
 import { notify } from "@/lib/notifications";
@@ -92,6 +93,7 @@ export default function TemplateBuilderPage() {
   // Per-provider "Generate Smart Schedule" state
   const [generatingProviderId, setGeneratingProviderId] = useState<string | null>(null);
   const [showCloneModal, setShowCloneModal] = useState(false);
+  const [showOfficeInfo, setShowOfficeInfo] = useState(false);
 
   // Provider absences for the current office (loaded on mount)
   const [providerAbsences, setProviderAbsences] = useState<Array<{ providerId: string; providerName: string; date: string; reason: string }>>([]);
@@ -981,6 +983,11 @@ export default function TemplateBuilderPage() {
         <div className="flex items-center gap-1 min-w-0">
           <h1 className="text-sm font-bold text-foreground leading-tight truncate">{currentOffice.name}</h1>
           {qualityScore && <QualityScoreBadge score={qualityScore} />}
+          <Tooltip><TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setShowOfficeInfo(true)} title="Office info">
+              <Info className="w-3 h-3 text-muted-foreground" />
+            </Button>
+          </TooltipTrigger><TooltipContent>Office details & config</TooltipContent></Tooltip>
           <span className="text-muted-foreground text-[10px] hidden sm:inline">·</span>
           <span className="text-muted-foreground text-[10px] hidden sm:inline">{currentOffice.dpmsSystem}</span>
         </div>
@@ -1369,6 +1376,13 @@ export default function TemplateBuilderPage() {
           timeIncrement={timeIncrement}
         />
       )}
+
+      {/* Office Info Drawer */}
+      <OfficeInfoDrawer
+        open={showOfficeInfo}
+        onClose={() => setShowOfficeInfo(false)}
+        office={currentOffice}
+      />
 
       {/* Clone Template Modal */}
       <CloneTemplateModal
