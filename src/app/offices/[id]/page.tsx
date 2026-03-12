@@ -3,13 +3,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Settings, Trash2, FileJson, FileText, Save, CheckCircle2, Printer, Grid3X3 as MatrixIcon, BarChart2, Users, Calendar, Monitor, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, Loader2, Trash2, FileJson, Save, CheckCircle2, Grid3X3 as MatrixIcon, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
+// Card imports removed — grid renders directly without card wrapper
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+// Separator removed — left panel eliminated
 import ScheduleGrid, { ProviderInput, TimeSlotOutput } from "@/components/schedule/ScheduleGrid";
-import BlockPalette from "@/components/schedule/BlockPalette";
+// BlockPalette moved to grid context — no longer in left sidebar
 import ProductionSummary, { ProviderProductionSummary } from "@/components/schedule/ProductionSummary";
 import ProductionMixChart from "@/components/schedule/ProductionMixChart";
 import ConflictPanel from "@/components/schedule/ConflictPanel";
@@ -71,18 +71,7 @@ export default function TemplateBuilderPage() {
     updateBlockInDay,
   } = useScheduleStore();
 
-  // Sidebar collapse state — default collapsed on Template Builder for max grid space
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    const stored = localStorage.getItem('schedule-designer:left-panel-collapsed');
-    return stored !== null ? stored === 'true' : true; // default: collapsed
-  });
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
-
-  // Persist sidebar collapse state to localStorage
-  useEffect(() => {
-    localStorage.setItem('schedule-designer:left-panel-collapsed', String(leftPanelCollapsed));
-  }, [leftPanelCollapsed]);
   const [generatingDay, setGeneratingDay] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -962,7 +951,7 @@ export default function TemplateBuilderPage() {
               size="sm"
               onClick={handleClick}
               disabled={!schedule}
-              className="min-h-[44px]"
+              className="h-7 px-1.5"
             >
               <FileJson className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">{dpmsLabel}</span>
@@ -981,27 +970,47 @@ export default function TemplateBuilderPage() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header — compact single row with grouped actions */}
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Link href="/">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h1 className="text-base sm:text-lg font-bold text-foreground leading-tight truncate">{currentOffice.name}</h1>
-              {qualityScore && <QualityScoreBadge score={qualityScore} />}
-            </div>
-            <p className="text-muted-foreground text-[11px] leading-tight">
-              {currentOffice.dpmsSystem} &bull; Template Builder
-            </p>
-          </div>
+    <div className="h-full flex flex-col gap-0">
+      {/* Row 1: Office name + day tabs (inline) + primary actions */}
+      <div className="flex items-center gap-1.5 mb-1 min-h-[36px]">
+        <Link href="/">
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+            <ArrowLeft className="w-3.5 h-3.5" />
+          </Button>
+        </Link>
+        <div className="flex items-center gap-1 min-w-0">
+          <h1 className="text-sm font-bold text-foreground leading-tight truncate">{currentOffice.name}</h1>
+          {qualityScore && <QualityScoreBadge score={qualityScore} />}
+          <span className="text-muted-foreground text-[10px] hidden sm:inline">·</span>
+          <span className="text-muted-foreground text-[10px] hidden sm:inline">{currentOffice.dpmsSystem}</span>
         </div>
-        <div className="flex items-center gap-1 flex-wrap justify-end">
-          {/* Save */}
+
+        {/* Day tabs inline in header row */}
+        <div className="flex items-center ml-2 gap-0.5">
+          {currentOffice.workingDays.map((day) => (
+            <button
+              key={day}
+              type="button"
+              onClick={() => setActiveDay(day)}
+              className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                activeDay === day
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {getDayShort(day)}
+              {generatedSchedules[day] && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-success inline-block" />}
+              {(conflictsPerDay[day] ?? 0) > 0 && (
+                <span className="ml-0.5 text-[9px] text-red-500 font-bold">⚠️{conflictsPerDay[day]}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Primary actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
           {hasSchedules && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1009,97 +1018,39 @@ export default function TemplateBuilderPage() {
                   variant={isDirty ? "default" : "outline"}
                   size="sm"
                   onClick={handleSaveTemplate}
-                  className={`h-8 px-2 gap-1 ${isDirty ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
+                  className={`h-7 px-2 gap-1 text-xs ${isDirty ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
                 >
-                  {isDirty ? <Save className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />}
-                  <span className="hidden lg:inline text-xs">{isDirty ? "Save" : "Saved"}</span>
-                  {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-yellow-300" />}
+                  {isDirty ? <Save className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3 text-green-500" />}
+                  <span className="hidden xl:inline">{isDirty ? "Save" : "Saved"}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{isDirty ? "Unsaved changes" : lastSavedAt ? `Saved ${lastSavedAt.toLocaleTimeString()}` : "Save template"}</TooltipContent>
             </Tooltip>
           )}
-          {/* Export Excel */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Button variant="outline" size="sm" onClick={handleExport} disabled={!hasSchedules || isExporting} className="h-8 px-2">
-                  {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{!hasSchedules ? "Generate first" : "Export Excel"}</TooltipContent>
-          </Tooltip>
-          {/* DPMS Export */}
-          {getDpmsExportButton(currentOffice.dpmsSystem, currentDaySchedule, () => setShowODExportDialog(true))}
-          {/* Icon-only secondary actions */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Link href={`/offices/${officeId}/matrix?day=${activeDay.toLowerCase()}`}>
-                  <Button variant="outline" size="sm" className="h-8 px-2"><MatrixIcon className="w-3.5 h-3.5" /></Button>
-                </Link>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Matrix view</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Link href={`/offices/${officeId}/report`}>
-                  <Button variant="outline" size="sm" className="h-8 px-2"><BarChart2 className="w-3.5 h-3.5" /></Button>
-                </Link>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Weekly report</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Button variant="outline" size="sm" onClick={() => window.open(`/offices/${officeId}/print?day=${activeDay.toLowerCase()}`, '_blank')} disabled={!currentDaySchedule} className="h-8 px-2">
-                  <Printer className="w-3.5 h-3.5" />
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{!currentDaySchedule ? "Generate first" : "Print view"}</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={!currentDaySchedule || isExportingPdf} className="h-8 px-2">
-                  {isExportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{!currentDaySchedule ? "Generate first" : "Export PDF"}</TooltipContent>
-          </Tooltip>
-          {hasSchedules && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={handleClearAndStartOver} disabled={isGenerating} variant="outline" size="sm" className="h-8 px-2 border-destructive/50 text-destructive hover:bg-destructive/10">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Clear &amp; start over</TooltipContent>
-            </Tooltip>
-          )}
-          {/* Primary generate buttons */}
-          <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary" size="sm" className="h-8 px-2 text-xs">
+          <Button onClick={handleGenerateAllDays} disabled={isGenerating} variant="secondary" size="sm" className="h-7 px-2 text-xs">
             {isGenerating && generatingDay ? (
-              <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /><span className="hidden sm:inline">Gen {getDayShort(generatingDay)}...</span></>
+              <><Loader2 className="w-3 h-3 mr-1 animate-spin" /><span className="hidden sm:inline">Gen {getDayShort(generatingDay)}...</span></>
             ) : (
-              <><Sparkles className="w-3.5 h-3.5 mr-1" /><span className="hidden sm:inline">{hasSchedules ? 'Regen All' : 'Gen All'}</span><span className="sm:hidden">All</span></>
+              <><Sparkles className="w-3 h-3 mr-1" /><span className="hidden sm:inline">{hasSchedules ? 'Regen All' : 'Gen All'}</span><span className="sm:hidden">All</span></>
             )}
           </Button>
-          <Button onClick={handleGenerateSchedule} disabled={isGenerating} size="sm" className="h-8 px-2 text-xs">
+          <Button onClick={handleGenerateSchedule} disabled={isGenerating} size="sm" className="h-7 px-2 text-xs">
             {isGenerating && !generatingDay ? (
-              <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /><span className="hidden sm:inline">Gen...</span></>
+              <><Loader2 className="w-3 h-3 mr-1 animate-spin" /><span className="hidden sm:inline">Gen...</span></>
             ) : (
-              <><Sparkles className="w-3.5 h-3.5 mr-1" /><span className="hidden sm:inline">{hasSchedules ? 'Regen' : 'Generate'}</span><span className="sm:hidden">Gen</span></>
+              <><Sparkles className="w-3 h-3 mr-1" /><span className="hidden sm:inline">{hasSchedules ? 'Regen' : 'Generate'}</span><span className="sm:hidden">Gen</span></>
             )}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setShowDeleteDialog(true)} title="Delete office" className="h-8 w-8">
-            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+          {/* More actions dropdown-style icons */}
+          <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Button variant="outline" size="sm" onClick={handleExport} disabled={!hasSchedules || isExporting} className="h-7 px-1.5">{isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}</Button></span></TooltipTrigger><TooltipContent>{!hasSchedules ? "Generate first" : "Export Excel"}</TooltipContent></Tooltip>
+          {getDpmsExportButton(currentOffice.dpmsSystem, currentDaySchedule, () => setShowODExportDialog(true))}
+          <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Link href={`/offices/${officeId}/matrix?day=${activeDay.toLowerCase()}`}><Button variant="outline" size="sm" className="h-7 px-1.5"><MatrixIcon className="w-3 h-3" /></Button></Link></span></TooltipTrigger><TooltipContent>Matrix view</TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Link href={`/offices/${officeId}/report`}><Button variant="outline" size="sm" className="h-7 px-1.5"><BarChart2 className="w-3 h-3" /></Button></Link></span></TooltipTrigger><TooltipContent>Weekly report</TooltipContent></Tooltip>
+          {hasSchedules && (
+            <Tooltip><TooltipTrigger asChild><Button onClick={handleClearAndStartOver} disabled={isGenerating} variant="outline" size="sm" className="h-7 px-1.5 border-destructive/50 text-destructive hover:bg-destructive/10"><Trash2 className="w-3 h-3" /></Button></TooltipTrigger><TooltipContent>Clear &amp; start over</TooltipContent></Tooltip>
+          )}
+          <Button variant="ghost" size="icon" onClick={() => setShowDeleteDialog(true)} title="Delete office" className="h-7 w-7">
+            <Trash2 className="w-3 h-3 text-destructive" />
           </Button>
         </div>
       </div>
@@ -1146,187 +1097,9 @@ export default function TemplateBuilderPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 3-Panel Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 overflow-auto lg:overflow-hidden">
-        {/* Left Panel - Office Info (hidden on mobile) — collapsible icon rail / expanded sidebar */}
-        <div
-          className={`transition-all duration-300 hidden lg:flex flex-col flex-shrink-0 ${
-            leftPanelCollapsed ? "w-12" : "w-[280px] max-w-[280px]"
-          }`}
-        >
-          {leftPanelCollapsed ? (
-            /* ── Icon Rail (48px collapsed) ─────────────────────────── */
-            <div className="flex flex-col items-center gap-1 pt-2 h-full border-r border-border/50 bg-surface/30 rounded-lg">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setLeftPanelCollapsed(false)}
-                    className="w-10 h-10"
-                  >
-                    <PanelLeftOpen className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Expand sidebar</TooltipContent>
-              </Tooltip>
-              <Separator className="my-1 w-8" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="relative">
-                    <Link href={`/offices/${officeId}/edit`}>
-                      <Button variant="ghost" size="icon" className="w-10 h-10">
-                        <Users className="w-4 h-4" />
-                      </Button>
-                    </Link>
-                    {(currentOffice.providers || []).length > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent text-[9px] font-bold text-white flex items-center justify-center">
-                        {currentOffice.providers!.length}
-                      </span>
-                    )}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="right">Providers ({(currentOffice.providers || []).length})</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="w-10 h-10">
-                    <Calendar className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Working Days: {currentOffice.workingDays.map(d => d[0]).join('')}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="w-10 h-10">
-                    <Monitor className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">{currentOffice.dpmsSystem}</TooltipContent>
-              </Tooltip>
-            </div>
-          ) : (
-            <Card className="h-full overflow-auto">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-sm">Office Information</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setLeftPanelCollapsed(true)}
-                  className="h-8 w-8"
-                  title="Collapse sidebar"
-                >
-                  <PanelLeftClose className="w-4 h-4" />
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase">
-                      Providers
-                    </h3>
-                    <Link href={`/offices/${officeId}/edit`}>
-                      <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
-                        <Settings className="w-3 h-3" />
-                        Edit
-                      </Button>
-                    </Link>
-                  </div>
-                  <div className="space-y-2">
-                    {(currentOffice.providers || []).length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">
-                        No providers configured
-                      </p>
-                    ) : (
-                      // Deduplicate by provider ID so multi-op providers appear only once
-                      Array.from(
-                        new Map((currentOffice.providers || []).map(p => [p.id, p])).values()
-                      ).map((provider) => (
-                        <div key={provider.id} className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: provider.color }}
-                          />
-                          <div>
-                            <p className="text-sm font-medium">{provider.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {provider.role}
-                              {(provider.operatories || []).length > 0 && (
-                                <span className="ml-1 text-muted-foreground/60">
-                                  · {provider.operatories!.join(', ')}
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-                    Working Days
-                  </h3>
-                  <div className="flex gap-1">
-                    {currentOffice.workingDays.map((day) => (
-                      <div
-                        key={day}
-                        className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-medium border border-accent/30"
-                      >
-                        {getDayShort(day)[0]}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-                    System
-                  </h3>
-                  <p className="text-sm">{currentOffice.dpmsSystem}</p>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-                    Daily Goal
-                  </h3>
-                  <p className="text-sm font-semibold">
-                    ${currentOffice.totalDailyGoal.toLocaleString()}
-                  </p>
-                </div>
-
-                {currentDaySchedule && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-                        Editing
-                      </h3>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        Click empty slots to add blocks. Click existing blocks to edit. Drag blocks to move them.
-                      </p>
-                      {blockTypes && blockTypes.length > 0 && (
-                        <BlockPalette
-                          blockTypes={blockTypes}
-                          onSelect={() => {}} // click-to-select not used from palette
-                        />
-                      )}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Center Panel - Schedule Grid */}
+      {/* 2-Panel Layout: Schedule Grid (full width) + Right sidebar */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-0 lg:gap-2 overflow-auto lg:overflow-hidden">
+        {/* Schedule Grid — fills all remaining space */}
         <div className="w-full lg:flex-1 flex flex-col lg:overflow-hidden">
           {/* Auto-loaded banner — fades after 3s when a saved schedule is restored from localStorage */}
           {autoLoadedBanner && (
@@ -1391,7 +1164,7 @@ export default function TemplateBuilderPage() {
             const currentWeekIsEmpty = Object.keys(generatedSchedules).length === 0;
 
             return (
-              <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="text-xs text-muted-foreground font-medium">Week:</span>
                 <div className="flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
                   {weeks.map((w, i) => (
@@ -1430,27 +1203,7 @@ export default function TemplateBuilderPage() {
           })()}
 
           <Tabs value={activeDay} onValueChange={setActiveDay} className="flex-1 flex flex-col">
-            <TabsList className="flex w-full overflow-x-auto mb-1 h-8">
-              {currentOffice.workingDays.map((day) => (
-                <TabsTrigger key={day} value={day} className="flex-1 min-w-[52px] sm:min-w-[100px] text-xs sm:text-sm px-1 sm:px-3">
-                  <span className="sm:hidden">{getDayShort(day)}</span>
-                  <span className="hidden sm:inline">{getDayLabel(day)}</span>
-                  {generatedSchedules[day] && (
-                    <span className="ml-2 w-2 h-2 rounded-full bg-success" />
-                  )}
-                  {(conflictsPerDay[day] ?? 0) > 0 && (
-                    <span
-                      className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600"
-                      title={`${conflictsPerDay[day]} double-booking conflict${conflictsPerDay[day] === 1 ? '' : 's'}`}
-                    >
-                      ⚠️{conflictsPerDay[day]}
-                    </span>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {/* Quick Actions Toolbar — compact, below day selector */}
+            {/* Row 2: Quick Actions strip — compact, icon-heavy */}
             <div className="mb-1">
               <QuickActionsToolbar
                 activeDay={activeDay}
@@ -1475,13 +1228,12 @@ export default function TemplateBuilderPage() {
             <div className="flex-1 overflow-auto">
               {currentOffice.workingDays.map((day) => (
                 <TabsContent key={day} value={day} className="h-full mt-0">
-                  <Card className="h-full">
-                    <CardContent className="p-2 sm:p-6">
-                      <div
-                        ref={day === activeDay ? scheduleGridRef : undefined}
-                        data-pdf-capture="true"
-                        style={{ background: "var(--background)" }}
-                      >
+                  <div className="h-full overflow-x-auto">
+                    <div
+                      ref={day === activeDay ? scheduleGridRef : undefined}
+                      data-pdf-capture="true"
+                      style={{ background: "var(--background)" }}
+                    >
                         <ScheduleGrid
                           slots={activeDay === day ? timeSlots : []}
                           providers={providers}
@@ -1496,19 +1248,18 @@ export default function TemplateBuilderPage() {
                           onGenerateProvider={currentDaySchedule ? handleGenerateProvider : undefined}
                           generatingProviderId={generatingProviderId}
                         />
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </TabsContent>
               ))}
             </div>
           </Tabs>
         </div>
 
-        {/* Right Panel - Production Summary + Mix (collapsible on desktop, always shown on mobile) */}
+        {/* Right Panel - Production Summary (collapsible) */}
         <div
-          className={`transition-all duration-300 w-full lg:flex-shrink-0 ${
-            rightPanelCollapsed ? "lg:w-10" : "lg:w-80 xl:lg:w-96"
+          className={`transition-all duration-200 w-full lg:flex-shrink-0 ${
+            rightPanelCollapsed ? "lg:w-8" : "lg:w-72 xl:w-80"
           }`}
         >
           {/* On mobile, always show content. On desktop, respect collapsed state. */}
@@ -1525,7 +1276,7 @@ export default function TemplateBuilderPage() {
               </Button>
             </div>
           ) : null}
-          <div className={`${rightPanelCollapsed ? "lg:hidden" : ""} overflow-auto space-y-4 lg:space-y-6 lg:h-full`}>
+          <div className={`${rightPanelCollapsed ? "lg:hidden" : ""} overflow-auto space-y-3 lg:space-y-3 lg:h-full`}>
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Production</span>
               <Button

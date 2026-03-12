@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import KeyboardShortcutsModal from "@/components/KeyboardShortcutsModal";
 import { useKeyboardShortcuts } from "@/lib/keyboard-shortcuts";
+
+/** Detect Template Builder page: /offices/[id] (not /new, /edit, etc.) */
+function isTemplateBuilderPage(pathname: string): boolean {
+  const match = pathname.match(/^\/offices\/([^/]+)$/);
+  return !!match && match[1] !== "new";
+}
 
 export default function ClientLayout({
   children,
@@ -17,6 +23,8 @@ export default function ClientLayout({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const isBuilder = isTemplateBuilderPage(pathname);
 
   // Global keyboard shortcuts
   useKeyboardShortcuts({
@@ -47,7 +55,7 @@ export default function ClientLayout({
 
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
           <Header onMobileMenuToggle={() => setMobileSidebarOpen((v) => !v)} />
-          <main className="flex-1 overflow-auto bg-background p-4 sm:p-6">
+          <main className={`flex-1 overflow-auto bg-background ${isBuilder ? "p-2" : "p-4 sm:p-6"}`}>
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
         </div>

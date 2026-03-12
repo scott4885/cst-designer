@@ -12,9 +12,16 @@ interface HeaderProps {
   onMobileMenuToggle?: () => void;
 }
 
+/** Detect Template Builder page: /offices/[id] (not /new, /edit, etc.) */
+function isTemplateBuilderPage(pathname: string): boolean {
+  const match = pathname.match(/^\/offices\/([^/]+)$/);
+  return !!match && match[1] !== "new";
+}
+
 export default function Header({ onMobileMenuToggle }: HeaderProps) {
   const pathname = usePathname();
   const { currentOffice } = useOfficeStore();
+  const isBuilder = isTemplateBuilderPage(pathname);
 
   const getBreadcrumbs = (): { label: string; href?: string }[] => {
     const segments = pathname.split("/").filter(Boolean);
@@ -49,7 +56,7 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
   const crumbs = getBreadcrumbs();
 
   return (
-    <header className="h-14 sm:h-16 border-b border-border bg-surface px-3 sm:px-6 flex items-center justify-between gap-2 flex-shrink-0">
+    <header className={`border-b border-border bg-surface px-3 sm:px-6 flex items-center justify-between gap-2 flex-shrink-0 ${isBuilder ? "h-10" : "h-14 sm:h-16"}`}>
       {/* Left: hamburger (mobile) + breadcrumbs */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {/* Hamburger button — mobile only */}
@@ -71,12 +78,12 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
               {crumb.href ? (
                 <Link
                   href={crumb.href}
-                  className="text-sm sm:text-lg font-semibold text-muted-foreground hover:text-foreground transition-colors truncate"
+                  className={`font-semibold text-muted-foreground hover:text-foreground transition-colors truncate ${isBuilder ? "text-xs" : "text-sm sm:text-lg"}`}
                 >
                   {crumb.label}
                 </Link>
               ) : (
-                <h2 className="text-sm sm:text-lg font-semibold text-foreground truncate">
+                <h2 className={`font-semibold text-foreground truncate ${isBuilder ? "text-xs" : "text-sm sm:text-lg"}`}>
                   {crumb.label}
                 </h2>
               )}
@@ -90,8 +97,8 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
         <NotificationBell />
         <ThemeToggle />
         <Link href="/settings">
-          <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 min-h-[44px] min-w-[44px]">
-            <Settings className="w-5 h-5" />
+          <Button variant="ghost" size="icon" className={`rounded-full ${isBuilder ? "h-7 w-7" : "h-9 w-9 min-h-[44px] min-w-[44px]"}`}>
+            <Settings className={isBuilder ? "w-4 h-4" : "w-5 h-5"} />
           </Button>
         </Link>
       </div>
