@@ -43,4 +43,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 # On startup: seed DB if new, run migrations to apply schema changes, then start
-CMD ["sh", "-c", "[ ! -f /app/data/schedules.db ] && cp /app/seed.db /app/data/schedules.db; DATABASE_URL=file:/app/data/schedules.db node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma 2>&1 || true; node server.js"]
+CMD ["sh", "-c", "[ ! -f /app/data/schedules.db ] && cp /app/seed.db /app/data/schedules.db; DATABASE_URL=file:/app/data/schedules.db node node_modules/prisma/build/index.js migrate deploy --schema /app/prisma/schema.prisma 2>&1 || true; node server.js"]
