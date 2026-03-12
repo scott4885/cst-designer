@@ -388,6 +388,19 @@ export default function TemplateBuilderPage() {
 
   // Whether there are any persisted/generated schedules for this office
   const hasSchedules = Object.keys(generatedSchedules).length > 0;
+  const rotationEnabled = (currentOffice as any).rotationEnabled || (currentOffice as any).alternateWeekEnabled;
+  const rotationLength: number = (currentOffice as any).rotationEnabled
+    ? ((currentOffice as any).rotationWeeks ?? 2)
+    : 2;
+  const rotationWeeks: Array<'A' | 'B' | 'C' | 'D'> = rotationLength === 4
+    ? ['A', 'B', 'C', 'D']
+    : ['A', 'B'];
+  const weekDescriptions: Record<string, string> = {
+    A: 'Standard (odd) weeks',
+    B: 'Alternate (even) weeks',
+    C: 'Third-week schedule',
+    D: 'Fourth-week schedule',
+  };
 
   // Explicit Save: persists current state to localStorage, creates version snapshot
   const handleSaveTemplate = async () => {
@@ -976,7 +989,7 @@ export default function TemplateBuilderPage() {
   return (
     <div className="h-full min-h-0 flex flex-col gap-0">
       {/* Row 1: Office name + day tabs (inline) + primary actions */}
-      <div className="flex items-center gap-1.5 mb-1 min-h-[36px] shrink-0">
+      <div className={`flex items-center gap-1.5 mb-1 shrink-0 ${fullScreen ? 'min-h-[32px]' : 'min-h-[36px]'}`}>
         {fullScreen ? (
           <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setFullScreen(false)} title="Exit full screen">
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -989,7 +1002,7 @@ export default function TemplateBuilderPage() {
           </Link>
         )}
         <div className="flex items-center gap-1 min-w-0">
-          <h1 className="text-sm font-bold text-foreground leading-tight truncate">{currentOffice.name}</h1>
+          <h1 className={`font-bold text-foreground leading-tight truncate ${fullScreen ? 'text-xs sm:text-sm' : 'text-sm'}`}>{currentOffice.name}</h1>
           {!fullScreen && qualityScore && <QualityScoreBadge score={qualityScore} />}
           {!fullScreen && (
             <>
@@ -1005,13 +1018,13 @@ export default function TemplateBuilderPage() {
         </div>
 
         {/* Day tabs inline in header row */}
-        <div className="flex items-center ml-2 gap-0.5">
+        <div className={`flex items-center ml-2 gap-0.5 ${fullScreen ? 'flex-wrap' : ''}`}>
           {currentOffice.workingDays.map((day) => (
             <button
               key={day}
               type="button"
               onClick={() => setActiveDay(day)}
-              className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+              className={`${fullScreen ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-1 text-xs'} font-medium rounded transition-colors ${
                 activeDay === day
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -1024,6 +1037,27 @@ export default function TemplateBuilderPage() {
               )}
             </button>
           ))}
+          {fullScreen && rotationEnabled && (
+            <div className="flex items-center gap-0.5 ml-1 rounded-md border border-border bg-background/80 px-0.5 py-0.5">
+              {rotationWeeks.map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => { if (activeWeek !== w) setActiveWeek(w); }}
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                    activeWeek === w
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                  aria-pressed={activeWeek === w}
+                  data-testid={`fullscreen-week-toggle-${w.toLowerCase()}`}
+                  title={weekDescriptions[w] ?? `Week ${w}`}
+                >
+                  {w}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex-1" />
@@ -1161,7 +1195,7 @@ export default function TemplateBuilderPage() {
         {/* Schedule Grid — fills all remaining space */}
         <div className="w-full lg:flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Auto-loaded banner — fades after 3s when a saved schedule is restored from localStorage */}
-          {autoLoadedBanner && (
+          {!fullScreen && autoLoadedBanner && (
             <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-md bg-success/10 border border-success/20 text-success text-xs font-medium transition-opacity duration-500 w-fit shrink-0">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Auto-loaded saved schedule
@@ -1169,7 +1203,7 @@ export default function TemplateBuilderPage() {
           )}
 
           {/* Provider Absence Warning — Sprint 13: warn if any provider is absent in the current week */}
-          {providerAbsences.length > 0 && (() => {
+          {!fullScreen && providerAbsences.length > 0 && (() => {
             const DOW_TO_NUM: Record<string, number> = {
               MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6, SUNDAY: 0,
             };
@@ -1193,22 +1227,8 @@ export default function TemplateBuilderPage() {
             );
           })()}
 
-          {/* Rotation week selector — shown when rotationEnabled (or legacy alternateWeekEnabled) */}
-          {((currentOffice as any).rotationEnabled || (currentOffice as any).alternateWeekEnabled) && (() => {
-            // Determine rotation length: rotationWeeks takes priority, then fall back to 2 (legacy)
-            const rotLen: number = (currentOffice as any).rotationEnabled
-              ? ((currentOffice as any).rotationWeeks ?? 2)
-              : 2;
-            const weeks: Array<'A' | 'B' | 'C' | 'D'> = rotLen === 4
-              ? ['A', 'B', 'C', 'D']
-              : ['A', 'B'];
-            const weekDescriptions: Record<string, string> = {
-              A: 'Standard (odd) weeks',
-              B: 'Alternate (even) weeks',
-              C: 'Third-week schedule',
-              D: 'Fourth-week schedule',
-            };
-
+          {/* Rotation week selector — hidden in full screen; compact toggles move into header */}
+          {!fullScreen && rotationEnabled && (() => {
             // "Copy from Week A" — copies Week A localStorage data into current week
             const handleCopyFromA = () => {
               if (!currentOffice?.id) return;
@@ -1226,7 +1246,7 @@ export default function TemplateBuilderPage() {
               <div className="flex items-center gap-2 mb-1 flex-wrap shrink-0">
                 <span className="text-xs text-muted-foreground font-medium">Week:</span>
                 <div className="flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
-                  {weeks.map((w, i) => (
+                  {rotationWeeks.map((w, i) => (
                     <button
                       key={w}
                       type="button"
