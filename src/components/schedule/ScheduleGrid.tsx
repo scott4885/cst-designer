@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect, Fragment } from "react";
-import { ZoomIn, ZoomOut, ChevronsLeftRight, ChevronsRight, Sparkles, Loader2 } from "lucide-react";
+import { ZoomIn, ZoomOut, ChevronsLeftRight, ChevronsRight, Sparkles, Loader2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TimeSlotCell from "./TimeSlotCell";
 import BlockPicker from "./BlockPicker";
@@ -101,6 +101,8 @@ interface ScheduleGridProps {
   onGenerateProvider?: (providerId: string) => void;
   /** Set to true when a per-provider generation is in progress for the given ID */
   generatingProviderId?: string | null;
+  /** Whether the page is in fullscreen mode — triggers auto row-height recalculation */
+  fullScreen?: boolean;
 }
 
 // Drag state
@@ -121,11 +123,14 @@ const LS_ROW_HEIGHT_KEY = "schedule-row-height";
  * Auto-calculate row height to fit full day on screen.
  * Returns a height that, when multiplied by the number of time slots,
  * fits within the available viewport height.
+ * In fullscreen mode, less chrome is visible so we reserve less space.
  */
-function autoCalculateRowHeight(totalSlots: number): number {
+function autoCalculateRowHeight(totalSlots: number, isFullScreen = false): number {
   if (typeof window === 'undefined' || totalSlots === 0) return DEFAULT_ROW_HEIGHT;
-  // Reserve space for app header, page row 1, toolbar, grid controls, table thead
-  const availableHeight = window.innerHeight - 250;
+  // Reserve space for chrome: header, toolbar, grid controls, table thead
+  // Fullscreen hides sidebar + header, so only ~100px of grid controls + thead remain
+  const reservedPx = isFullScreen ? 100 : 250;
+  const availableHeight = window.innerHeight - reservedPx;
   const calculated = Math.max(10, Math.floor(availableHeight / totalSlots));
   // Snap to nearest valid level
   const nearest = ROW_HEIGHT_LEVELS.reduce((prev, curr) =>
@@ -151,6 +156,7 @@ export default function ScheduleGrid({
   onUpdateBlock,
   onGenerateProvider,
   generatingProviderId,
+  fullScreen = false,
 }: ScheduleGridProps) {
   // blockTypes may be undefined (fall back to global library in BlockPicker/BlockEditor)
   // or an explicit array of office-specific types
@@ -187,6 +193,19 @@ export default function ScheduleGrid({
     if (typeof window === "undefined") return;
     localStorage.setItem(LS_ROW_HEIGHT_KEY, String(rowHeight));
   }, [rowHeight]);
+
+  // Auto-recalculate row height when fullScreen mode toggles
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const totalSlots = slots.length > 0 ? slots.length : 54;
+    setRowHeight(autoCalculateRowHeight(totalSlots, fullScreen));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fullScreen]);
+
+  const fitToScreen = useCallback(() => {
+    const totalSlots = slots.length > 0 ? slots.length : 54;
+    setRowHeight(autoCalculateRowHeight(totalSlots, fullScreen));
+  }, [slots.length, fullScreen]);
 
   const zoomIn = useCallback(() => {
     setRowHeight((h) => {
@@ -647,6 +666,10 @@ export default function ScheduleGrid({
           <span className="text-[10px] text-muted-foreground w-8 text-center tabular-nums">{rowHeight}px</span>
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={zoomIn} disabled={!canZoomIn} title="Zoom in">
             <ZoomIn className="w-3 h-3" />
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={fitToScreen} title="Fit all rows to screen">
+            <Maximize2 className="w-3 h-3 mr-0.5" />
+            <span className="hidden sm:inline">Fit</span>
           </Button>
         </div>
       </div>

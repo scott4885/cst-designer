@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, ChevronDown, Loader2, Trash2, FileJson, Save, CheckCircle2, Grid3X3 as MatrixIcon, BarChart2, Info, Maximize, Minimize, Wand2 } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Loader2, Trash2, FileJson, Save, CheckCircle2, Grid3X3 as MatrixIcon, BarChart2, Info, Maximize, Minimize, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Card imports removed — grid renders directly without card wrapper
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -1169,7 +1169,7 @@ export default function TemplateBuilderPage() {
                   onClick={() => setFullScreenRibbonCollapsed(true)}
                   className="h-7 px-1.5"
                 >
-                  <ChevronRight className="w-3 h-3" />
+                  <ChevronUp className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Collapse top ribbon</TooltipContent>
@@ -1373,6 +1373,7 @@ export default function TemplateBuilderPage() {
                           onUpdateBlock={currentDaySchedule ? handleUpdateBlock : undefined}
                           onGenerateProvider={currentDaySchedule ? handleGenerateProvider : undefined}
                           generatingProviderId={generatingProviderId}
+                          fullScreen={fullScreen}
                         />
                     </div>
                   </div>
