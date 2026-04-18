@@ -141,11 +141,13 @@ export function calculateChairUtilization(input: ChairUtilizationInput): ChairUt
   // Group by day → blockInstanceId → pick one slot per instance
   const seenInstances = new Set<string>();
   const categoryHours: Record<string, number> = {};
+  let breakFallbackCounter = 0;
 
   for (const slot of scheduledSlots) {
     if (slot.isBreak) {
-      // Count break time separately
-      const key = `break-${slot.dayOfWeek}-${slot.providerId}-${slot.blockInstanceId ?? Math.random()}`;
+      // Count break time separately — use monotonic counter (not Math.random) so
+      // utilization is deterministic under the seeded generator.
+      const key = `break-${slot.dayOfWeek}-${slot.providerId}-${slot.blockInstanceId ?? `fallback-${breakFallbackCounter++}`}`;
       if (!seenInstances.has(key)) {
         seenInstances.add(key);
         categoryHours['BREAK'] = (categoryHours['BREAK'] || 0) + slot.durationMin / 60;

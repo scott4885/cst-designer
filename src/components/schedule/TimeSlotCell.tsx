@@ -16,6 +16,21 @@ interface TimeSlotCellProps {
   // Drag-and-drop visual feedback
   isDragOver?: boolean;
   isDragging?: boolean;
+  /**
+   * Loop 10: validity tier for the would-be target range during a drag.
+   *   'valid'    — green paint (drop will commit cleanly)
+   *   'warning'  — amber paint (drop commits but with a soft conflict)
+   *   'conflict' — red paint (drop is blocked)
+   *
+   * Applied to every cell in the target range (not just the hovered cell), so
+   * the user sees the full footprint of the incoming block.
+   */
+  dragValidity?: "valid" | "warning" | "conflict" | null;
+  /**
+   * Loop 10: when true, briefly flash this cell with an outline animation
+   * (1s) so "Jump to cell" from the Review panel draws the eye.
+   */
+  flashPulse?: boolean;
   // Conflict indicators
   hasConflict?: boolean;
   conflictTooltip?: string;
@@ -30,6 +45,16 @@ interface TimeSlotCellProps {
   hasDTimeConflict?: boolean;
   /** This block meets or exceeds the role-based High Production threshold */
   isHighProduction?: boolean;
+  /** Loop 5: one-line rationale explaining why the engine placed this block. */
+  rationale?: string | null;
+  /**
+   * Loop 6: multi-op stagger partner indicator.
+   *   'hard'    — D-time overlap with another column of the same real doctor.
+   *               Renders a red outer box-shadow glow.
+   *   'partner' — correctly staggered partner (one column D, the other A).
+   *               Renders a muted-blue hairline tick on the right edge.
+   */
+  partnerKind?: 'hard' | 'partner';
 }
 
 export default function TimeSlotCell({
@@ -44,6 +69,8 @@ export default function TimeSlotCell({
   isBlockLast = false,
   isDragOver = false,
   isDragging = false,
+  dragValidity = null,
+  flashPulse = false,
   hasConflict = false,
   conflictTooltip,
   isDrExam = false,
@@ -52,6 +79,8 @@ export default function TimeSlotCell({
   aTimeMin = 0,
   hasDTimeConflict = false,
   isHighProduction = false,
+  rationale = null,
+  partnerKind,
 }: TimeSlotCellProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -67,7 +96,7 @@ export default function TimeSlotCell({
   // Time column cell
   if (time) {
     return (
-      <div className="time-slot-cell bg-surface font-medium text-muted-foreground sticky left-0 z-10 text-[10px] px-1 py-0 whitespace-nowrap leading-none h-full flex items-center">
+      <div className="time-slot-cell bg-surface text-neutral-500 sticky left-0 z-10 text-[10px] font-normal px-2 py-0 whitespace-nowrap leading-none h-full flex items-center justify-end tabular-nums">
         {time}
       </div>
     );
@@ -77,7 +106,7 @@ export default function TimeSlotCell({
   if (isOutsideHours) {
     return (
       <div
-        className="provider-cell px-1 py-0 h-full bg-muted/60 cursor-not-allowed"
+        className="provider-cell px-1 py-0 h-full bg-neutral-100/70 cursor-not-allowed"
         title="Outside provider's scheduled hours"
       />
     );
@@ -86,19 +115,42 @@ export default function TimeSlotCell({
   // Empty or break cell
   if (isBreak || (!staffingCode && !blockLabel)) {
     const isInteractiveEmpty = !!onClick && !isBreak && isClickable;
+    // Loop 10: drag-preview paint overrides generic drag-over styling when set.
+    const dragPaintClass =
+      dragValidity === "conflict"
+        ? "bg-red-100 ring-2 ring-red-400 ring-inset"
+        : dragValidity === "warning"
+        ? "bg-amber-100 ring-2 ring-amber-400 ring-inset"
+        : dragValidity === "valid"
+        ? "bg-emerald-100 ring-2 ring-emerald-400 ring-inset"
+        : null;
+    // Flash pulse animation for "Jump to cell" feedback.
+    const flashClass = flashPulse ? "cst-flash-pulse" : "";
     return (
       <div
-        className={`provider-cell px-1 py-0 h-full ${
+        className={`provider-cell flex items-center justify-center px-2 py-0 h-full ${flashClass} ${
           isBreak
-            ? "bg-muted/40"
+            ? "bg-neutral-100"
+            : dragPaintClass
+            ? dragPaintClass
             : isDragOver
-            ? "bg-accent/20 ring-2 ring-accent ring-inset"
-            : "bg-background"
+            ? "bg-accent/15 ring-2 ring-accent ring-inset"
+            : "bg-white"
         } ${
-          isClickable && !isBreak
-            ? "cursor-pointer hover:bg-accent/10 transition-colors group/cell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          isBreak
+            ? ""
+            : isClickable
+            ? "cursor-pointer hover:bg-neutral-50 transition-colors group/cell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
             : ""
         }`}
+        style={
+          isBreak
+            ? {
+                backgroundImage:
+                  "repeating-linear-gradient(135deg, rgba(0,0,0,0.035) 0 6px, transparent 6px 12px)",
+              }
+            : undefined
+        }
         onClick={!isBreak ? onClick : undefined}
         onKeyDown={isInteractiveEmpty ? handleKeyDown : undefined}
         role={isInteractiveEmpty ? "button" : undefined}
@@ -111,12 +163,16 @@ export default function TimeSlotCell({
             : undefined
         }
       >
-        {isBreak && <span className="text-muted-foreground text-[10px] font-medium leading-none">LUNCH</span>}
+        {isBreak && (
+          <span className="text-neutral-500 text-[10px] font-medium tracking-wide leading-none">
+            LUNCH
+          </span>
+        )}
         {isDragOver && !isBreak && (
           <span className="text-accent/70 text-[10px] font-medium select-none leading-none">Drop here</span>
         )}
         {isClickable && !isBreak && !isDragOver && (
-          <span className="text-muted-foreground/40 text-xs transition-opacity opacity-0 group-hover/cell:opacity-100 leading-none">+</span>
+          <span className="text-neutral-400 text-xs transition-opacity opacity-0 group-hover/cell:opacity-100 leading-none">+</span>
         )}
       </div>
     );
@@ -127,15 +183,15 @@ export default function TimeSlotCell({
     return (
       <div
         className={`flex items-center justify-center w-7 h-full px-0 py-0 ${
-          isBreak ? "bg-muted/40" : ""
+          isBreak ? "bg-neutral-100" : ""
         }`}
         style={providerColor && !isBreak ? {
-          backgroundColor: hexToRgba(providerColor, 0.125),
+          backgroundColor: hexToRgba(providerColor, 0.06),
           borderLeft: `2px solid ${providerColor}`,
         } : {}}
       >
         {staffingCode && !isBreak && (
-          <span className="text-[10px] font-bold text-foreground/80 leading-none">{staffingCode}</span>
+          <span className="text-[10px] font-semibold text-neutral-700 leading-none tabular-nums">{staffingCode}</span>
         )}
         {isDrExam && !isBreak && (
           <span className="text-[8px] text-blue-600 leading-none">Dr</span>
@@ -150,9 +206,12 @@ export default function TimeSlotCell({
   const dPct = hasDASplit ? Math.round((dTimeMin / totalDA) * 100) : 0;
   const aPct = hasDASplit ? 100 - dPct : 0;
 
-  // Effective conflict: regular conflict OR D-time conflict
-  const effectiveConflict = hasConflict || hasDTimeConflict;
+  // Effective conflict: regular conflict OR D-time conflict OR Loop 6 hard partner overlap
+  const hasHardPartner = partnerKind === 'hard';
+  const effectiveConflict = hasConflict || hasDTimeConflict || hasHardPartner;
   const conflictColor = hasDTimeConflict && !hasConflict ? CONFLICT_COLORS.DTIME_OVERLAP : CONFLICT_COLORS.HARD;
+  // Loop 6: is this cell a correctly-staggered partner (not a hard conflict)?
+  const hasSoftPartner = partnerKind === 'partner';
 
   // Assisted Hygiene blocks get a distinct teal/cyan color overriding the provider color
   const isAssistedHyg = !!(blockLabel && (blockLabel.toUpperCase().includes('ASSISTED HYG') || blockLabel.toUpperCase().includes('ASSISTED HYGIENE')));
@@ -161,34 +220,71 @@ export default function TimeSlotCell({
   // Outside provider work hours — gray, non-interactive (compact)
   // (duplicated here intentionally for flow control)
 
-  // Provider cell with data — clean continuous fills, thin left accent only.
-  // First/last cell of a block gets a subtle top/bottom border so adjacent blocks
-  // (e.g., Crown Prep then MP) don't visually merge. Right border applied to every
-  // cell to close the rectangle on the trailing edge.
+  // Provider cell with data — Loop 7 aesthetic polish.
+  //   * White/off-white cell background (not a heavy color fill)
+  //   * 3-4px vertical color strip on the left = provider identity
+  //   * Subtle inset shadow for depth, faint hairline top/bottom on block edges
+  // Conflict + partner treatments from Loop 6 are layered via additional
+  // box-shadow entries so they still read as the loudest thing on the grid.
+  const stripColor = effectiveConflict
+    ? conflictColor
+    : effectiveProviderColor ?? "transparent";
   const edgeColor = effectiveProviderColor
-    ? hexToRgba(effectiveProviderColor, 0.55)
+    ? hexToRgba(effectiveProviderColor, 0.35)
     : effectiveConflict
     ? conflictColor
     : undefined;
-  const cellStyle = effectiveProviderColor
-    ? {
-        backgroundColor: effectiveConflict
-          ? (hasDTimeConflict && !hasConflict ? hexToRgba(CONFLICT_COLORS.DTIME_OVERLAP, 0.10) : hexToRgba(CONFLICT_COLORS.HARD, 0.12))
-          : hexToRgba(effectiveProviderColor, 0.1875),
-        borderLeft: `3px solid ${effectiveConflict ? conflictColor : effectiveProviderColor}`,
-        borderRight: `1px solid rgba(0,0,0,0.08)`,
-        ...(isBlockFirst && edgeColor ? { borderTop: `1.5px solid ${edgeColor}` } : {}),
-        ...(isBlockLast && edgeColor ? { borderBottom: `1.5px solid ${edgeColor}` } : {}),
-      }
-    : effectiveConflict
-    ? {
-        borderLeft: `3px solid ${conflictColor}`,
-        backgroundColor: hasDTimeConflict ? hexToRgba(CONFLICT_COLORS.DTIME_OVERLAP, 0.08) : hexToRgba(CONFLICT_COLORS.HARD, 0.08),
-        borderRight: `1px solid rgba(0,0,0,0.08)`,
-        ...(isBlockFirst ? { borderTop: `1.5px solid ${conflictColor}` } : {}),
-        ...(isBlockLast ? { borderBottom: `1.5px solid ${conflictColor}` } : {}),
-      }
-    : {};
+
+  // Base inner-shadow depth — only on block cells (not breaks/gaps).
+  const baseDepthShadow = "inset 0 1px 2px rgba(0,0,0,0.04)";
+  // Loop 6: outer red glow for hard conflicts.
+  const hardGlowShadow = effectiveConflict
+    ? `0 0 0 2px rgba(239, 68, 68, 0.8)`
+    : undefined;
+  // Loop 6: muted-blue hairline tick on the right edge for correctly-staggered partners.
+  const partnerTickShadow = hasSoftPartner
+    ? `inset -2px 0 0 0 rgba(59, 130, 246, 0.55)`
+    : undefined;
+
+  // Background: very light tint of provider color for a touch of identity at
+  // low saturation — keeps blocks readable on white while preserving the
+  // "which column belongs to whom" signal in dense grids. Conflicts override
+  // with a warm red wash so the hard glow reads even harder.
+  const cellBackground = effectiveConflict
+    ? hasDTimeConflict && !hasConflict
+      ? hexToRgba(CONFLICT_COLORS.DTIME_OVERLAP, 0.08)
+      : hexToRgba(CONFLICT_COLORS.HARD, 0.08)
+    : effectiveProviderColor
+    ? hexToRgba(effectiveProviderColor, 0.06)
+    : "#ffffff";
+
+  // Loop 10: if this block cell is part of a drag-preview target range, paint
+  // it with a colored ring to reinforce the footprint of the incoming block.
+  const dragPaintRing =
+    dragValidity === "conflict"
+      ? "inset 0 0 0 2px rgba(248, 113, 113, 0.9)"
+      : dragValidity === "warning"
+      ? "inset 0 0 0 2px rgba(251, 191, 36, 0.9)"
+      : dragValidity === "valid"
+      ? "inset 0 0 0 2px rgba(16, 185, 129, 0.9)"
+      : null;
+  const boxShadowWithDragPaint = [
+    baseDepthShadow,
+    hardGlowShadow,
+    partnerTickShadow,
+    dragPaintRing,
+  ]
+    .filter(Boolean)
+    .join(", ") || undefined;
+
+  const cellStyle: React.CSSProperties = {
+    backgroundColor: cellBackground,
+    borderLeft: `3px solid ${stripColor}`,
+    borderRight: `1px solid rgba(0,0,0,0.06)`,
+    ...(isBlockFirst && edgeColor ? { borderTop: `1px solid ${edgeColor}` } : {}),
+    ...(isBlockLast && edgeColor ? { borderBottom: `1px solid ${edgeColor}` } : {}),
+    ...(boxShadowWithDragPaint ? { boxShadow: boxShadowWithDragPaint } : {}),
+  };
 
   const isInteractiveBlock = !!onClick && isClickable;
   const blockAriaLabel = blockLabel
@@ -199,8 +295,8 @@ export default function TimeSlotCell({
 
   return (
     <div
-      className={`provider-cell relative group px-1 py-0 h-full transition-all ${
-        isClickable ? "cursor-pointer hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1" : ""
+      className={`provider-cell relative group px-2 py-[2px] h-full transition-all ${flashPulse ? "cst-flash-pulse" : ""} ${
+        isClickable ? "cursor-pointer hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1" : ""
       } ${
         isDragging
           ? "opacity-40 ring-2 ring-amber-400/60 ring-inset cursor-grabbing"
@@ -216,11 +312,21 @@ export default function TimeSlotCell({
       aria-label={blockAriaLabel}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      title={effectiveConflict && conflictTooltip ? conflictTooltip : blockLabel ? `${staffingCode || ""} ${blockLabel}` : ""}
+      title={
+        effectiveConflict && conflictTooltip
+          ? conflictTooltip
+          : hasHardPartner
+          ? "Multi-op conflict: same doctor in D-time here and in another operatory — stagger failed."
+          : hasSoftPartner
+          ? `Staggered with partner column — same doctor, A-D zigzag${blockLabel ? ` (${blockLabel})` : ""}`
+          : blockLabel
+          ? `${staffingCode || ""} ${blockLabel}${rationale ? ` — ${rationale}` : ""}`
+          : ""
+      }
     >
       {staffingCode && (
         <div className="flex items-center gap-1">
-          <span className="text-[11px] font-semibold text-foreground/80">{staffingCode}</span>
+          <span className="text-[11px] font-semibold text-neutral-700 tracking-tight">{staffingCode}</span>
           {isDrExam && (
             <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 border border-blue-300 leading-none">
               🦷 Dr. Exam
@@ -230,7 +336,7 @@ export default function TimeSlotCell({
       )}
       {blockLabel && isBlockFirst && (
         <div
-          className="text-[10px] text-foreground/70 leading-none truncate max-w-[140px] flex items-center gap-0.5"
+          className="text-[11px] font-medium tracking-tight text-neutral-800 leading-tight truncate max-w-[140px] flex items-center gap-0.5"
           title={blockLabel}
         >
           {isAssistedHyg && isBlockFirst && (
@@ -265,7 +371,7 @@ export default function TimeSlotCell({
 
       {/* D/A time label — small text badge on first cell */}
       {hasDASplit && (
-        <div className="flex items-center gap-1 mt-0.5">
+        <div className="flex items-center gap-1 mt-0.5 tabular-nums">
           <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-blue-100 text-blue-700">
             D·{dTimeMin}m
           </span>
@@ -324,6 +430,11 @@ export default function TimeSlotCell({
             <>
               <div className="font-semibold text-foreground">{blockLabel}</div>
               {staffingCode && <div className="text-muted-foreground">Code: {staffingCode}</div>}
+              {rationale && (
+                <div className="text-muted-foreground italic mt-0.5 max-w-[220px] whitespace-normal">
+                  Placed as: {rationale}
+                </div>
+              )}
               {hasDASplit && (
                 <div className="flex gap-2 mt-1">
                   <span className="text-blue-600 font-medium">D·{dTimeMin}m</span>

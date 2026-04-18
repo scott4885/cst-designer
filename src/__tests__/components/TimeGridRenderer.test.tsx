@@ -99,10 +99,13 @@ describe('TimeGridRenderer smoke test', () => {
         conflictMap={new Map<string, ConflictResult>()}
         dTimeConflictInstanceIds={new Set<string>()}
         blockTypeById={blockTypeById}
+        partnerMap={new Map()}
         isInteractive
         dragState={null}
         dragOverCell={null}
         sidebarDragging={false}
+        dragValidityMap={new Map()}
+        currentDragValidity={null}
         getBlockInfo={(time) => {
           // Minimal mock: each slot is a 1-cell block that is both first and last.
           const row = timeSlots.find((r) => r.time === time);
@@ -170,10 +173,13 @@ describe('TimeGridRenderer smoke test', () => {
         conflictMap={new Map<string, ConflictResult>()}
         dTimeConflictInstanceIds={new Set<string>()}
         blockTypeById={blockTypeById}
+        partnerMap={new Map()}
         isInteractive
         dragState={null}
         dragOverCell={null}
         sidebarDragging={false}
+        dragValidityMap={new Map()}
+        currentDragValidity={null}
         getBlockInfo={() => null}
         onEmptyCellClick={noopCellClick}
         onBlockCellClick={noopCellClick}

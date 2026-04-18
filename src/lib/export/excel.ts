@@ -30,7 +30,10 @@ export interface ExportTimeSlot {
 
 export interface ExportDaySchedule {
   dayOfWeek: string;
+  /** Legacy: unused "variant" key (kept for backward compat). Prefer `variantLabel`. */
   variant?: string;
+  /** Loop 9: variant day tag ("EOF", "Opt1", "Opt2", ...). Null/undefined = regular day. */
+  variantLabel?: string | null;
   slots: ExportTimeSlot[];
   productionSummary: {
     providerId: string;
@@ -372,9 +375,16 @@ function addDayScheduleSheet(
   daySchedule: ExportDaySchedule,
   timeIncrement: number = 10
 ): void {
-  const sheetName = daySchedule.variant
-    ? `${daySchedule.dayOfWeek} ${daySchedule.variant}`
-    : daySchedule.dayOfWeek;
+  // Loop 9: prefer variantLabel (new field, shown in parens "Friday (EOF)").
+  // Fall back to legacy `variant` field which uses space separator "Monday 1.26".
+  let sheetName: string;
+  if (daySchedule.variantLabel) {
+    sheetName = `${daySchedule.dayOfWeek} (${daySchedule.variantLabel})`;
+  } else if (daySchedule.variant) {
+    sheetName = `${daySchedule.dayOfWeek} ${daySchedule.variant}`;
+  } else {
+    sheetName = daySchedule.dayOfWeek;
+  }
 
   const sheet = workbook.addWorksheet(sheetName);
   const providers = input.providers;

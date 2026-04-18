@@ -30,6 +30,8 @@ export async function POST(
       slots: data.slots as unknown as TimeSlotOutput[],
       productionSummary: (data.productionSummary ?? []) as unknown as ProviderProductionSummary[],
       warnings: data.warnings ?? [],
+      // Loop 9: round-trip variant tag through persistence.
+      variantLabel: (data as typeof data & { variantLabel?: string | null }).variantLabel,
     });
 
     return NextResponse.json({ id: schedule.id, updatedAt: schedule.updatedAt });

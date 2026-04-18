@@ -29,6 +29,9 @@ interface ScheduleState {
   redoStack: UndoEntry[];
   canUndo: boolean;
   canRedo: boolean;
+  // Loop 10: Flash-pulse state for "Jump to cell" animations from Review panel.
+  // Set by flashSlot(); auto-clears after 1000ms so the same cell can flash again.
+  flashingCell: { time: string; providerId: string } | null;
   setActiveDay: (day: string) => void;
   /** Switch to a different week and reload persisted schedules for that week. */
   setActiveWeek: (week: RotationWeek) => void;
@@ -47,9 +50,54 @@ interface ScheduleState {
   removeBlockInDay: (day: string, time: string, providerId: string, providers: ProviderInput[], blockTypes: BlockTypeInput[]) => void;
   moveBlockInDay: (day: string, fromTime: string, fromProviderId: string, toTime: string, toProviderId: string, providers: ProviderInput[], blockTypes: BlockTypeInput[]) => void;
   updateBlockInDay: (day: string, time: string, providerId: string, newBlockType: BlockTypeInput, newDurationSlots: number, providers: ProviderInput[], blockTypes: BlockTypeInput[], customProductionAmount?: number | null) => void;
+  /**
+   * Loop 9: Copy all blocks from a source day to one or more target days as a
+   * single atomic operation (one undo step reverts the entire copy).
+   * Respects per-element toggles (doctor/hygiene/lunch/variant). Skips slots
+   * outside each target day's working window and emits warnings for truncated
+   * blocks or missing providers.
+   */
+  copyDayToDays: (
+    sourceDay: string,
+    targetDays: string[],
+    providers: ProviderInput[],
+    blockTypes: BlockTypeInput[],
+    options: CopyDayOptions,
+  ) => CopyDayResult;
+  /**
+   * Loop 9: Tag or untag a day with a variant label ("EOF", "Opt1", "Opt2"...)
+   * as an atomic undoable operation. Pass `null` or "" to clear the variant.
+   */
+  setVariantLabel: (day: string, variantLabel: string | null) => void;
   // Undo/Redo
   undo: () => void;
   redo: () => void;
+  // Loop 10: Flash a cell (sets flashingCell, auto-clears after 1000ms).
+  flashSlot: (time: string, providerId: string) => void;
+}
+
+export interface CopyDayOptions {
+  /** Copy doctor blocks (default true). */
+  includeDoctor: boolean;
+  /** Copy hygiene blocks (default true). */
+  includeHygiene: boolean;
+  /** Copy lunch break positions (default true). */
+  includeLunch: boolean;
+  /** Copy variant markers/labels (default false). */
+  includeVariant: boolean;
+  /** 'replace' = wipe target first; 'merge' = keep filled target slots. */
+  mode: 'replace' | 'merge';
+}
+
+export interface CopyDayResult {
+  /** Days that were actually written to. */
+  copiedDays: string[];
+  /** Days skipped because no schedule existed for that day. */
+  skippedDays: string[];
+  /** Per-target warnings (truncations, missing providers, etc.). */
+  warnings: string[];
+  /** Total count of blocks written across all targets. */
+  blocksCopied: number;
 }
 
 function generateBlockInstanceId(): string {
@@ -242,6 +290,8 @@ function debouncedApiPersist(officeId: string, schedulesMap: Record<string, Gene
             slots: result.slots,
             productionSummary: result.productionSummary,
             warnings: result.warnings,
+            // Loop 9: variantLabel round-trips through persistence so EOF/Opt1/Opt2 survive reload.
+            variantLabel: result.variantLabel ?? null,
           }),
         }).catch(() => {}); // silently fail API persistence — localStorage is the fallback
       }
@@ -262,6 +312,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
   redoStack: [],
   canUndo: false,
   canRedo: false,
+  flashingCell: null,
 
   setActiveDay: (day: string) => set({ activeDay: day }),
 
@@ -346,7 +397,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
       );
       if (!response.ok) return;
       const data = await response.json();
-      const rows: Array<{ dayOfWeek: string; slots: unknown; productionSummary: unknown; warnings: unknown }> =
+      const rows: Array<{ dayOfWeek: string; slots: unknown; productionSummary: unknown; warnings: unknown; variantLabel?: string | null }> =
         data?.schedules ?? [];
       if (rows.length === 0) return;
 
@@ -363,6 +414,8 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
           productionSummary:
             (row.productionSummary as GenerationResult['productionSummary']) ?? [],
           warnings: (row.warnings as string[]) ?? [],
+          // Loop 9: variant tag from DB
+          variantLabel: row.variantLabel ?? null,
         };
       }
 
@@ -787,5 +840,268 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     // Persist changes (localStorage + debounced API)
     const officeIdForPersist = get().currentOfficeId;
     if (officeIdForPersist) debouncedApiPersist(officeIdForPersist, newSchedules, get().activeWeek);
+  },
+
+  // ─── Loop 9: Copy day to… (single-step atomic undo) ─────────────
+  copyDayToDays: (sourceDay, targetDays, providers, blockTypes, options) => {
+    const state = get();
+    const sourceSchedule = state.generatedSchedules[sourceDay];
+    const result: CopyDayResult = {
+      copiedDays: [],
+      skippedDays: [],
+      warnings: [],
+      blocksCopied: 0,
+    };
+    if (!sourceSchedule) {
+      result.warnings.push(`No schedule exists for source day ${sourceDay}`);
+      return result;
+    }
+
+    // Push ONE undo entry for the entire operation so a single Ctrl+Z reverts
+    // every copied block across every target day in one atomic step.
+    pushUndo(get, set);
+
+    // Group source slots into blocks keyed by (realProvider, operatory, blockInstanceId or blockTypeId)
+    // so we can replay each block into each target day.
+    interface SourceBlock {
+      realProviderId: string;
+      operatory: string | undefined;
+      blockTypeId: string;
+      blockLabel: string | null;
+      blockInstanceId: string | null;
+      customProductionAmount: number | null;
+      staffingCode: 'D' | 'H' | 'A' | null;
+      startTime: string;
+      slotCount: number;
+    }
+
+    const blocks: SourceBlock[] = [];
+    // Build per-provider-per-op ordered slot lists from the source.
+    const perProvKeyToSlots: Record<string, typeof sourceSchedule.slots> = {};
+    for (const slot of sourceSchedule.slots) {
+      const key = `${slot.providerId}::${slot.operatory ?? ''}`;
+      if (!perProvKeyToSlots[key]) perProvKeyToSlots[key] = [];
+      perProvKeyToSlots[key].push(slot);
+    }
+
+    for (const [, slotList] of Object.entries(perProvKeyToSlots)) {
+      let i = 0;
+      while (i < slotList.length) {
+        const s = slotList[i];
+        if (!s.blockTypeId || s.isBreak) { i++; continue; }
+        // Detect block run — same blockInstanceId when set, else same blockTypeId contiguous.
+        let j = i;
+        while (j + 1 < slotList.length) {
+          const next = slotList[j + 1];
+          if (!next.blockTypeId || next.isBreak) break;
+          if (s.blockInstanceId) {
+            if (next.blockInstanceId !== s.blockInstanceId) break;
+          } else {
+            if (next.blockTypeId !== s.blockTypeId) break;
+          }
+          j++;
+        }
+        blocks.push({
+          realProviderId: s.providerId,
+          operatory: s.operatory,
+          blockTypeId: s.blockTypeId,
+          blockLabel: s.blockLabel ?? null,
+          blockInstanceId: s.blockInstanceId ?? null,
+          customProductionAmount: s.customProductionAmount ?? null,
+          staffingCode: (s.staffingCode as 'D' | 'H' | 'A' | null) ?? null,
+          startTime: s.time,
+          slotCount: j - i + 1,
+        });
+        i = j + 1;
+      }
+    }
+
+    // Filter blocks by element toggles (doctor vs hygiene via provider role).
+    const filteredBlocks = blocks.filter(b => {
+      const prov = providers.find(p => p.id === b.realProviderId);
+      if (!prov) return false;
+      if (prov.role === 'DOCTOR') return options.includeDoctor;
+      if (prov.role === 'HYGIENIST') return options.includeHygiene;
+      return true; // OTHER roles always copy if doctor or hygiene is on (unlikely edge)
+    });
+
+    // Apply to each target day
+    const newSchedulesMap: Record<string, GenerationResult> = { ...state.generatedSchedules };
+
+    for (const targetDay of targetDays) {
+      if (targetDay === sourceDay) continue;
+      const target = newSchedulesMap[targetDay];
+      if (!target) {
+        result.skippedDays.push(targetDay);
+        result.warnings.push(`${targetDay}: skipped (no schedule exists — generate first)`);
+        continue;
+      }
+
+      const newSlots = target.slots.map(s => ({ ...s }));
+
+      // Pre-flight: if the target day has strictly shorter working hours than the
+      // source (fewer total non-break slots for any filtered provider), emit a
+      // warning proactively so users are alerted even when every individual
+      // block happens to fit.
+      {
+        const sourceProvSlotCount: Record<string, number> = {};
+        for (const s of sourceSchedule.slots) {
+          if (s.isBreak) continue;
+          sourceProvSlotCount[s.providerId] = (sourceProvSlotCount[s.providerId] ?? 0) + 1;
+        }
+        const targetProvSlotCount: Record<string, number> = {};
+        for (const s of newSlots) {
+          if (s.isBreak) continue;
+          targetProvSlotCount[s.providerId] = (targetProvSlotCount[s.providerId] ?? 0) + 1;
+        }
+        let shorterDetected = false;
+        for (const [provId, srcCount] of Object.entries(sourceProvSlotCount)) {
+          const prov = providers.find(p => p.id === provId || p.id === provId.split('::')[0]);
+          if (!prov) continue;
+          const roleIncluded =
+            (prov.role === 'DOCTOR' && options.includeDoctor) ||
+            (prov.role === 'HYGIENIST' && options.includeHygiene);
+          if (!roleIncluded) continue;
+          const tgtCount = targetProvSlotCount[provId] ?? 0;
+          if (tgtCount < srcCount) {
+            shorterDetected = true;
+            break;
+          }
+        }
+        if (shorterDetected) {
+          result.warnings.push(`${targetDay}: target has shorter working hours than source — some blocks may be truncated`);
+        }
+      }
+
+      // In 'replace' mode, clear all non-break block slots (filtered by element toggles) first.
+      if (options.mode === 'replace') {
+        for (let k = 0; k < newSlots.length; k++) {
+          const s = newSlots[k];
+          if (s.isBreak) continue;
+          if (!s.blockTypeId) continue;
+          const prov = providers.find(p => p.id === s.providerId);
+          if (!prov) continue;
+          const shouldClear =
+            (prov.role === 'DOCTOR' && options.includeDoctor) ||
+            (prov.role === 'HYGIENIST' && options.includeHygiene);
+          if (shouldClear) {
+            newSlots[k] = {
+              ...s,
+              blockTypeId: null,
+              blockLabel: null,
+              blockInstanceId: null,
+              customProductionAmount: null,
+            };
+          }
+        }
+      }
+
+      let truncatedCount = 0;
+      let skippedMissingProvider = 0;
+
+      // Place each source block onto the target day.
+      for (const b of filteredBlocks) {
+        // Re-build per-provider slot index on the mutating target array.
+        const targetProviderIndices = newSlots
+          .map((s, i) => ({ s, i }))
+          .filter(x => x.s.providerId === b.realProviderId && (!b.operatory || !x.s.operatory || x.s.operatory === b.operatory))
+          .map(x => x.i);
+
+        if (targetProviderIndices.length === 0) {
+          skippedMissingProvider++;
+          continue;
+        }
+
+        // Find start slot with matching time on this provider.
+        const startSlotIdx = targetProviderIndices.find(i => newSlots[i].time === b.startTime);
+        if (startSlotIdx === undefined) {
+          // Start time doesn't exist for this provider on target day (e.g. EOF friday shorter hours).
+          truncatedCount++;
+          continue;
+        }
+        const startProvIdx = targetProviderIndices.indexOf(startSlotIdx);
+
+        // Write up to b.slotCount slots, respecting working window / breaks.
+        let written = 0;
+        const newInstanceId = generateBlockInstanceId();
+        for (let k = 0; k < b.slotCount; k++) {
+          const pIdx = startProvIdx + k;
+          if (pIdx >= targetProviderIndices.length) break; // past end of working window
+          const slotIdx = targetProviderIndices[pIdx];
+          const existing = newSlots[slotIdx];
+          if (existing.isBreak) break;
+          // Merge mode: skip slots that already have a block
+          if (options.mode === 'merge' && existing.blockTypeId) continue;
+          newSlots[slotIdx] = {
+            ...existing,
+            blockTypeId: b.blockTypeId,
+            blockLabel: b.blockLabel,
+            staffingCode: b.staffingCode,
+            blockInstanceId: newInstanceId,
+            customProductionAmount: b.customProductionAmount,
+          };
+          written++;
+        }
+        if (written > 0) result.blocksCopied++;
+        if (written < b.slotCount && written > 0) {
+          truncatedCount++;
+        }
+      }
+
+      if (truncatedCount > 0) {
+        result.warnings.push(`${targetDay}: ${truncatedCount} block(s) truncated or skipped (shorter working hours)`);
+      }
+      if (skippedMissingProvider > 0) {
+        result.warnings.push(`${targetDay}: ${skippedMissingProvider} block(s) skipped (provider not working this day)`);
+      }
+
+      // Optionally copy the variantLabel marker.
+      const variantUpdate: Partial<GenerationResult> = options.includeVariant
+        ? { variantLabel: sourceSchedule.variantLabel ?? null }
+        : {};
+
+      const updated = recalcProductionSummary(
+        { ...target, ...variantUpdate, slots: newSlots },
+        providers,
+        blockTypes,
+      );
+      newSchedulesMap[targetDay] = updated;
+      result.copiedDays.push(targetDay);
+    }
+
+    set({ generatedSchedules: newSchedulesMap });
+    const officeIdForPersist = get().currentOfficeId;
+    if (officeIdForPersist) debouncedApiPersist(officeIdForPersist, newSchedulesMap, get().activeWeek);
+    return result;
+  },
+
+  // ─── Loop 9: Variant label (EOF / Opt1 / Opt2) ───────────────────
+  setVariantLabel: (day, variantLabel) => {
+    const state = get();
+    const schedule = state.generatedSchedules[day];
+    if (!schedule) return;
+    pushUndo(get, set);
+    const normalized = variantLabel && variantLabel.trim() !== '' ? variantLabel.trim() : null;
+    const newSchedules = {
+      ...state.generatedSchedules,
+      [day]: { ...schedule, variantLabel: normalized },
+    };
+    set({ generatedSchedules: newSchedules });
+    const officeIdForPersist = get().currentOfficeId;
+    if (officeIdForPersist) debouncedApiPersist(officeIdForPersist, newSchedules, get().activeWeek);
+  },
+
+  // ─── Loop 10: Flash-pulse a cell (Review panel "Jump to cell") ──────
+  flashSlot: (time, providerId) => {
+    set({ flashingCell: { time, providerId } });
+    // Clear after 1000ms so the CSS animation can fire again on the same cell.
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        const current = get().flashingCell;
+        if (current && current.time === time && current.providerId === providerId) {
+          set({ flashingCell: null });
+        }
+      }, 1000);
+    }
   },
 }));

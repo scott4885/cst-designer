@@ -32,6 +32,7 @@ import BlockEditor from "./BlockEditor";
 import { BLOCK_TYPE_DRAG_KEY } from "./BlockPalette";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import type { ProviderInput, TimeSlotOutput } from "./TimeGridRenderer";
+import { previewDrop, type DragValidity } from "@/lib/engine/drag-preview";
 
 // Drag origin state
 export interface DragState {
@@ -55,6 +56,8 @@ export interface BlockInfo {
   isFirst: boolean;
   isLast: boolean;
   startTime: string;
+  /** Loop 5: rationale from the engine (null = user-placed or legacy). */
+  rationale: string | null;
 }
 
 export interface UseTimeSlotInteractionArgs {
@@ -87,6 +90,14 @@ export interface UseTimeSlotInteractionReturn {
   dragState: DragState | null;
   dragOverCell: DragOverCell | null;
   sidebarDragging: boolean;
+  /**
+   * Loop 10: per-cell drag-preview validity map ("time:providerId" → tier).
+   * Only populated while a grid block is being dragged. Renderer uses this
+   * to paint green/amber/red backgrounds across the would-be target range.
+   */
+  dragValidityMap: Map<string, DragValidity>;
+  /** Loop 10: the tier for the CURRENTLY hovered target (null if none). */
+  currentDragValidity: DragValidity | null;
   // Whether any interaction prop was passed (disables cursor/click when false)
   isInteractive: boolean;
 }
@@ -119,12 +130,18 @@ export function useTimeSlotInteraction(
     blockLabel: string;
     slotCount: number;
     customProductionAmount: number | null;
+    rationale: string | null;
   } | null>(null);
 
   // ─── Drag state ─────────────────────────────────────────────────────────
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragOverCell, setDragOverCell] = useState<DragOverCell | null>(null);
   const [sidebarDragging, setSidebarDragging] = useState(false);
+  // Loop 10: extra drag origin metadata needed to compute target validity.
+  const [dragOrigin, setDragOrigin] = useState<{
+    blockInstanceId: string | null;
+    slotCount: number;
+  } | null>(null);
 
   // Precompute per-provider slot rows once per `timeSlots` reference change.
   // Prior implementation rebuilt this array on every `getBlockInfo` call —
@@ -137,6 +154,7 @@ export function useTimeSlotInteraction(
     blockInstanceId?: string | null;
     customProductionAmount?: number | null;
     isBreak?: boolean;
+    rationale?: string | null;
   };
 
   const providerSlotIndex = useMemo(() => {
@@ -192,6 +210,7 @@ export function useTimeSlotInteraction(
         isFirst: idx === start,
         isLast: idx === end,
         startTime: providerSlotData[start].time,
+        rationale: slot.rationale ?? null,
       };
     },
     [providerSlotIndex, slots.length]
@@ -221,6 +240,7 @@ export function useTimeSlotInteraction(
         blockLabel: info.blockLabel,
         slotCount: info.slotCount,
         customProductionAmount: info.customProductionAmount,
+        rationale: info.rationale,
       });
       setEditorOpen(true);
       setPickerOpen(false);
@@ -268,11 +288,53 @@ export function useTimeSlotInteraction(
         blockTypeId: info.blockTypeId,
         blockLabel: info.blockLabel,
       });
+      setDragOrigin({
+        blockInstanceId: info.blockInstanceId,
+        slotCount: info.slotCount,
+      });
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", "block");
     },
     [getBlockInfo]
   );
+
+  // Loop 10: compute validity for the currently hovered target.
+  const currentDragValidity: DragValidity | null = useMemo(() => {
+    if (!dragState || !dragOverCell || !dragOrigin) return null;
+    const result = previewDrop({
+      source: {
+        time: dragState.time,
+        providerId: dragState.providerId,
+        blockInstanceId: dragOrigin.blockInstanceId,
+        blockTypeId: dragState.blockTypeId,
+      },
+      target: { time: dragOverCell.time, providerId: dragOverCell.providerId },
+      timeSlots,
+      sourceSlotCount: dragOrigin.slotCount,
+    });
+    return result.validity;
+  }, [dragState, dragOverCell, dragOrigin, timeSlots]);
+
+  // Loop 10: per-cell validity map for the would-be target range.
+  const dragValidityMap: Map<string, DragValidity> = useMemo(() => {
+    const map = new Map<string, DragValidity>();
+    if (!dragState || !dragOverCell || !dragOrigin) return map;
+    const result = previewDrop({
+      source: {
+        time: dragState.time,
+        providerId: dragState.providerId,
+        blockInstanceId: dragOrigin.blockInstanceId,
+        blockTypeId: dragState.blockTypeId,
+      },
+      target: { time: dragOverCell.time, providerId: dragOverCell.providerId },
+      timeSlots,
+      sourceSlotCount: dragOrigin.slotCount,
+    });
+    for (const key of result.targetKeys) {
+      map.set(key, result.validity);
+    }
+    return map;
+  }, [dragState, dragOverCell, dragOrigin, timeSlots]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent, time: string, providerId: string) => {
@@ -311,22 +373,36 @@ export function useTimeSlotInteraction(
           return;
         }
 
-        // Grid block move
-        if (!dragState || !onMoveBlock) return;
+        // Grid block move — Loop 10: refuse 'conflict' tier drops.
+        if (!dragState || !onMoveBlock || !dragOrigin) return;
+        const previewResult = previewDrop({
+          source: {
+            time: dragState.time,
+            providerId: dragState.providerId,
+            blockInstanceId: dragOrigin.blockInstanceId,
+            blockTypeId: dragState.blockTypeId,
+          },
+          target: { time, providerId },
+          timeSlots,
+          sourceSlotCount: dragOrigin.slotCount,
+        });
+        if (previewResult.validity === "conflict") return;
         onMoveBlock(dragState.time, dragState.providerId, time, providerId);
       } finally {
         setDragState(null);
         setDragOverCell(null);
         setSidebarDragging(false);
+        setDragOrigin(null);
       }
     },
-    [dragState, onMoveBlock, onAddBlock, timeIncrement]
+    [dragState, dragOrigin, onMoveBlock, onAddBlock, timeIncrement, timeSlots]
   );
 
   const handleDragEnd = useCallback(() => {
     setDragState(null);
     setDragOverCell(null);
     setSidebarDragging(false);
+    setDragOrigin(null);
   }, []);
 
   const getProviderRole = useCallback(
@@ -361,6 +437,7 @@ export function useTimeSlotInteraction(
           currentBlockTypeId={editorPosition.blockTypeId}
           currentSlotCount={editorPosition.slotCount}
           currentCustomProductionAmount={editorPosition.customProductionAmount}
+          rationale={editorPosition.rationale}
           timeIncrement={timeIncrement}
           onUpdate={handleBlockUpdate}
           onDelete={handleBlockDelete}
@@ -386,6 +463,8 @@ export function useTimeSlotInteraction(
     dragState,
     dragOverCell,
     sidebarDragging,
+    dragValidityMap,
+    currentDragValidity,
     isInteractive,
   };
 }

@@ -191,7 +191,7 @@ export default function ScheduleGrid({
         }));
 
   // ─── Conflict lookups (derived memos) ───────────────────────────────────
-  const { conflictMap, dTimeConflictInstanceIds, blockTypeById } = useConflictLookups(
+  const { conflictMap, dTimeConflictInstanceIds, blockTypeById, partnerMap } = useConflictLookups(
     slots,
     conflicts,
     dTimeConflicts,
@@ -212,6 +212,8 @@ export default function ScheduleGrid({
     dragState,
     dragOverCell,
     sidebarDragging,
+    dragValidityMap,
+    currentDragValidity,
     isInteractive,
   } = useTimeSlotInteraction({
     slots,
@@ -275,10 +277,13 @@ export default function ScheduleGrid({
         conflictMap={conflictMap}
         dTimeConflictInstanceIds={dTimeConflictInstanceIds}
         blockTypeById={blockTypeById}
+        partnerMap={partnerMap}
         isInteractive={isInteractive}
         dragState={dragState}
         dragOverCell={dragOverCell}
         sidebarDragging={sidebarDragging}
+        dragValidityMap={dragValidityMap}
+        currentDragValidity={currentDragValidity}
         getBlockInfo={getBlockInfo}
         onEmptyCellClick={handleEmptyCellClick}
         onBlockCellClick={handleBlockCellClick}

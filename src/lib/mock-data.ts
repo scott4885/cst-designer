@@ -1104,3 +1104,8 @@ export const mockOffices: OfficeData[] = [
   kccClayOffice,
   nhdRidgeviewOffice,
 ];
+
+// Golden-harness fixture alias — canonical 5 offices used by the regression
+// harness (Loop 1) and downstream loop telemetry scripts. Consumers import
+// `GOLDEN_OFFICES` specifically to signal "this must match the snapshot set".
+export const GOLDEN_OFFICES: OfficeData[] = mockOffices;

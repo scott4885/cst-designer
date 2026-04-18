@@ -123,16 +123,16 @@ describe('ScheduleGrid – drag-and-drop integration', () => {
     const sourceCell = screen.getByTestId('block-cell-7:00 AM-p1');
     const targetCell = screen.getByTestId('block-cell-7:30 AM-p1');
 
-    // Before drag: target cell should have no ring styling
+    // Before drag: target cell should have no drag-paint styling
     const targetInner = targetCell.firstChild as HTMLElement;
-    expect(targetInner?.className).not.toContain('ring-accent');
+    expect(targetInner?.className).not.toMatch(/ring-(accent|emerald-400|amber-400|red-400)/);
 
     act(() => { fireEvent.dragStart(sourceCell, { dataTransfer: dt }); });
     act(() => { fireEvent.dragOver(targetCell, { dataTransfer: dt }); });
 
-    // After dragOver: the inner TimeSlotCell should show the drop-target style
+    // After dragOver: Loop 10 drag-preview paints 'valid' target with emerald ring.
     const updatedInner = targetCell.firstChild as HTMLElement;
-    expect(updatedInner?.className).toContain('ring-accent');
+    expect(updatedInner?.className).toContain('ring-emerald-400');
   });
 
   // ── Test 4 ────────────────────────────────────────────────────
@@ -153,9 +153,9 @@ describe('ScheduleGrid – drag-and-drop integration', () => {
     act(() => { fireEvent.dragOver(targetCell, { dataTransfer: dt }); });
     act(() => { fireEvent.drop(targetCell, { dataTransfer: dt }); });
 
-    // After drop the drag state is cleared → no ring on target
+    // After drop the drag state is cleared → no drag-paint ring on target
     const afterInner = targetCell.firstChild as HTMLElement;
-    expect(afterInner?.className).not.toContain('ring-accent');
+    expect(afterInner?.className).not.toMatch(/ring-(accent|emerald-400|amber-400|red-400)/);
   });
 
   // ── Test 5 ────────────────────────────────────────────────────
@@ -209,6 +209,6 @@ describe('ScheduleGrid – drag-and-drop integration', () => {
     const srcInner = sourceCell.firstChild as HTMLElement;
     expect(srcInner?.className).not.toContain('opacity-40');
     const tgtInner = targetCell.firstChild as HTMLElement;
-    expect(tgtInner?.className).not.toContain('ring-accent');
+    expect(tgtInner?.className).not.toMatch(/ring-(accent|emerald-400|amber-400|red-400)/);
   });
 });

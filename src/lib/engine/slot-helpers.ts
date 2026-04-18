@@ -153,19 +153,24 @@ export function getStaffingCode(role: 'DOCTOR' | 'HYGIENIST' | 'OTHER'): Staffin
  * @param blockType - The block type to place
  * @param provider - The provider being scheduled
  * @param labelOverride - Optional label override (e.g., "HP>$1200")
+ * @param rationale - Loop 5: optional one-line reason ("morning rock anchor", etc.) stamped on every slot
  */
 export function placeBlockInSlots(
   slots: TimeSlotOutput[],
   range: number[],
   blockType: BlockTypeInput,
   provider: ProviderInput,
-  labelOverride?: string
+  labelOverride?: string,
+  rationale?: string
 ): void {
   const len = range.length;
   for (let i = 0; i < len; i++) {
     const idx = range[i];
     slots[idx].blockTypeId = blockType.id;
     slots[idx].blockLabel = labelOverride || blockType.label;
+    if (rationale !== undefined) {
+      slots[idx].rationale = rationale;
+    }
 
     // For doctor blocks >= 3 slots: mark first and last as 'A' (assistant-only time)
     if (provider.role === 'DOCTOR' && len >= 3 && (i === 0 || i === len - 1)) {

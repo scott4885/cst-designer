@@ -235,6 +235,8 @@ export const ScheduleSaveInputSchema = z
     productionSummary: ProductionSummarySchema.optional(),
     warnings: z.array(z.string()).optional(),
     label: z.string().optional(),
+    // Loop 9: optional variant tag (EOF / Opt1 / Opt2). Nullable.
+    variantLabel: z.string().nullable().optional(),
   })
   .passthrough();
 

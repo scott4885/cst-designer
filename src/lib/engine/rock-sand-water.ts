@@ -171,7 +171,14 @@ export function placeDoctorBlocksByMix(
       const targetRange = availableRanges[0] ?? afterStagger[0] ?? ranges[0];
 
       const amount = bt.minimumAmount ?? 0;
-      placeBlockInSlots(slots, targetRange, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label);
+      const mixCat = categorize(bt);
+      const mixRationale =
+        mixCat === 'HP' ? 'mix target — HP' :
+        mixCat === 'MP' ? 'mix target — MP' :
+        mixCat === 'NP' ? 'mix target — NP' :
+        mixCat === 'ER' ? 'mix target — ER' :
+        'mix target';
+      placeBlockInSlots(slots, targetRange, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label, mixRationale);
       recordProd(amount);
       placed++;
 
@@ -194,7 +201,7 @@ export function placeDoctorBlocksByMix(
       if (ranges.length === 0) continue;
       const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes)[0] ?? ranges[0];
       const amount = bt.minimumAmount ?? 0;
-      placeBlockInSlots(slots, chosen, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label);
+      placeBlockInSlots(slots, chosen, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label, 'mix gap fill');
       recordProd(amount);
       filled = true;
       break;
@@ -221,7 +228,7 @@ export function placeDoctorBlocksByMix(
       if (wouldExceedVarietyCap(slots, ps, bt.id, slotsNeeded)) continue;
       const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes)[0] ?? ranges[0];
       const amount = bt.minimumAmount ?? 0;
-      placeBlockInSlots(slots, chosen, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label);
+      placeBlockInSlots(slots, chosen, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label, 'buffer / gap');
       recordProd(amount);
       filled = true;
       break;
@@ -330,11 +337,11 @@ export function placeDoctorBlocks(
 
     if (targetRange) {
       const amount = npBlock.minimumAmount || npMin;
-      placeBlockInSlots(slots, targetRange, npBlock, doc, makeLabel(npBlock, amount));
+      placeBlockInSlots(slots, targetRange, npBlock, doc, makeLabel(npBlock, amount), 'new patient exam');
       recordProd(amount);
     } else if (ranges[0]) {
       const amount = npBlock.minimumAmount || npMin;
-      placeBlockInSlots(slots, ranges[0], npBlock, doc, makeLabel(npBlock, amount));
+      placeBlockInSlots(slots, ranges[0], npBlock, doc, makeLabel(npBlock, amount), 'new patient exam');
       recordProd(amount);
     } else {
       warnings.push(`No room for NP block for ${doc.name}`);
@@ -368,7 +375,8 @@ export function placeDoctorBlocks(
     const targetRange = pickAvoiding(amRanges) || pickAvoiding(fallbackAmRanges);
 
     if (targetRange) {
-      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, hpAmount));
+      const hpRationale = i === 0 ? 'morning rock anchor' : 'morning rock follow-up';
+      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, hpAmount), hpRationale);
       recordProd(hpAmount);
       morningHPPlaced++;
     } else {
@@ -388,7 +396,7 @@ export function placeDoctorBlocks(
     const fallbackAmRanges = morningRanges(ranges, slots, doc);
     const targetRange = pickAvoiding(amRanges) || pickAvoiding(fallbackAmRanges);
     if (targetRange) {
-      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, hpAmount));
+      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, hpAmount), 'morning rock anchor');
       recordProd(hpAmount);
       morningHPPlaced++;
     }
@@ -403,7 +411,7 @@ export function placeDoctorBlocks(
     const targetRange = pickAvoiding(amRanges) || pickAvoiding(fallbackAmRanges);
     if (targetRange) {
       const amount = mpBlock.minimumAmount || mpMinPerBlock;
-      placeBlockInSlots(slots, targetRange, mpBlock, doc, makeLabel(mpBlock, amount));
+      placeBlockInSlots(slots, targetRange, mpBlock, doc, makeLabel(mpBlock, amount), 'afternoon sand');
       recordProd(amount);
     }
   }
@@ -418,7 +426,7 @@ export function placeDoctorBlocks(
 
     if (targetRange) {
       const amount = erBlock.minimumAmount || erMin;
-      placeBlockInSlots(slots, targetRange, erBlock, doc, makeLabel(erBlock, amount));
+      placeBlockInSlots(slots, targetRange, erBlock, doc, makeLabel(erBlock, amount), 'emergency slot');
       recordProd(amount);
     }
   }
@@ -432,7 +440,7 @@ export function placeDoctorBlocks(
     const amRanges = morningRanges(ranges, slots, doc);
     const targetRange = pickAvoiding(amRanges);
     if (targetRange) {
-      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, fillHpAmount));
+      placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, fillHpAmount), 'morning rock follow-up');
       recordProd(fillHpAmount);
     }
   }
@@ -452,7 +460,7 @@ export function placeDoctorBlocks(
       const staggeredPmRanges = rangesAfter(pmRanges, slots, pmStaggerStart);
       const targetRange = pickAvoiding(staggeredPmRanges) || pickAvoiding(pmRanges);
       if (targetRange) {
-        placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, pmHpAmount));
+        placeBlockInSlots(slots, targetRange, hp, doc, makeLabel(hp, pmHpAmount), 'afternoon rock');
         recordProd(pmHpAmount);
       }
     }
@@ -467,7 +475,7 @@ export function placeDoctorBlocks(
     const targetRange = pickAvoiding(pmRanges);
     if (targetRange) {
       const amount = mpBlock.minimumAmount || mpMinPerBlock;
-      placeBlockInSlots(slots, targetRange, mpBlock, doc, makeLabel(mpBlock, amount));
+      placeBlockInSlots(slots, targetRange, mpBlock, doc, makeLabel(mpBlock, amount), 'afternoon sand');
       recordProd(amount);
     }
   }
@@ -484,7 +492,7 @@ export function placeDoctorBlocks(
     const targetRange = lastRange(lateAvoid) || lastRange(lateRanges) || lastRange(pmAvoid) || lastRange(pmRanges);
 
     if (targetRange) {
-      placeBlockInSlots(slots, targetRange, nonProdBlock, doc, makeLabel(nonProdBlock));
+      placeBlockInSlots(slots, targetRange, nonProdBlock, doc, makeLabel(nonProdBlock), 'late-day non-prod');
       recordProd(nonProdBlock.minimumAmount || 0);
     }
   }
@@ -498,7 +506,7 @@ export function placeDoctorBlocks(
     const targetRange = pickAvoiding(pmRanges);
     if (targetRange) {
       const amount = mpBlock.minimumAmount || mpMinPerBlock;
-      placeBlockInSlots(slots, targetRange, mpBlock, doc, makeLabel(mpBlock, amount));
+      placeBlockInSlots(slots, targetRange, mpBlock, doc, makeLabel(mpBlock, amount), 'afternoon sand');
       recordProd(amount);
     }
   }
@@ -512,7 +520,7 @@ export function placeDoctorBlocks(
     const targetRange = pickAvoiding(earlyPM);
     if (targetRange) {
       const amount = erBlock.minimumAmount || erMin;
-      placeBlockInSlots(slots, targetRange, erBlock, doc, makeLabel(erBlock, amount));
+      placeBlockInSlots(slots, targetRange, erBlock, doc, makeLabel(erBlock, amount), 'emergency slot');
       recordProd(amount);
     }
   }
@@ -576,7 +584,14 @@ export function placeDoctorBlocks(
 
     const targetRange = pickAvoiding(ranges) ?? ranges[0];
     const amount = selected.minimumAmount || mpMinPerBlock;
-    placeBlockInSlots(slots, targetRange, selected, doc, makeLabel(selected, amount));
+    const gapCat = categorize(selected);
+    const gapRationale =
+      gapCat === 'HP' ? 'cap filler — HP' :
+      gapCat === 'MP' ? 'cap filler — MP' :
+      gapCat === 'NP' ? 'cap filler — NP' :
+      gapCat === 'ER' ? 'cap filler — ER' :
+      'buffer / gap';
+    placeBlockInSlots(slots, targetRange, selected, doc, makeLabel(selected, amount), gapRationale);
     recordProd(amount);
   }
 
@@ -597,7 +612,7 @@ export function placeDoctorBlocks(
       if (wouldExceedVarietyCap(slots, ps, bt.id, slotsNeeded)) continue;
       const chosen = pickAvoiding(targetRanges) ?? targetRanges[0];
       const amount = bt.minimumAmount || 0;
-      placeBlockInSlots(slots, chosen, bt, doc, makeLabel(bt, amount));
+      placeBlockInSlots(slots, chosen, bt, doc, makeLabel(bt, amount), 'buffer / gap');
       recordProd(amount);
       filled = true;
       break;
@@ -666,7 +681,7 @@ export function placeHygienistBlocks(
     const targetRange = staggeredRanges[0] || morningRanges(ranges, slots, hyg)[0] || ranges[0];
 
     if (targetRange) {
-      placeBlockInSlots(slots, targetRange, srpBlock, hyg, makeLabel(srpBlock));
+      placeBlockInSlots(slots, targetRange, srpBlock, hyg, makeLabel(srpBlock), 'SRP (perio program)');
     } else {
       warnings.push(`No room for SRP block for ${hyg.name}`);
     }
@@ -681,7 +696,7 @@ export function placeHygienistBlocks(
     const targetRange = amRanges[0] || earlyPM[0] || ranges[0];
 
     if (targetRange) {
-      placeBlockInSlots(slots, targetRange, pmBlock, hyg, makeLabel(pmBlock));
+      placeBlockInSlots(slots, targetRange, pmBlock, hyg, makeLabel(pmBlock), 'perio maint');
     }
   }
 
@@ -694,7 +709,7 @@ export function placeHygienistBlocks(
       safety++;
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) break;
-      placeBlockInSlots(slots, ranges[0], recareBlock, hyg, makeLabel(recareBlock));
+      placeBlockInSlots(slots, ranges[0], recareBlock, hyg, makeLabel(recareBlock), 'recare (prophy)');
     }
   }
 }
@@ -727,7 +742,7 @@ function placeAssistedHygienistBlocks(
     const staggeredRanges = rangesAfter(morningRanges(ranges, slots, hyg), slots, startMin);
     const targetRange = staggeredRanges[0] || morningRanges(ranges, slots, hyg)[0] || ranges[0];
     if (targetRange) {
-      placeBlockInSlots(slots, targetRange, srpBlock, hyg, makeLabel(srpBlock));
+      placeBlockInSlots(slots, targetRange, srpBlock, hyg, makeLabel(srpBlock), 'SRP (perio program)');
     } else {
       warnings.push(`No room for SRP block for ${hyg.name} (assisted hygiene mode)`);
     }
@@ -740,7 +755,7 @@ function placeAssistedHygienistBlocks(
     safety++;
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     if (ranges.length === 0) break;
-    placeBlockInSlots(slots, ranges[0], assistedHygBlock, hyg, 'Assisted Hyg');
+    placeBlockInSlots(slots, ranges[0], assistedHygBlock, hyg, 'Assisted Hyg', 'assisted hyg rotation');
   }
 }
 
@@ -759,7 +774,8 @@ export function fillRemainingDoctorSlots(
   blocksByCategory: Map<string, BlockTypeInput[]>,
   timeIncrement: number,
   columnStaggerMap?: Map<string, number>,
-  sharedDoctorCtxMap?: Map<string, { target: number; produced: number }>
+  sharedDoctorCtxMap?: Map<string, { target: number; produced: number }>,
+  rng: () => number = Math.random
 ): void {
   for (const doc of doctors) {
     const opSlotsList = getProviderOpSlots(psMap, doc.id);
@@ -773,7 +789,7 @@ export function fillRemainingDoctorSlots(
         if (other.operatory === ps.operatory) continue;
         for (const m of getDPhaseMinutes(slots, other)) avoidDMinutes.add(m);
       }
-      fillDocOpSlots(slots, ps, doc, blocksByCategory, timeIncrement, staggerMin, sharedCtx, avoidDMinutes);
+      fillDocOpSlots(slots, ps, doc, blocksByCategory, timeIncrement, staggerMin, sharedCtx, avoidDMinutes, rng);
     }
   }
 }
@@ -789,7 +805,8 @@ function fillDocOpSlots(
   timeIncrement: number,
   staggerOffsetMin: number = 0,
   sharedProductionCtx?: { target: number; produced: number },
-  avoidDPhaseMinutes?: Set<number>
+  avoidDPhaseMinutes?: Set<number>,
+  rng: () => number = Math.random
 ): void {
   const hpBlocks = getAllBlocksForCategory('HP', blocksByCategory, doc);
   const mpBlocks = getAllBlocksForCategory('MP', blocksByCategory, doc);
@@ -812,7 +829,7 @@ function fillDocOpSlots(
     safety++;
 
     const totalWeight = blockPool.reduce((sum, item) => sum + item.weight, 0);
-    let random = Math.random() * totalWeight;
+    let random = rng() * totalWeight;
     let selectedBlock = blockPool[0].block;
 
     for (const item of blockPool) {
@@ -861,7 +878,13 @@ function fillDocOpSlots(
     );
     if (avoidFiltered.length > 0) targetRange = avoidFiltered[0];
 
-    placeBlockInSlots(slots, targetRange, selectedBlock, doc, makeLabel(selectedBlock));
+    const fillRationale =
+      cat === 'HP' ? 'cap filler — HP' :
+      cat === 'MP' ? 'cap filler — MP' :
+      cat === 'NP' ? 'cap filler — NP' :
+      cat === 'ER' ? 'cap filler — ER' :
+      'buffer / gap';
+    placeBlockInSlots(slots, targetRange, selectedBlock, doc, makeLabel(selectedBlock), fillRationale);
     if (sharedProductionCtx) sharedProductionCtx.produced += selectedBlock.minimumAmount ?? 0;
   }
 }
@@ -874,12 +897,13 @@ export function fillRemainingHygienistSlots(
   psMap: Map<string, ProviderSlots>,
   hygienists: ProviderInput[],
   blocksByCategory: Map<string, BlockTypeInput[]>,
-  timeIncrement: number
+  timeIncrement: number,
+  rng: () => number = Math.random
 ): void {
   for (const hyg of hygienists) {
     const opSlotsList = getProviderOpSlots(psMap, hyg.id);
     for (const ps of opSlotsList) {
-      fillHygOpSlots(slots, ps, hyg, blocksByCategory, timeIncrement);
+      fillHygOpSlots(slots, ps, hyg, blocksByCategory, timeIncrement, rng);
     }
   }
 }
@@ -892,7 +916,8 @@ function fillHygOpSlots(
   ps: ProviderSlots,
   hyg: ProviderInput,
   blocksByCategory: Map<string, BlockTypeInput[]>,
-  timeIncrement: number
+  timeIncrement: number,
+  rng: () => number = Math.random
 ): void {
   // Assisted hygiene mode
   if (hyg.assistedHygiene) {
@@ -904,7 +929,7 @@ function fillHygOpSlots(
       safety++;
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) break;
-      placeBlockInSlots(slots, ranges[0], assistedHygBlock, hyg, 'Assisted Hyg');
+      placeBlockInSlots(slots, ranges[0], assistedHygBlock, hyg, 'Assisted Hyg', 'assisted hyg rotation');
     }
     return;
   }
@@ -934,7 +959,7 @@ function fillHygOpSlots(
     safety++;
 
     const totalWeight = blockPool.reduce((sum, item) => sum + item.weight, 0);
-    let random = Math.random() * totalWeight;
+    let random = rng() * totalWeight;
     let selectedBlock = blockPool[0].block;
 
     for (const item of blockPool) {
@@ -957,7 +982,14 @@ function fillHygOpSlots(
     const ranges = findAvailableRanges(slots, ps, slotsNeeded);
     if (ranges.length === 0) break;
 
-    placeBlockInSlots(slots, ranges[0], selectedBlock, hyg, makeLabel(selectedBlock));
+    const hygCat = categorize(selectedBlock);
+    const hygRationale =
+      hygCat === 'SRP' ? 'SRP (perio program)' :
+      hygCat === 'PM' ? 'perio maint' :
+      hygCat === 'NP' ? 'new pt hyg' :
+      hygCat === 'RECARE' ? 'recare (prophy)' :
+      'cap filler — recare';
+    placeBlockInSlots(slots, ranges[0], selectedBlock, hyg, makeLabel(selectedBlock), hygRationale);
   }
 }
 

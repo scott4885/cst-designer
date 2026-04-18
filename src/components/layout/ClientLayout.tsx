@@ -8,6 +8,7 @@ import Sidebar from "./Sidebar";
 import Header from "./Header";
 import KeyboardShortcutsModal from "@/components/KeyboardShortcutsModal";
 import { useKeyboardShortcuts } from "@/lib/keyboard-shortcuts";
+import { useScheduleStore } from "@/store/schedule-store";
 
 /** Detect Template Builder page: /offices/[id] (not /new, /edit, etc.) */
 function isTemplateBuilderPage(pathname: string): boolean {
@@ -37,6 +38,11 @@ export default function ClientLayout({
   const pathname = usePathname();
   const isBuilder = isTemplateBuilderPage(pathname);
 
+  // Loop 10: Expose undo / redo to global shortcuts so Ctrl/Cmd+Z works
+  // anywhere in the app (not just inside the grid).
+  const undo = useScheduleStore((s) => s.undo);
+  const redo = useScheduleStore((s) => s.redo);
+
   // Global keyboard shortcuts
   useKeyboardShortcuts({
     onHelp: useCallback(() => setShortcutsOpen(true), []),
@@ -49,6 +55,8 @@ export default function ClientLayout({
     onGoLibrary: useCallback(() => router.push("/templates"), [router]),
     onGoRollup: useCallback(() => router.push("/rollup"), [router]),
     onPrint: useCallback(() => window.print(), []),
+    onUndo: useCallback(() => undo(), [undo]),
+    onRedo: useCallback(() => redo(), [redo]),
   });
 
   return (

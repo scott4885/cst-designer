@@ -89,6 +89,9 @@ model ScheduleTemplate {
   dayOfWeek    String
   weekType     String   @default("A")
   type         String   @default("WORKING")
+  /// Loop 9: optional variant tag (e.g. "EOF", "Opt1", "Opt2").
+  /// Null/empty = regular (non-variant) schedule for the day.
+  variantLabel String?
   slotsJson    String   @default("[]")
   summaryJson  String   @default("[]")
   warningsJson String   @default("[]")

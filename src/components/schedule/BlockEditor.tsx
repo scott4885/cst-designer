@@ -15,6 +15,8 @@ interface BlockEditorProps {
   currentSlotCount: number;
   /** Current per-block production override (null = use block type default) */
   currentCustomProductionAmount?: number | null;
+  /** Loop 5: engine rationale for this block ("morning rock anchor", etc.). null = user-placed. */
+  rationale?: string | null;
   timeIncrement: number;
   onUpdate: (blockType: BlockTypeInput, durationSlots: number, customProductionAmount?: number | null) => void;
   onDelete: () => void;
@@ -27,6 +29,7 @@ export default function BlockEditor({
   currentBlockTypeId,
   currentSlotCount,
   currentCustomProductionAmount,
+  rationale = null,
   timeIncrement,
   onUpdate,
   onDelete,
@@ -118,7 +121,7 @@ export default function BlockEditor({
       ref={ref}
       className="bg-popover border border-border rounded-lg shadow-xl p-4 z-50 w-[calc(100vw-2rem)] max-w-sm"
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-1">
         <h4 className="text-sm font-semibold text-foreground">
           Edit Block: {currentBlock?.label || "Unknown"}
         </h4>
@@ -126,6 +129,12 @@ export default function BlockEditor({
           <X className="w-3 h-3" />
         </Button>
       </div>
+      {rationale && (
+        <p className="text-[11px] italic text-muted-foreground mb-3">
+          Placed as: {rationale}
+        </p>
+      )}
+      {!rationale && <div className="mb-3" />}
 
       {/* Block type selector */}
       <div className="space-y-3">

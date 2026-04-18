@@ -19,6 +19,10 @@ export interface ShortcutHandlers {
   onPrint?: () => void;          // Cmd/Ctrl+P
   onExport?: () => void;         // Cmd/Ctrl+E
   onEscape?: () => void;         // Esc
+  /** Loop 10: Cmd/Ctrl+Z undoes the last schedule mutation. */
+  onUndo?: () => void;
+  /** Loop 10: Cmd/Ctrl+Shift+Z or Cmd/Ctrl+Y redoes the last undo. */
+  onRedo?: () => void;
 
   // Template Builder
   onPrevDay?: () => void;        // ←
@@ -49,6 +53,8 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { key: 'Cmd+S', display: '⌘S / Ctrl+S', description: 'Save current schedule', category: 'Global' },
   { key: 'Cmd+P', display: '⌘P / Ctrl+P', description: 'Print current view', category: 'Global' },
   { key: 'Cmd+E', display: '⌘E / Ctrl+E', description: 'Export (Excel)', category: 'Global' },
+  { key: 'Cmd+Z', display: '⌘Z / Ctrl+Z', description: 'Undo', category: 'Global' },
+  { key: 'Cmd+Shift+Z', display: '⌘⇧Z / Ctrl+Y', description: 'Redo', category: 'Global' },
   { key: 'Esc', display: 'Esc', description: 'Close modal / panel', category: 'Global' },
   // Template Builder
   { key: 'ArrowLeft', display: '←', description: 'Previous day', category: 'Template Builder' },
@@ -103,6 +109,22 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
         if (key === 'e') {
           e.preventDefault();
           handlers.onExport?.();
+          return;
+        }
+        // Loop 10: Undo / Redo. Skip when typing in inputs so browser native
+        // text undo still works inside form fields.
+        if (!isInputTarget(e) && (key === 'z' || key === 'Z')) {
+          e.preventDefault();
+          if (shift) {
+            handlers.onRedo?.();
+          } else {
+            handlers.onUndo?.();
+          }
+          return;
+        }
+        if (!isInputTarget(e) && (key === 'y' || key === 'Y')) {
+          e.preventDefault();
+          handlers.onRedo?.();
           return;
         }
       }

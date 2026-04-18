@@ -56,6 +56,8 @@ export async function POST(
       productionSummary: (data.productionSummary ?? []) as unknown as ProviderProductionSummary[],
       warnings: data.warnings ?? [],
       label: data.label,
+      // Loop 9: variant tag through POST path too.
+      variantLabel: (data as typeof data & { variantLabel?: string | null }).variantLabel,
     });
 
     return NextResponse.json(schedule, { status: 201 });

@@ -20,7 +20,10 @@ interface ConflictPanelProps {
 }
 
 export default function ConflictPanel({ schedule, providers, blockTypes = [], onSlotClick }: ConflictPanelProps) {
-  const [expanded, setExpanded] = useState(true);
+  // Loop 6: conflicts are now the inline-primary surface (red glow on cells).
+  // This panel becomes a secondary "show all conflicts as a list" dropdown —
+  // default to collapsed so it doesn't compete with the grid.
+  const [expanded, setExpanded] = useState(false);
 
   const conflicts = useMemo(() => {
     if (!schedule) return [];

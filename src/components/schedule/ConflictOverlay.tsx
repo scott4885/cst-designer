@@ -26,6 +26,18 @@ import type { ConflictResult } from "@/lib/engine/stagger";
 import type { DTimeConflict } from "@/lib/engine/da-time";
 import type { TimeSlotOutput } from "./TimeGridRenderer";
 
+/**
+ * Partner-link kind for multi-op doctor visualization (Loop 6).
+ *
+ *   - 'hard'    → both columns have D-time at the same time (unresolved D-time overlap).
+ *                 Red outer glow is rendered on the cell.
+ *   - 'partner' → two columns of the same real doctor are both occupied at the same
+ *                 time but at least one is in A-time (staggered correctly). A subtle
+ *                 muted-blue hairline tick is rendered on the right edge of the cell
+ *                 linking it to the partner column.
+ */
+export type PartnerKind = 'hard' | 'partner';
+
 export interface ConflictLookups {
   /** Map of "time:providerId" → ConflictResult (hard double-booking) */
   conflictMap: Map<string, ConflictResult>;
@@ -33,6 +45,19 @@ export interface ConflictLookups {
   dTimeConflictInstanceIds: Set<string>;
   /** Map of blockTypeId → BlockTypeInput (used for HP badges + D/A minutes). */
   blockTypeById: Map<string, BlockTypeInput>;
+  /**
+   * Loop 6: Partner/conflict link map keyed by "time:providerId".
+   *
+   *   'hard'    — cell has a D-time conflict with another column of the same real doctor.
+   *               The cell should render a red outer glow.
+   *   'partner' — cell is paired with an adjacent column of the same real doctor in a
+   *               staggered configuration (A-D zigzag working correctly). The cell should
+   *               render a muted-blue hairline tick linking it to the partner column.
+   *
+   * Only populated for slots belonging to multi-op doctor providers (virtual
+   * providerIds containing "::"). Breaks and empty cells are skipped.
+   */
+  partnerMap: Map<string, PartnerKind>;
 }
 
 export function useConflictLookups(
@@ -134,5 +159,52 @@ export function useConflictLookups(
     return conflictingIds;
   }, [dTimeConflicts, slots, blockTypeById]);
 
-  return { conflictMap, dTimeConflictInstanceIds, blockTypeById };
+  // ─── Loop 6: partner-link + hard-conflict map ───────────────────────────
+  // For multi-op doctor providers (virtual IDs containing "::"), compute
+  // which cells are paired ("partner") vs unresolved D-time overlaps ("hard")
+  // so the grid can render inline visual cues.
+  const partnerMap = useMemo(() => {
+    const map = new Map<string, PartnerKind>();
+    if (slots.length === 0) return map;
+
+    // Group occupied multi-op slots by (realProviderId, time) and capture each
+    // virtual-provider id + its staffingCode at that cell.
+    type CellRef = { vProviderId: string; staffingCode: string | undefined };
+    const byRealProvTime = new Map<string, CellRef[]>();
+
+    for (const row of slots) {
+      for (const slot of row.slots) {
+        if (slot.isBreak) continue;
+        if (!slot.blockLabel && !slot.staffingCode) continue;
+        // Only multi-op doctors expand into virtual providers containing "::"
+        if (!slot.providerId.includes('::')) continue;
+        const realProviderId = slot.providerId.slice(0, slot.providerId.lastIndexOf('::'));
+        const key = `${realProviderId}::${row.time}`;
+        const list = byRealProvTime.get(key) ?? [];
+        list.push({ vProviderId: slot.providerId, staffingCode: slot.staffingCode });
+        byRealProvTime.set(key, list);
+      }
+    }
+
+    // Any 'D'-coded cell alongside another 'D'-coded cell for the same real
+    // doctor at the same row is a hands-on conflict (hard). Otherwise the
+    // pair is a correctly-staggered partner link (A-D zigzag).
+    for (const [key, cells] of byRealProvTime) {
+      if (cells.length < 2) continue;
+      const time = key.slice(key.lastIndexOf('::') + 2);
+      const dCount = cells.filter(c => c.staffingCode === 'D').length;
+      const kind: PartnerKind = dCount >= 2 ? 'hard' : 'partner';
+      for (const c of cells) {
+        const mapKey = `${time}:${c.vProviderId}`;
+        // Hard beats partner if both claims race on the same cell.
+        const prev = map.get(mapKey);
+        if (prev === 'hard') continue;
+        map.set(mapKey, kind);
+      }
+    }
+
+    return map;
+  }, [slots]);
+
+  return { conflictMap, dTimeConflictInstanceIds, blockTypeById, partnerMap };
 }

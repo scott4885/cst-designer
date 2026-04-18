@@ -108,7 +108,12 @@ describe('useTimeSlotInteraction — drag state cleanup (Iter 12a)', () => {
   it('clears dragState after a successful grid move', () => {
     const onMoveBlock = vi.fn();
     const providers = [makeProvider()];
-    const timeSlots = [makeTimeSlot('07:00', 'p1', 'bt-hp')];
+    // Loop 10: previewDrop validates target existence — include 07:30 row so
+    // the move is 'valid' rather than 'conflict: target time not found'.
+    const timeSlots = [
+      makeTimeSlot('07:00', 'p1', 'bt-hp'),
+      makeTimeSlot('07:30', 'p1'),
+    ];
     const slots = [{ time: '07:00', providerId: 'p1', blockTypeId: 'bt-hp', blockLabel: 'HP' }];
 
     const { result } = renderHook(() =>

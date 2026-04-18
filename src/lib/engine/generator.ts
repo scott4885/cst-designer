@@ -26,6 +26,7 @@ import type {
   BlockTypeInput,
 } from './types';
 import { calculateTarget75 } from './calculator';
+import { createSeededRng } from './rng';
 import { calculateStaggerOffset, DEFAULT_COLUMN_STAGGER_MIN, snapRotationTime } from './stagger';
 
 // Re-export snapRotationTime so callers can import it from generator if needed
@@ -71,6 +72,12 @@ import {
   recomputeSharedCtxFromSlots,
   calculateAllProductionSummaries,
 } from './production-calculator';
+
+// Loop 4: Morning-load hard enforcer (post-fill) + schedule-wide ratio.
+import {
+  enforceMorningLoad,
+  computeScheduleMorningLoadRatio,
+} from './morning-load-enforcer';
 
 // ---------------------------------------------------------------------------
 // Time slot generation
@@ -179,10 +186,14 @@ export function resolveProviderDayHours(
  * @returns GenerationResult with slots, productionSummary, and warnings
  */
 export function generateSchedule(input: GenerationInput & { activeWeek?: string }): GenerationResult {
-  const { providers, blockTypes, rules, timeIncrement, dayOfWeek, activeWeek } = input;
+  const { providers, blockTypes, rules, timeIncrement, dayOfWeek, activeWeek, rng: inputRng, seed } = input;
   const warnings: string[] = [];
   const slots: TimeSlotOutput[] = [];
   const activeProviders: ProviderInput[] = [];
+
+  // Loop 1: seed-based determinism — if the caller passes a seed or rng, use it;
+  // otherwise fall back to Math.random (legacy UI/API behavior unchanged).
+  const rng: () => number = inputRng ?? (seed !== undefined ? createSeededRng(seed) : Math.random);
 
   // ─── Step 1: Create empty time slots for every provider x operatory ───
   for (const provider of providers) {
@@ -328,21 +339,36 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
   }
 
   // ─── Step 4: Fill ANY remaining gaps ───
-  fillRemainingDoctorSlots(slots, psMap, doctors, blocksByCategory, timeIncrement, doctorColumnStagger, sharedDoctorCtxMap);
-  fillRemainingHygienistSlots(slots, psMap, hygienists, blocksByCategory, timeIncrement);
+  fillRemainingDoctorSlots(slots, psMap, doctors, blocksByCategory, timeIncrement, doctorColumnStagger, sharedDoctorCtxMap, rng);
+  fillRemainingHygienistSlots(slots, psMap, hygienists, blocksByCategory, timeIncrement, rng);
 
-  // ─── Step 5: Doctor matrixing — D/A codes ───
+  // ─── Step 5: Morning-load hard enforcement (Loop 4) ───
+  // Burkhart-80/20 post-fill pass: swap PM blocks with AM regions to lift
+  // each provider+operatory's morning-restorative ratio toward target.
+  // Runs BEFORE matrixing so D/A codes reflect the final arrangement.
+  const morningLoadReport = enforceMorningLoad(slots, activeProviders, blockTypes);
+
+  // ─── Step 6: Doctor matrixing — D/A codes ───
   if (rules.matrixing) {
     addDoctorMatrixing(slots, psMap, doctors, hygienists);
   }
 
-  // ─── Step 6: Calculate production summary ───
+  // ─── Step 7: Calculate production summary ───
   const productionSummary = calculateAllProductionSummaries(slots, activeProviders, blockTypes);
+
+  // ─── Step 8: Morning-load telemetry (schedule-wide ratio for UI + scorer) ───
+  const scheduleRatio = computeScheduleMorningLoadRatio(slots, activeProviders, blockTypes);
 
   return {
     dayOfWeek,
     slots,
     productionSummary,
-    warnings
+    warnings,
+    morningLoadSwaps: {
+      scheduleRatio,
+      perOpRatios: morningLoadReport.ratios,
+      hardCapViolators: morningLoadReport.hardCapViolators,
+      swaps: morningLoadReport.swaps,
+    },
   };
 }

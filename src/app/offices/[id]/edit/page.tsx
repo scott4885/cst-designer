@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, Plus, Trash2, Save, HelpCircle, Calendar, CalendarOff } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, HelpCircle, Calendar, CalendarOff, Copy, DollarSign } from "lucide-react";
 import ProviderTimeOffCalendar from "@/components/schedule/ProviderTimeOffCalendar";
+import ProviderFormDialog from "@/components/schedule/ProviderFormDialog";
+import BulkGoalsDialog from "@/components/schedule/BulkGoalsDialog";
+import { cloneProvider, type ProviderFormEntry } from "@/lib/provider-operations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -100,6 +103,16 @@ export default function EditOfficePage() {
   /** Time-Off calendar: which provider's modal is open (by provider DB id) */
   const [timeOffProviderId, setTimeOffProviderId] = useState<string | null>(null);
   const [timeOffProviderName, setTimeOffProviderName] = useState<string>("");
+  /** Loop 8 — inline provider drawer state */
+  const [providerDialogOpen, setProviderDialogOpen] = useState(false);
+  const [providerDialogMode, setProviderDialogMode] = useState<'add' | 'clone'>('add');
+  const [providerDialogInitial, setProviderDialogInitial] = useState<Partial<ProviderFormEntry> | undefined>(undefined);
+  const [bulkGoalsOpen, setBulkGoalsOpen] = useState(false);
+  /** Carries procedure mixes from a cloned source provider → newly-appended entry. */
+  const clonedMixesRef = useRef<{
+    current?: ProcedureMix;
+    future?: ProcedureMix;
+  } | null>(null);
   const DRAFT_KEY = `schedule-designer-draft-${officeId}`;
 
   const {
@@ -132,7 +145,7 @@ export default function EditOfficePage() {
     },
   });
 
-  const { fields: providerFields, append: appendProvider, remove: removeProvider } = useFieldArray({
+  const { fields: providerFields, append: appendProvider, remove: removeProvider, update: updateProvider } = useFieldArray({
     control,
     name: "providers",
   });
@@ -266,28 +279,87 @@ export default function EditOfficePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watch]);
 
-  const addProvider = () => {
-    appendProvider({
-      name: "",
-      providerId: "",
-      role: "DOCTOR",
-      operatories: ["OP1"],
-      columns: 1,
-      workingStart: "07:00",
-      workingEnd: "16:00",
-      lunchEnabled: true,
-      lunchStart: "12:00",
-      lunchEnd: "13:00",
-      dailyGoal: 5000,
-      color: PROVIDER_COLORS[providerFields.length % PROVIDER_COLORS.length],
-      seesNewPatients: true,
-      enabledBlockTypeIds: [],
-      assistedHygiene: false,
-      providerSchedule: {},
-      staggerOffsetMin: 0,
+  /** Loop 8 — Opens the inline provider drawer in "add" mode. */
+  const openAddProviderDialog = () => {
+    setProviderDialogMode('add');
+    setProviderDialogInitial(undefined);
+    setProviderDialogOpen(true);
+  };
+
+  /** Loop 8 — Opens the drawer pre-filled with a clone of the source provider. */
+  const openCloneProviderDialog = (sourceIdx: number) => {
+    const source = watchProviders?.[sourceIdx];
+    if (!source) return;
+    // Build a ProviderFormEntry from the live form row (watchProviders shape
+    // matches the entry schema exactly; cast is safe at runtime).
+    const clone = cloneProvider(source as unknown as ProviderFormEntry, {
+      targetOperatory: 'OP1',
     });
-    // Scroll to bottom after adding
-    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
+    // Carry over mixes so the new provider inherits them (optional, but matches
+    // brief: "may want a different shade — not critical"). We stash them via
+    // state so the onSubmit handler can apply them after append.
+    clonedMixesRef.current = {
+      current: currentMixMap[sourceIdx],
+      future: futureMixMap[sourceIdx],
+    };
+    setProviderDialogMode('clone');
+    setProviderDialogInitial(clone);
+    setProviderDialogOpen(true);
+  };
+
+  /**
+   * Called when the provider dialog's form submits. Adds the provider to the
+   * field array; if _saveAndAddAnother is set, we reopen the dialog fresh.
+   */
+  const handleProviderDialogSubmit = (
+    data: ProviderFormEntry & { _saveAndAddAnother?: boolean }
+  ) => {
+    const { _saveAndAddAnother, ...provider } = data;
+    const newIndex = providerFields.length;
+
+    // Auto-assign a color if the clone source didn't already pick one unique.
+    const suggestedColor =
+      provider.color ??
+      PROVIDER_COLORS[newIndex % PROVIDER_COLORS.length];
+
+    // Append. Cast to form shape — the field array enforces it at the useFieldArray level.
+    appendProvider({
+      name: provider.name,
+      providerId: provider.providerId ?? "",
+      role: provider.role,
+      operatories: provider.operatories,
+      columns: provider.columns ?? 1,
+      workingStart: provider.workingStart,
+      workingEnd: provider.workingEnd,
+      lunchEnabled: provider.lunchEnabled,
+      lunchStart: provider.lunchStart ?? "12:00",
+      lunchEnd: provider.lunchEnd ?? "13:00",
+      dailyGoal: provider.dailyGoal,
+      color: suggestedColor,
+      seesNewPatients: provider.seesNewPatients ?? true,
+      enabledBlockTypeIds: provider.enabledBlockTypeIds ?? [],
+      assistedHygiene: provider.assistedHygiene ?? false,
+      providerSchedule: provider.providerSchedule ?? {},
+      staggerOffsetMin: provider.staggerOffsetMin ?? 0,
+    });
+
+    // If this was a clone, carry the procedure mixes over.
+    if (providerDialogMode === 'clone' && clonedMixesRef.current) {
+      const { current, future } = clonedMixesRef.current;
+      if (current) setCurrentMixMap(prev => ({ ...prev, [newIndex]: { ...current } }));
+      if (future) setFutureMixMap(prev => ({ ...prev, [newIndex]: { ...future } }));
+      clonedMixesRef.current = null;
+    }
+
+    if (_saveAndAddAnother) {
+      // Re-open with a clean slate for the next provider.
+      setProviderDialogMode('add');
+      setProviderDialogInitial(undefined);
+      setTimeout(() => setProviderDialogOpen(true), 10);
+    } else {
+      setProviderDialogOpen(false);
+      setProviderDialogInitial(undefined);
+    }
   };
 
   /** Toggle "detail by day" for a provider, initializing from general hours if first expand */
@@ -513,10 +585,24 @@ export default function EditOfficePage() {
               Providers <span className="text-red-500 text-base" aria-label="required">*</span>
               <span className="ml-2 text-xs font-normal text-muted-foreground">(at least 1 required)</span>
             </CardTitle>
-            <Button type="button" onClick={addProvider} size="sm" className="gap-2 min-h-[44px]">
-              <Plus className="w-4 h-4" />
-              Add Provider
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setBulkGoalsOpen(true)}
+                disabled={providerFields.length === 0}
+                className="gap-1.5 min-h-[44px]"
+                data-testid="bulk-edit-goals-btn"
+              >
+                <DollarSign className="w-4 h-4" />
+                Bulk edit goals
+              </Button>
+              <Button type="button" onClick={openAddProviderDialog} size="sm" className="gap-2 min-h-[44px]" data-testid="add-provider-btn">
+                <Plus className="w-4 h-4" />
+                Add Provider
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Doctor start stagger */}
@@ -571,14 +657,27 @@ export default function EditOfficePage() {
               <div key={field.id} className="border border-border rounded-lg p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-foreground">Provider {index + 1}</h3>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setProviderToDelete(index)}
-                  >
-                    <Trash2 className="w-4 h-4 text-error" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openCloneProviderDialog(index)}
+                      title="Clone this provider"
+                      data-testid={`clone-provider-${index}-btn`}
+                    >
+                      <Copy className="w-4 h-4 text-muted-foreground" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setProviderToDelete(index)}
+                      title="Remove this provider"
+                    >
+                      <Trash2 className="w-4 h-4 text-error" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1410,6 +1509,53 @@ export default function EditOfficePage() {
           providerName={timeOffProviderName}
         />
       )}
+
+      {/* Loop 8 — Inline provider add/clone drawer */}
+      <ProviderFormDialog
+        open={providerDialogOpen}
+        onOpenChange={(open) => {
+          setProviderDialogOpen(open);
+          if (!open) {
+            setProviderDialogInitial(undefined);
+            clonedMixesRef.current = null;
+          }
+        }}
+        onSubmit={handleProviderDialogSubmit}
+        initial={providerDialogInitial}
+        title={providerDialogMode === 'clone' ? 'Clone Provider' : 'Add Provider'}
+        description={
+          providerDialogMode === 'clone'
+            ? 'Review the cloned provider and adjust name/operatories before saving.'
+            : 'Fill in the essentials — fine-tune per-day hours and procedure mix on the main edit card.'
+        }
+        suggestedColor={PROVIDER_COLORS[providerFields.length % PROVIDER_COLORS.length]}
+      />
+
+      {/* Loop 8 — Bulk edit daily goals */}
+      <BulkGoalsDialog
+        open={bulkGoalsOpen}
+        onOpenChange={setBulkGoalsOpen}
+        providers={(watchProviders ?? []).map((p, i) => ({
+          index: i,
+          id: p.id,
+          name: p.name ?? '',
+          role: p.role ?? 'DOCTOR',
+          dailyGoal: Number(p.dailyGoal ?? 0),
+        }))}
+        onSubmit={(entries) => {
+          // Patch the form's field array so the normal Save Changes flow
+          // persists the new goals through the office PUT endpoint.
+          for (const entry of entries) {
+            const current = watchProviders?.[entry.index];
+            if (!current) continue;
+            updateProvider(entry.index, {
+              ...current,
+              dailyGoal: entry.dailyGoal,
+            });
+          }
+          toast.success(`Staged ${entries.length} goal update${entries.length === 1 ? '' : 's'}. Click Save Changes to persist.`);
+        }}
+      />
     </div>
   );
 }

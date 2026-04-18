@@ -22,7 +22,9 @@ import type { SelectedBlock, ProductionSummaryData } from "@/components/schedule
 import type { ProviderInput, TimeSlotOutput } from "@/components/schedule/ScheduleGrid";
 import OpenDentalExportDialog from "@/components/schedule/OpenDentalExportDialog";
 import CloneTemplateModal from "@/components/schedule/CloneTemplateModal";
+import CopyDayModal from "@/components/schedule/CopyDayModal";
 import OfficeInfoDrawer from "@/components/schedule/OfficeInfoDrawer";
+import ReviewPanel from "@/components/schedule/ReviewPanel";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 // Stores
@@ -111,6 +113,7 @@ export default function ScheduleBuilderPage() {
     isGenerating, setGenerating, isExporting, setExporting,
     loadSchedulesForOffice, clearSchedules,
     placeBlockInDay, removeBlockInDay, moveBlockInDay, updateBlockInDay,
+    copyDayToDays, setVariantLabel,
   } = useScheduleStore();
   const { fullScreen, setFullScreen } = useFullScreen();
 
@@ -128,6 +131,7 @@ export default function ScheduleBuilderPage() {
   const [showGenerateWarning, setShowGenerateWarning] = useState(false);
   const [pendingGenerateAction, setPendingGenerateAction] = useState<"single" | "all" | null>(null);
   const [showCloneModal, setShowCloneModal] = useState(false);
+  const [showCopyDayModal, setShowCopyDayModal] = useState(false);
   const [showOfficeInfo, setShowOfficeInfo] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState<SelectedBlock | null>(null);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(false);
@@ -287,6 +291,19 @@ export default function ScheduleBuilderPage() {
     return result;
   }, [generatedSchedules, currentOffice]);
 
+  // Loop 9: per-day variant labels (EOF / Opt1 / Opt2) for badges + copy modal
+  const variantLabelsByDay: Record<string, string | null | undefined> = useMemo(() => {
+    const result: Record<string, string | null | undefined> = {};
+    for (const day of currentOffice?.workingDays || []) {
+      result[day] = generatedSchedules[day]?.variantLabel ?? null;
+    }
+    return result;
+  }, [generatedSchedules, currentOffice]);
+  const daysWithSchedules = useMemo(
+    () => Object.keys(generatedSchedules),
+    [generatedSchedules],
+  );
+
   // Warnings
   const allWarnings: string[] = useMemo(() => currentDaySchedule?.warnings ?? [], [currentDaySchedule]);
 
@@ -301,6 +318,21 @@ export default function ScheduleBuilderPage() {
     if (!currentDaySchedule || !currentOffice?.providers?.length) return undefined;
     try { return calculateQualityScore(currentDaySchedule, currentOffice.providers, currentOffice.blockTypes ?? [], clinicalWarnings); } catch { return undefined; }
   }, [currentDaySchedule, currentOffice, clinicalWarnings]);
+
+  // Loop 10: Jump-to-cell handler fired by the Review panel. Scrolls the grid
+  // viewport so the target cell is in view (the cell's own flashPulse ring is
+  // already triggered by flashSlot() inside the ReviewPanel component).
+  const handleJumpToCell = useMemo(
+    () => (time: string, providerId: string) => {
+      if (!scheduleGridRef.current) return;
+      const selector = `[data-testid="block-cell-${CSS.escape(time)}-${CSS.escape(providerId)}"]`;
+      const target = scheduleGridRef.current.querySelector(selector) as HTMLElement | null;
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    },
+    [],
+  );
 
   // Rotation
   const rotationEnabled = currentOffice?.rotationEnabled || currentOffice?.alternateWeekEnabled;
@@ -535,7 +567,9 @@ export default function ScheduleBuilderPage() {
         })),
         blockTypes: (currentOffice.blockTypes || []).map((b) => ({ label: b.label, description: b.description, minimumAmount: b.minimumAmount, color: undefined })),
         daySchedules: allSchedules.map((schedule) => ({
-          dayOfWeek: schedule.dayOfWeek, variant: (schedule as GenerationResult & { variant?: string }).variant,
+          dayOfWeek: schedule.dayOfWeek,
+          variant: schedule.variantLabel || (schedule as GenerationResult & { variant?: string }).variant || undefined,
+          variantLabel: schedule.variantLabel ?? null,
           slots: schedule.slots.map((slot) => ({
             time: slot.time, providerId: slot.providerId, staffingCode: slot.staffingCode,
             blockLabel: slot.blockLabel ? formatBlockLabel(slot.blockLabel, currentOffice.blockTypes || [], slot.blockTypeId) : null,
@@ -591,6 +625,33 @@ export default function ScheduleBuilderPage() {
     else toast.info(`${dpmsLabel} export is in development.`);
   };
 
+  // ─── Loop 9: Copy day handler + variant label handler ───────────
+
+  const handleCopyDay = (
+    targetDays: string[],
+    options: Parameters<typeof copyDayToDays>[4],
+  ) => {
+    const result = copyDayToDays(activeDay, targetDays, fullProviders, blockTypesForStore, options);
+    setIsDirty(true);
+    if (result.copiedDays.length > 0) {
+      toast.success(
+        `Copied ${result.blocksCopied} block${result.blocksCopied === 1 ? "" : "s"} to ${result.copiedDays.length} day${
+          result.copiedDays.length === 1 ? "" : "s"
+        }. Undo (Ctrl+Z) reverts all at once.`,
+      );
+    }
+    for (const w of result.warnings) toast.warning(w);
+    return result;
+  };
+
+  const handleSetVariant = (label: string | null) => {
+    setVariantLabel(activeDay, label);
+    setIsDirty(true);
+    toast.success(
+      label ? `Tagged ${getDayLabel(activeDay)} as "${label}"` : `Cleared variant from ${getDayLabel(activeDay)}`,
+    );
+  };
+
   // ─── Undo/Redo (from store if available, else no-op) ────────────
 
   const storeState = useScheduleStore.getState();
@@ -630,6 +691,9 @@ export default function ScheduleBuilderPage() {
         onExportDpms={handleExportDpms}
         onPrint={() => window.open(`/offices/${officeId}/print?day=${activeDay.toLowerCase()}`, "_blank")}
         onClone={() => setShowCloneModal(true)}
+        onCopyDay={() => setShowCopyDayModal(true)}
+        onSetVariant={handleSetVariant}
+        variantLabelsByDay={variantLabelsByDay}
         onClearAll={handleClearAndStartOver}
         onDeleteOffice={() => setShowDeleteDialog(true)}
         onSmartFill={handleSmartFillAll}
@@ -733,55 +797,60 @@ export default function ScheduleBuilderPage() {
 
         {/* Always-visible right panel for production summaries when no block is selected (desktop: xl+) */}
         {!fullScreen && hasSchedules && !showPropertiesPanel && (
-          <div
-            className="hidden xl:block flex-shrink-0 w-[280px] border-l border-border/40 bg-slate-50 min-h-0 overflow-y-auto cursor-pointer"
-            onClick={() => setShowPropertiesPanel(true)}
-          >
-            <div className="px-4 py-2.5 border-b border-border/30">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Production
-              </span>
-            </div>
-            <div className="px-4 py-3 space-y-2">
-              {productionSummaries.length > 0 ? (
-                productionSummaries.map((ps, i) => {
-                  const pct = ps.dailyGoal > 0 ? Math.round((ps.actualScheduled / ps.dailyGoal) * 100) : 0;
-                  const isAtGoal = pct >= 100;
-                  const isNear = pct >= 75;
-                  const formatCurrency = (a: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(a);
-
-                  return (
-                    <div key={i} className="bg-white rounded-lg px-3 py-2 border border-border/30">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ps.providerColor }} />
-                          <span className="text-[11px] font-medium text-slate-700 truncate max-w-[120px]">{ps.providerName}</span>
-                        </div>
-                        <span className={`text-[11px] font-bold ${isAtGoal ? "text-emerald-600" : isNear ? "text-amber-600" : "text-red-500"}`}>{pct}%</span>
-                      </div>
-                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${isAtGoal ? "bg-emerald-500" : isNear ? "bg-amber-400" : "bg-red-400"}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[10px] text-slate-400">{formatCurrency(ps.actualScheduled)}</span>
-                        <span className="text-[10px] text-slate-300">Goal: {formatCurrency(ps.dailyGoal)}</span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-[11px] text-slate-300">Generate a schedule to see production data.</p>
-              )}
+          <div className="hidden xl:flex flex-col flex-shrink-0 w-[320px] border-l border-border/40 bg-slate-50 min-h-0 overflow-hidden">
+            {/* Review panel — Loop 10 unified surface for quality + issues */}
+            <div className="px-3 pt-3 pb-2 border-b border-border/30 flex-shrink-0 max-h-[55%] overflow-y-auto">
+              <ReviewPanel
+                qualityScore={qualityScore}
+                clinicalWarnings={clinicalWarnings}
+                conflicts={currentDayConflicts}
+                dTimeConflicts={currentDayDTimeConflicts}
+                scheduleWarnings={allWarnings}
+                onJumpToCell={handleJumpToCell}
+              />
             </div>
 
-            {/* Warnings summary */}
-            {allWarnings.length > 0 && (
-              <div className="px-4 py-3 border-t border-border/30">
-                <p className="text-[11px] font-medium text-amber-600">
-                  {allWarnings.length} warning{allWarnings.length !== 1 ? "s" : ""}
-                </p>
+            <div
+              className="flex-1 min-h-0 overflow-y-auto cursor-pointer"
+              onClick={() => setShowPropertiesPanel(true)}
+            >
+              <div className="px-4 py-2.5 border-b border-border/30">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Production
+                </span>
               </div>
-            )}
+              <div className="px-4 py-3 space-y-2">
+                {productionSummaries.length > 0 ? (
+                  productionSummaries.map((ps, i) => {
+                    const pct = ps.dailyGoal > 0 ? Math.round((ps.actualScheduled / ps.dailyGoal) * 100) : 0;
+                    const isAtGoal = pct >= 100;
+                    const isNear = pct >= 75;
+                    const formatCurrency = (a: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(a);
+
+                    return (
+                      <div key={i} className="bg-white rounded-lg px-3 py-2 border border-border/30">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ps.providerColor }} />
+                            <span className="text-[11px] font-medium text-slate-700 truncate max-w-[120px]">{ps.providerName}</span>
+                          </div>
+                          <span className={`text-[11px] font-bold ${isAtGoal ? "text-emerald-600" : isNear ? "text-amber-600" : "text-red-500"}`}>{pct}%</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${isAtGoal ? "bg-emerald-500" : isNear ? "bg-amber-400" : "bg-red-400"}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[10px] text-slate-400">{formatCurrency(ps.actualScheduled)}</span>
+                          <span className="text-[10px] text-slate-300">Goal: {formatCurrency(ps.dailyGoal)}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-[11px] text-slate-300">Generate a schedule to see production data.</p>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -884,6 +953,16 @@ export default function ScheduleBuilderPage() {
         rotationWeeks={currentOffice.rotationWeeks ?? 2}
         activeWeek={activeWeek}
         workingDays={currentOffice.workingDays}
+      />
+
+      <CopyDayModal
+        open={showCopyDayModal}
+        onOpenChange={setShowCopyDayModal}
+        sourceDay={activeDay}
+        workingDays={currentOffice.workingDays}
+        daysWithSchedules={daysWithSchedules}
+        variantLabelsByDay={variantLabelsByDay}
+        onCopy={handleCopyDay}
       />
     </div>
   );

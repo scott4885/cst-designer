@@ -1,0 +1,1762 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Golden schedule regression harness > CDT Comfort Dental (2) > matches golden snapshot for all weekdays 1`] = `
+{
+  "FRIDAY": {
+    "blockCategoryDistribution": {
+      "HP": 36,
+      "MP": 86,
+      "NON_PROD": 10,
+      "NP": 30,
+      "PM": 32,
+      "RECARE": 54,
+      "SRP": 24,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 13,
+    },
+    "conflictsBySeverity": {
+      "error": 56,
+      "warning": 2,
+    },
+    "dTimeConflicts": 44,
+    "morningLoadRatio": 0.7,
+    "productionByProviderOp": {
+      "brown-2::HYG1": 6100,
+      "chen-2::OP3": 17000,
+      "chen-2::OP4": 17000,
+      "garcia-2::HYG2": 4700,
+      "lee-2::HYG4": 4500,
+      "martinez-2::OP1": 17500,
+      "martinez-2::OP2": 17000,
+      "patel-2::OP5": 27500,
+      "thompson-2::HYG3": 5300,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 30,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 5,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 62,
+    },
+    "staggerConflicts": 56,
+  },
+  "MONDAY": {
+    "blockCategoryDistribution": {
+      "HP": 36,
+      "MP": 86,
+      "NON_PROD": 10,
+      "NP": 40,
+      "PM": 28,
+      "RECARE": 52,
+      "SRP": 20,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 13,
+    },
+    "conflictsBySeverity": {
+      "error": 56,
+      "warning": 3,
+    },
+    "dTimeConflicts": 44,
+    "morningLoadRatio": 0.7,
+    "productionByProviderOp": {
+      "brown-2::HYG1": 6500,
+      "chen-2::OP3": 17000,
+      "chen-2::OP4": 17000,
+      "garcia-2::HYG2": 4500,
+      "lee-2::HYG4": 4500,
+      "martinez-2::OP1": 17500,
+      "martinez-2::OP2": 17000,
+      "patel-2::OP5": 27500,
+      "thompson-2::HYG3": 6500,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 30,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 5,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 62,
+    },
+    "staggerConflicts": 56,
+  },
+  "THURSDAY": {
+    "blockCategoryDistribution": {
+      "HP": 36,
+      "MP": 86,
+      "NON_PROD": 10,
+      "NP": 20,
+      "PM": 28,
+      "RECARE": 63,
+      "SRP": 24,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 13,
+    },
+    "conflictsBySeverity": {
+      "error": 56,
+      "warning": 4,
+    },
+    "dTimeConflicts": 44,
+    "morningLoadRatio": 0.71,
+    "productionByProviderOp": {
+      "brown-2::HYG1": 3100,
+      "chen-2::OP3": 17000,
+      "chen-2::OP4": 17000,
+      "garcia-2::HYG2": 6100,
+      "lee-2::HYG4": 3500,
+      "martinez-2::OP1": 17500,
+      "martinez-2::OP2": 17000,
+      "patel-2::OP5": 27500,
+      "thompson-2::HYG3": 5700,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 28,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 2,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "needs_work",
+      "total": 57,
+    },
+    "staggerConflicts": 56,
+  },
+  "TUESDAY": {
+    "blockCategoryDistribution": {
+      "HP": 36,
+      "MP": 86,
+      "NON_PROD": 10,
+      "NP": 30,
+      "PM": 32,
+      "RECARE": 62,
+      "SRP": 16,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 13,
+    },
+    "conflictsBySeverity": {
+      "error": 56,
+      "warning": 3,
+    },
+    "dTimeConflicts": 44,
+    "morningLoadRatio": 0.71,
+    "productionByProviderOp": {
+      "brown-2::HYG1": 6500,
+      "chen-2::OP3": 17000,
+      "chen-2::OP4": 17000,
+      "garcia-2::HYG2": 2900,
+      "lee-2::HYG4": 4100,
+      "martinez-2::OP1": 17500,
+      "martinez-2::OP2": 17000,
+      "patel-2::OP5": 27500,
+      "thompson-2::HYG3": 5300,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 29,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 5,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 61,
+    },
+    "staggerConflicts": 56,
+  },
+  "WEDNESDAY": {
+    "blockCategoryDistribution": {
+      "HP": 36,
+      "MP": 86,
+      "NON_PROD": 10,
+      "NP": 30,
+      "PM": 24,
+      "RECARE": 68,
+      "SRP": 16,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 13,
+    },
+    "conflictsBySeverity": {
+      "error": 56,
+      "warning": 4,
+    },
+    "dTimeConflicts": 44,
+    "morningLoadRatio": 0.71,
+    "productionByProviderOp": {
+      "brown-2::HYG1": 5100,
+      "chen-2::OP3": 17000,
+      "chen-2::OP4": 17000,
+      "garcia-2::HYG2": 3700,
+      "lee-2::HYG4": 4900,
+      "martinez-2::OP1": 17500,
+      "martinez-2::OP2": 17000,
+      "patel-2::OP5": 27500,
+      "thompson-2::HYG3": 5700,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 30,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 4,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 61,
+    },
+    "staggerConflicts": 56,
+  },
+}
+`;
+
+exports[`Golden schedule regression harness > KCC Clay Center (4) > matches golden snapshot for all weekdays 1`] = `
+{
+  "FRIDAY": {
+    "blockCategoryDistribution": {
+      "ER": 2,
+      "HP": 12,
+      "MP": 36,
+      "NON_PROD": 4,
+      "OTHER": 4,
+      "PM": 20,
+      "RECARE": 28,
+      "SRP": 8,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 4,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 2,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.78,
+    "productionByProviderOp": {
+      "anderson-4::OP1": 21100,
+      "miller-4::OP3": 19700,
+      "peters-4::HYG1": 6500,
+      "weber-4::HYG2": 5000,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 27,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 12,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 7,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 81,
+    },
+    "staggerConflicts": 0,
+  },
+  "MONDAY": {
+    "blockCategoryDistribution": {
+      "ER": 2,
+      "HP": 12,
+      "MP": 36,
+      "NON_PROD": 4,
+      "OTHER": 4,
+      "PM": 12,
+      "RECARE": 32,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 4,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 2,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.77,
+    "productionByProviderOp": {
+      "anderson-4::OP1": 21100,
+      "miller-4::OP3": 19700,
+      "peters-4::HYG1": 6200,
+      "weber-4::HYG2": 5400,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 27,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 12,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 7,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 81,
+    },
+    "staggerConflicts": 0,
+  },
+  "THURSDAY": {
+    "blockCategoryDistribution": {
+      "ER": 2,
+      "HP": 12,
+      "MP": 36,
+      "NON_PROD": 4,
+      "OTHER": 4,
+      "PM": 12,
+      "RECARE": 36,
+      "SRP": 8,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 4,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 2,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.78,
+    "productionByProviderOp": {
+      "anderson-4::OP1": 21100,
+      "miller-4::OP3": 19700,
+      "peters-4::HYG1": 6200,
+      "weber-4::HYG2": 4700,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 26,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 12,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 7,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 80,
+    },
+    "staggerConflicts": 0,
+  },
+  "TUESDAY": {
+    "blockCategoryDistribution": {
+      "ER": 2,
+      "HP": 12,
+      "MP": 36,
+      "NON_PROD": 4,
+      "OTHER": 4,
+      "PM": 16,
+      "RECARE": 28,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 4,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 2,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.77,
+    "productionByProviderOp": {
+      "anderson-4::OP1": 21100,
+      "miller-4::OP3": 19700,
+      "peters-4::HYG1": 7100,
+      "weber-4::HYG2": 4700,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 27,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 12,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 7,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 81,
+    },
+    "staggerConflicts": 0,
+  },
+  "WEDNESDAY": {
+    "blockCategoryDistribution": {
+      "ER": 2,
+      "HP": 12,
+      "MP": 36,
+      "NON_PROD": 4,
+      "OTHER": 4,
+      "PM": 16,
+      "RECARE": 28,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 4,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 2,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.77,
+    "productionByProviderOp": {
+      "anderson-4::OP1": 21100,
+      "miller-4::OP3": 19700,
+      "peters-4::HYG1": 6900,
+      "weber-4::HYG2": 5000,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 28,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 12,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 7,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 82,
+    },
+    "staggerConflicts": 0,
+  },
+}
+`;
+
+exports[`Golden schedule regression harness > Los Altos (3) > matches golden snapshot for all weekdays 1`] = `
+{
+  "FRIDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 18,
+      "NP": 4,
+      "OTHER": 4,
+      "PM": 9,
+      "RECARE": 21,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 2,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 3,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.8,
+    "productionByProviderOp": {
+      "jackson-3::OP3": 19700,
+      "kim-3::HYG1": 1600,
+      "nguyen-3::OP1": 17700,
+      "rodriguez-3::HYG2": 3600,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 24,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 16,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 3,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 78,
+    },
+    "staggerConflicts": 0,
+  },
+  "MONDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 18,
+      "NP": 4,
+      "OTHER": 4,
+      "PM": 12,
+      "RECARE": 21,
+      "SRP": 8,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 2,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 3,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.8,
+    "productionByProviderOp": {
+      "jackson-3::OP3": 19700,
+      "kim-3::HYG1": 3000,
+      "nguyen-3::OP1": 17700,
+      "rodriguez-3::HYG2": 2200,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 23,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 16,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 1,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 75,
+    },
+    "staggerConflicts": 0,
+  },
+  "THURSDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 18,
+      "NP": 8,
+      "OTHER": 4,
+      "PM": 9,
+      "RECARE": 21,
+      "SRP": 8,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 2,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 3,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.78,
+    "productionByProviderOp": {
+      "jackson-3::OP3": 19700,
+      "kim-3::HYG1": 3000,
+      "nguyen-3::OP1": 17700,
+      "rodriguez-3::HYG2": 3600,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 23,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 16,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 3,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 77,
+    },
+    "staggerConflicts": 0,
+  },
+  "TUESDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 18,
+      "OTHER": 4,
+      "PM": 12,
+      "RECARE": 24,
+      "SRP": 8,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 2,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 3,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.82,
+    "productionByProviderOp": {
+      "jackson-3::OP3": 19700,
+      "kim-3::HYG1": 2200,
+      "nguyen-3::OP1": 17700,
+      "rodriguez-3::HYG2": 2200,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 22,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 16,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 0,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 73,
+    },
+    "staggerConflicts": 0,
+  },
+  "WEDNESDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 18,
+      "NP": 4,
+      "OTHER": 4,
+      "PM": 9,
+      "RECARE": 21,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 2,
+    },
+    "conflictsBySeverity": {
+      "error": 0,
+      "warning": 3,
+    },
+    "dTimeConflicts": 0,
+    "morningLoadRatio": 0.8,
+    "productionByProviderOp": {
+      "jackson-3::OP3": 19700,
+      "kim-3::HYG1": 2200,
+      "nguyen-3::OP1": 17700,
+      "rodriguez-3::HYG2": 3000,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 24,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 16,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 3,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 78,
+    },
+    "staggerConflicts": 0,
+  },
+}
+`;
+
+exports[`Golden schedule regression harness > NHD Ridgeview (5) > matches golden snapshot for all weekdays 1`] = `
+{
+  "FRIDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 57,
+      "NON_PROD": 14,
+      "NP": 27,
+      "PM": 6,
+      "RECARE": 36,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 0,
+    },
+    "conflictsBySeverity": {
+      "error": 36,
+      "warning": 2,
+    },
+    "dTimeConflicts": 5,
+    "morningLoadRatio": 0.74,
+    "productionByProviderOp": {
+      "brooks-5::HYG2": 5900,
+      "foster-5::OP3": 23500,
+      "torres-5::HYG1": 7100,
+      "walsh-5::OP1": 22900,
+      "walsh-5::OP2": 21200,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 26,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 20,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 4,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 85,
+    },
+    "staggerConflicts": 36,
+  },
+  "MONDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 57,
+      "NON_PROD": 14,
+      "NP": 27,
+      "PM": 12,
+      "RECARE": 36,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 0,
+    },
+    "conflictsBySeverity": {
+      "error": 36,
+      "warning": 2,
+    },
+    "dTimeConflicts": 5,
+    "morningLoadRatio": 0.74,
+    "productionByProviderOp": {
+      "brooks-5::HYG2": 7700,
+      "foster-5::OP3": 23500,
+      "torres-5::HYG1": 6500,
+      "walsh-5::OP1": 22900,
+      "walsh-5::OP2": 21200,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 29,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 20,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 9,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "excellent",
+      "total": 93,
+    },
+    "staggerConflicts": 36,
+  },
+  "THURSDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 57,
+      "NON_PROD": 14,
+      "NP": 22,
+      "PM": 6,
+      "RECARE": 32,
+      "SRP": 18,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 0,
+    },
+    "conflictsBySeverity": {
+      "error": 36,
+      "warning": 2,
+    },
+    "dTimeConflicts": 5,
+    "morningLoadRatio": 0.76,
+    "productionByProviderOp": {
+      "brooks-5::HYG2": 4000,
+      "foster-5::OP3": 23500,
+      "torres-5::HYG1": 6400,
+      "walsh-5::OP1": 22900,
+      "walsh-5::OP2": 21200,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 26,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 20,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 1,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 82,
+    },
+    "staggerConflicts": 36,
+  },
+  "TUESDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 57,
+      "NON_PROD": 14,
+      "NP": 17,
+      "PM": 12,
+      "RECARE": 40,
+      "SRP": 18,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 0,
+    },
+    "conflictsBySeverity": {
+      "error": 36,
+      "warning": 2,
+    },
+    "dTimeConflicts": 5,
+    "morningLoadRatio": 0.77,
+    "productionByProviderOp": {
+      "brooks-5::HYG2": 6500,
+      "foster-5::OP3": 23500,
+      "torres-5::HYG1": 4600,
+      "walsh-5::OP1": 22900,
+      "walsh-5::OP2": 21200,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 27,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 20,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 9,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "excellent",
+      "total": 91,
+    },
+    "staggerConflicts": 36,
+  },
+  "WEDNESDAY": {
+    "blockCategoryDistribution": {
+      "HP": 22,
+      "MP": 57,
+      "NON_PROD": 14,
+      "NP": 27,
+      "PM": 9,
+      "RECARE": 36,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 0,
+    },
+    "conflictsBySeverity": {
+      "error": 36,
+      "warning": 2,
+    },
+    "dTimeConflicts": 5,
+    "morningLoadRatio": 0.74,
+    "productionByProviderOp": {
+      "brooks-5::HYG2": 7700,
+      "foster-5::OP3": 23500,
+      "torres-5::HYG1": 5900,
+      "walsh-5::OP1": 22900,
+      "walsh-5::OP2": 21200,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 27,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 20,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 6,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 88,
+    },
+    "staggerConflicts": 36,
+  },
+}
+`;
+
+exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden snapshot for all weekdays 1`] = `
+{
+  "FRIDAY": {
+    "blockCategoryDistribution": {
+      "ER": 12,
+      "HP": 24,
+      "MP": 69,
+      "NON_PROD": 4,
+      "NP": 30,
+      "PM": 36,
+      "RECARE": 70,
+      "SRP": 36,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 10,
+    },
+    "conflictsBySeverity": {
+      "error": 55,
+      "warning": 2,
+    },
+    "dTimeConflicts": 9,
+    "morningLoadRatio": 0.69,
+    "productionByProviderOp": {
+      "cheryl-1::HYG2": 12100,
+      "fitz-1::OP1": 27000,
+      "fitz-1::OP2": 24700,
+      "jamal-1::HYG3": 12900,
+      "luke-1::HYG4": 10400,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 28,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 5,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 62,
+    },
+    "staggerConflicts": 55,
+  },
+  "MONDAY": {
+    "blockCategoryDistribution": {
+      "ER": 12,
+      "HP": 24,
+      "MP": 69,
+      "NON_PROD": 4,
+      "NP": 36,
+      "PM": 36,
+      "RECARE": 75,
+      "SRP": 24,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 10,
+    },
+    "conflictsBySeverity": {
+      "error": 55,
+      "warning": 3,
+    },
+    "dTimeConflicts": 9,
+    "morningLoadRatio": 0.68,
+    "productionByProviderOp": {
+      "cheryl-1::HYG2": 12500,
+      "fitz-1::OP1": 27000,
+      "fitz-1::OP2": 24700,
+      "jamal-1::HYG3": 11400,
+      "luke-1::HYG4": 10400,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 26,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 5,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 60,
+    },
+    "staggerConflicts": 55,
+  },
+  "THURSDAY": {
+    "blockCategoryDistribution": {
+      "ER": 12,
+      "HP": 24,
+      "MP": 69,
+      "NON_PROD": 4,
+      "NP": 18,
+      "PM": 30,
+      "RECARE": 80,
+      "SRP": 42,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 10,
+    },
+    "conflictsBySeverity": {
+      "error": 55,
+      "warning": 3,
+    },
+    "dTimeConflicts": 9,
+    "morningLoadRatio": 0.7,
+    "productionByProviderOp": {
+      "cheryl-1::HYG2": 12500,
+      "fitz-1::OP1": 27000,
+      "fitz-1::OP2": 24700,
+      "jamal-1::HYG3": 10400,
+      "luke-1::HYG4": 11000,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 27,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 5,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 61,
+    },
+    "staggerConflicts": 55,
+  },
+  "TUESDAY": {
+    "blockCategoryDistribution": {
+      "ER": 12,
+      "HP": 24,
+      "MP": 69,
+      "NON_PROD": 4,
+      "NP": 18,
+      "PM": 36,
+      "RECARE": 75,
+      "SRP": 42,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 10,
+    },
+    "conflictsBySeverity": {
+      "error": 55,
+      "warning": 3,
+    },
+    "dTimeConflicts": 9,
+    "morningLoadRatio": 0.69,
+    "productionByProviderOp": {
+      "cheryl-1::HYG2": 12900,
+      "fitz-1::OP1": 27000,
+      "fitz-1::OP2": 24700,
+      "jamal-1::HYG3": 11000,
+      "luke-1::HYG4": 10400,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 26,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 5,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 60,
+    },
+    "staggerConflicts": 55,
+  },
+  "WEDNESDAY": {
+    "blockCategoryDistribution": {
+      "ER": 12,
+      "HP": 24,
+      "MP": 69,
+      "NON_PROD": 4,
+      "NP": 36,
+      "PM": 30,
+      "RECARE": 80,
+      "SRP": 24,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 10,
+    },
+    "conflictsBySeverity": {
+      "error": 55,
+      "warning": 2,
+    },
+    "dTimeConflicts": 9,
+    "morningLoadRatio": 0.7,
+    "productionByProviderOp": {
+      "cheryl-1::HYG2": 11400,
+      "fitz-1::OP1": 27000,
+      "fitz-1::OP2": 24700,
+      "jamal-1::HYG3": 9300,
+      "luke-1::HYG4": 13100,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 28,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 0,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 5,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 62,
+    },
+    "staggerConflicts": 55,
+  },
+}
+`;
+
+exports[`Golden schedule regression harness > multi-op stagger conflict map (Loop 6) > CDT Comfort Dental: Monday conflict-map shape is stable 1`] = `
+{
+  "dTimeOverlapCount": 44,
+  "firstFiveConflictIds": [
+    "07:45/chen-2",
+    "08:00/chen-2",
+    "08:15/chen-2",
+    "08:30/chen-2",
+    "08:30/martinez-2",
+  ],
+  "hardConflictCount": 56,
+}
+`;
+
+exports[`Golden schedule regression harness > multi-op stagger conflict map (Loop 6) > NHD Ridgeview: Monday conflict-map shape is stable 1`] = `
+{
+  "dTimeOverlapCount": 5,
+  "firstFiveConflictIds": [
+    "07:30/walsh-5",
+    "07:45/walsh-5",
+    "08:00/walsh-5",
+    "08:15/walsh-5",
+    "08:30/walsh-5",
+  ],
+  "hardConflictCount": 36,
+}
+`;
+
+exports[`Golden schedule regression harness > multi-op stagger conflict map (Loop 6) > Smile Cascade: Monday conflict-map shape is stable 1`] = `
+{
+  "dTimeOverlapCount": 9,
+  "firstFiveConflictIds": [
+    "07:20/fitz-1",
+    "07:30/fitz-1",
+    "07:40/fitz-1",
+    "07:50/fitz-1",
+    "08:00/fitz-1",
+  ],
+  "hardConflictCount": 55,
+}
+`;
+
+exports[`Golden schedule regression harness > rationale annotation (Loop 5) > CDT Comfort Dental MONDAY: rationale distribution snapshot 1`] = `
+{
+  "SRP (perio program)": 20,
+  "afternoon rock": 6,
+  "buffer / gap": 85,
+  "late-day non-prod": 10,
+  "morning rock anchor": 30,
+  "morning rock — auto-swapped to AM": 1,
+  "new patient exam": 15,
+  "new pt hyg": 25,
+  "perio maint": 28,
+  "recare (prophy)": 52,
+}
+`;
+
+exports[`Golden schedule regression harness > retry envelope (Loop 2) > CDT Comfort Dental: deterministic retry telemetry across weekdays 1`] = `
+{
+  "FRIDAY": {
+    "allAttemptScores": [
+      59,
+      62,
+      58,
+    ],
+    "allAttemptTiers": [
+      "needs_work",
+      "fair",
+      "needs_work",
+    ],
+    "attemptsUsed": 3,
+    "floorMet": false,
+    "maxAttempts": 3,
+    "selectedAttempt": 2,
+    "selectedScore": 62,
+    "selectedTier": "fair",
+    "tierFloor": "good",
+    "verifyScore": 62,
+    "verifyTier": "fair",
+  },
+  "MONDAY": {
+    "allAttemptScores": [
+      62,
+      60,
+      62,
+    ],
+    "allAttemptTiers": [
+      "fair",
+      "fair",
+      "fair",
+    ],
+    "attemptsUsed": 3,
+    "floorMet": false,
+    "maxAttempts": 3,
+    "selectedAttempt": 1,
+    "selectedScore": 62,
+    "selectedTier": "fair",
+    "tierFloor": "good",
+    "verifyScore": 62,
+    "verifyTier": "fair",
+  },
+  "THURSDAY": {
+    "allAttemptScores": [
+      61,
+      57,
+      56,
+    ],
+    "allAttemptTiers": [
+      "fair",
+      "needs_work",
+      "needs_work",
+    ],
+    "attemptsUsed": 3,
+    "floorMet": false,
+    "maxAttempts": 3,
+    "selectedAttempt": 1,
+    "selectedScore": 61,
+    "selectedTier": "fair",
+    "tierFloor": "good",
+    "verifyScore": 61,
+    "verifyTier": "fair",
+  },
+  "TUESDAY": {
+    "allAttemptScores": [
+      59,
+      60,
+      60,
+    ],
+    "allAttemptTiers": [
+      "needs_work",
+      "fair",
+      "fair",
+    ],
+    "attemptsUsed": 3,
+    "floorMet": false,
+    "maxAttempts": 3,
+    "selectedAttempt": 2,
+    "selectedScore": 60,
+    "selectedTier": "fair",
+    "tierFloor": "good",
+    "verifyScore": 60,
+    "verifyTier": "fair",
+  },
+  "WEDNESDAY": {
+    "allAttemptScores": [
+      63,
+      63,
+      61,
+    ],
+    "allAttemptTiers": [
+      "fair",
+      "fair",
+      "fair",
+    ],
+    "attemptsUsed": 3,
+    "floorMet": false,
+    "maxAttempts": 3,
+    "selectedAttempt": 1,
+    "selectedScore": 63,
+    "selectedTier": "fair",
+    "tierFloor": "good",
+    "verifyScore": 63,
+    "verifyTier": "fair",
+  },
+}
+`;

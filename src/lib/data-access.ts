@@ -489,6 +489,8 @@ export interface SaveScheduleInput {
   productionSummary: unknown;
   warnings: unknown;
   label?: string;
+  /** Loop 9: optional variant tag (EOF / Opt1 / Opt2). */
+  variantLabel?: string | null;
 }
 
 export interface UpdateScheduleInput {
@@ -496,6 +498,8 @@ export interface UpdateScheduleInput {
   productionSummary: unknown;
   warnings: unknown;
   label?: string;
+  /** Loop 9: optional variant tag. */
+  variantLabel?: string | null;
 }
 
 export interface AutoSaveInput {
@@ -504,6 +508,8 @@ export interface AutoSaveInput {
   slots: unknown;
   productionSummary: unknown;
   warnings: unknown;
+  /** Loop 9: optional variant tag. */
+  variantLabel?: string | null;
 }
 
 export interface MigrateInput {
@@ -527,6 +533,8 @@ function parseScheduleRow(t: DbScheduleTemplate) {
     weekType: t.weekType ?? 'A',
     type: t.type ?? 'WORKING',
     label: t.name,
+    // Loop 9: variant tag (EOF / Opt1 / Opt2), nullable.
+    variantLabel: (t as DbScheduleTemplate & { variantLabel?: string | null }).variantLabel ?? null,
     slots: safeParseJSON(t.slotsJson, []),
     productionSummary: safeParseJSON(t.summaryJson, []),
     warnings: safeParseJSON(t.warningsJson, []),
@@ -583,6 +591,9 @@ export async function saveSchedule(officeId: string, data: SaveScheduleInput) {
       slotsJson: JSON.stringify(data.slots),
       summaryJson: JSON.stringify(data.productionSummary),
       warningsJson: JSON.stringify(data.warnings),
+      ...(data.variantLabel !== undefined
+        ? { variantLabel: data.variantLabel }
+        : {}),
     },
   });
 
@@ -603,6 +614,9 @@ export async function updateSchedule(scheduleId: string, data: UpdateScheduleInp
       summaryJson: JSON.stringify(data.productionSummary),
       warningsJson: JSON.stringify(data.warnings),
       ...(data.label !== undefined && { name: data.label }),
+      ...(data.variantLabel !== undefined
+        ? { variantLabel: data.variantLabel }
+        : {}),
     },
   });
 
@@ -638,6 +652,7 @@ export async function autoSaveSchedule(officeId: string, data: AutoSaveInput) {
       slotsJson: JSON.stringify(data.slots),
       summaryJson: JSON.stringify(data.productionSummary),
       warningsJson: JSON.stringify(data.warnings),
+      ...(data.variantLabel !== undefined ? { variantLabel: data.variantLabel } : {}),
     },
     create: {
       officeId,
@@ -648,6 +663,7 @@ export async function autoSaveSchedule(officeId: string, data: AutoSaveInput) {
       slotsJson: JSON.stringify(data.slots),
       summaryJson: JSON.stringify(data.productionSummary),
       warningsJson: JSON.stringify(data.warnings),
+      ...(data.variantLabel !== undefined ? { variantLabel: data.variantLabel } : {}),
     },
   });
 

@@ -18,10 +18,13 @@ import { ZoomIn, ZoomOut, ChevronsLeftRight, ChevronsRight, Sparkles, Loader2, M
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import TimeSlotCell from "./TimeSlotCell";
+import { useScheduleStore } from "@/store/schedule-store";
 import type { BlockTypeInput } from "@/lib/engine/types";
 import type { ConflictResult } from "@/lib/engine/stagger";
 import { hexToRgba } from "@/lib/engine/block-categories";
 import type { BlockInfo, DragOverCell, DragState } from "./TimeSlotInteraction";
+import type { PartnerKind } from "./ConflictOverlay";
+import type { DragValidity } from "@/lib/engine/drag-preview";
 
 // ─── Types shared with the rest of the module ───────────────────────────
 export interface ProviderInput {
@@ -49,6 +52,8 @@ export interface TimeSlotOutput {
     blockInstanceId?: string | null;
     /** Per-block production minimum override */
     customProductionAmount?: number | null;
+    /** Loop 5: engine rationale ("morning rock anchor", etc.). */
+    rationale?: string | null;
   }[];
 }
 
@@ -116,11 +121,17 @@ export interface TimeGridRendererProps {
   conflictMap: Map<string, ConflictResult>;
   dTimeConflictInstanceIds: Set<string>;
   blockTypeById: Map<string, BlockTypeInput>;
+  /** Loop 6: map of "time:providerId" → 'hard' | 'partner' for multi-op doctor cells. */
+  partnerMap: Map<string, PartnerKind>;
   // Interaction (from useTimeSlotInteraction)
   isInteractive: boolean;
   dragState: DragState | null;
   dragOverCell: DragOverCell | null;
   sidebarDragging: boolean;
+  /** Loop 10: per-cell validity map for the active drag's target range. */
+  dragValidityMap: Map<string, DragValidity>;
+  /** Loop 10: hovered-target validity tier (drives drop-blocking in the UI). */
+  currentDragValidity: DragValidity | null;
   getBlockInfo: (time: string, providerId: string) => BlockInfo | null;
   onEmptyCellClick: (time: string, providerId: string) => void;
   onBlockCellClick: (time: string, providerId: string) => void;
@@ -149,10 +160,13 @@ export default function TimeGridRenderer({
   conflictMap,
   dTimeConflictInstanceIds,
   blockTypeById,
+  partnerMap,
   isInteractive,
   dragState,
   dragOverCell,
   sidebarDragging,
+  dragValidityMap,
+  currentDragValidity,
   getBlockInfo,
   onEmptyCellClick,
   onBlockCellClick,
@@ -163,10 +177,13 @@ export default function TimeGridRenderer({
   onDragEnd,
   onMoveBlockEnabled,
 }: TimeGridRendererProps) {
+  // Loop 10: subscribe to the flashingCell state so a "Jump to cell" click
+  // from the Review panel briefly highlights the target slot.
+  const flashingCell = useScheduleStore((s) => s.flashingCell);
   return (
     <>
       {/* ─── Controls bar — compact single row ────────────────────────── */}
-      <div className="flex items-center justify-between gap-2 px-2 py-1 bg-muted/30 rounded-md border border-border/50 shrink-0">
+      <div className="flex items-center justify-between gap-2 px-2 py-1 bg-neutral-50 rounded-md border border-neutral-200 shrink-0">
         <div className="flex items-center gap-1">
           <Button
             size="sm"
@@ -205,7 +222,7 @@ export default function TimeGridRenderer({
       </div>
 
       {/* ─── Schedule Grid ────────────────────────────────────────────── */}
-      <div className="schedule-grid min-h-0 min-w-0 border border-border rounded-lg overflow-y-auto overflow-x-auto flex-1">
+      <div className="schedule-grid min-h-0 min-w-0 border border-neutral-200 rounded-lg overflow-y-auto overflow-x-auto flex-1 bg-white">
         <div>
           <table
             className="border-collapse"
@@ -218,9 +235,9 @@ export default function TimeGridRenderer({
           >
             <thead className="sticky top-0 z-20">
               {/* Row 1: Operatory name header */}
-              <tr className="border-b border-border/50">
+              <tr className="border-b border-neutral-200">
                 <th
-                  className="px-2 py-1 text-[10px] font-medium text-muted-foreground bg-surface text-left border-b border-border/50 sticky left-0 z-30"
+                  className="px-2 py-1 text-[10px] font-medium text-neutral-500 bg-surface text-left border-b border-neutral-200 sticky left-0 z-30"
                   style={{ width: 80, minWidth: 80 }}
                 >
                   Operatory
@@ -233,20 +250,20 @@ export default function TimeGridRenderer({
                       key={`op-${provider.id}`}
                       colSpan={2}
                       className="px-2 py-1 text-center bg-surface"
-                      style={{ borderBottom: "2px solid var(--border)", minWidth: colWidth + 28 }}
+                      style={{ borderBottom: "1px solid var(--border)", minWidth: colWidth + 28 }}
                     >
                       <div className="flex items-center justify-center gap-1.5">
                         <span
-                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border"
+                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border tracking-tight"
                           style={{
-                            backgroundColor: hexToRgba(provider.color, 0.125),
-                            borderColor: hexToRgba(provider.color, 0.375),
+                            backgroundColor: hexToRgba(provider.color, 0.08),
+                            borderColor: hexToRgba(provider.color, 0.3),
                             color: provider.color,
                           }}
                         >
                           {opName}
                         </span>
-                        <span className="text-[10px] font-bold px-1 rounded bg-muted text-muted-foreground">
+                        <span className="text-[10px] font-semibold px-1 rounded bg-neutral-100 text-neutral-600">
                           {staffCode}
                         </span>
                       </div>
@@ -257,7 +274,7 @@ export default function TimeGridRenderer({
               {/* Row 2: Provider name header */}
               <tr>
                 <th
-                  className="px-3 py-2 text-sm font-semibold text-foreground border-b-2 border-border bg-surface sticky left-0 z-30"
+                  className="px-3 py-2 text-xs font-medium text-neutral-500 border-b border-neutral-200 bg-surface sticky left-0 z-30 text-right tabular-nums"
                   style={{ width: 80, minWidth: 80 }}
                 >
                   Time
@@ -271,14 +288,14 @@ export default function TimeGridRenderer({
                     <th
                       key={provider.id}
                       colSpan={2}
-                      className={`px-2 py-1.5 text-sm font-semibold text-foreground border-b-2 border-border bg-surface ${provider.disabled ? "opacity-50" : ""}`}
+                      className={`px-2 py-1.5 border-b border-neutral-200 bg-surface ${provider.disabled ? "opacity-50" : ""}`}
                       style={{ minWidth: colWidth + 28 }}
                     >
                       <div className="flex flex-col items-center gap-0.5">
-                        <div className="font-semibold text-xs" style={{ color: provider.disabled ? "#999" : provider.color }}>
+                        <div className="text-sm font-semibold tracking-tight" style={{ color: provider.disabled ? "#999" : provider.color }}>
                           {provider.name}
                         </div>
-                        <div className="text-[10px] text-muted-foreground font-normal">
+                        <div className="text-[10px] text-neutral-500 font-normal tracking-wide">
                           {provider.role}
                         </div>
                         {provider.disabled ? (
@@ -307,16 +324,16 @@ export default function TimeGridRenderer({
               {/* Row 3: Staffing / Block type sub-headers */}
               <tr>
                 <th
-                  className="border-b border-border bg-surface sticky left-0 z-30"
+                  className="border-b border-neutral-200 bg-surface sticky left-0 z-30"
                   style={{ width: 80, minWidth: 80 }}
                 />
                 {providers.map((provider) => (
                   <Fragment key={provider.id}>
-                    <th className="px-1 py-1 text-[10px] text-muted-foreground border-b border-border bg-surface text-center" style={{ width: 28, minWidth: 28 }}>
+                    <th className="px-1 py-1 text-[10px] text-neutral-400 font-normal border-b border-neutral-200 bg-surface text-center" style={{ width: 28, minWidth: 28 }}>
                       S
                     </th>
                     <th
-                      className="px-3 py-1 text-[10px] text-muted-foreground border-b border-border bg-surface"
+                      className="px-3 py-1 text-[10px] text-neutral-400 font-normal border-b border-neutral-200 bg-surface"
                       style={{ minWidth: colWidth }}
                     >
                       Block Type
@@ -328,14 +345,17 @@ export default function TimeGridRenderer({
             <tbody>
               {timeSlots.map((row, rowIdx) => {
                 const isCompactRow = rowHeight < 20;
+                // Loop 7: hour-boundary rows get a slightly darker divider to
+                // make the day's structure readable at a glance.
+                const isHourBoundary = /:00\s*(AM|PM)?$/i.test(row.time);
                 return (
                   <tr
                     key={rowIdx}
-                    className="hover:bg-muted/30 transition-colors"
+                    className="hover:bg-neutral-50/60 transition-colors"
                     style={{ height: rowHeight, maxHeight: rowHeight }}
                   >
                     <td
-                      className="p-0 border-b border-border sticky left-0 z-10 bg-surface"
+                      className={`p-0 sticky left-0 z-10 bg-surface ${isHourBoundary ? "border-b border-neutral-300" : "border-b border-neutral-100"}`}
                       style={{ width: 80, minWidth: 80, height: rowHeight, maxHeight: rowHeight, overflow: "hidden" }}
                     >
                       <TimeSlotCell time={row.time} />
@@ -379,6 +399,13 @@ export default function TimeGridRenderer({
                       const outsideHours = isOutsideProviderHours(row.time, provider);
                       const isCellDragOver =
                         dragOverCell?.time === row.time && dragOverCell?.providerId === provider.id;
+                      // Loop 10: tier for this specific cell when it's part of the drag-preview footprint.
+                      const cellDragValidity = dragValidityMap.get(`${row.time}:${provider.id}`) ?? null;
+                      // Loop 10: flash pulse if the Review panel targeted this cell.
+                      const isFlashing =
+                        !!flashingCell &&
+                        flashingCell.time === row.time &&
+                        flashingCell.providerId === provider.id;
 
                       const blockInfo = hasBlock ? getBlockInfo(row.time, provider.id) : null;
                       const isDraggingSource =
@@ -392,6 +419,11 @@ export default function TimeGridRenderer({
                       const conflictTooltip = conflictEntry
                         ? `Double-booked in: ${conflictEntry.operatories.join(", ")} — blocks: ${conflictEntry.blockLabels.join(", ")}`
                         : undefined;
+
+                      // Loop 6: partner-link kind for this cell (only set for
+                      // multi-op doctor cells that share the same real provider
+                      // with another virtual column at the same time).
+                      const partnerKind = partnerMap.get(`${row.time}:${provider.id}`);
 
                       const isFirstCell = blockInfo?.isFirst || false;
                       let hasDTimeConflict = false;
@@ -417,12 +449,20 @@ export default function TimeGridRenderer({
 
                       // §4.4 visual grouping: suppress row divider for non-last block cells
                       const isBlockCellNotLast = hasBlock && blockInfo && !blockInfo.isLast;
+                      // Loop 7: row dividers — hour-boundary slightly stronger
+                      // to help the eye scan the day; non-boundary rows are a
+                      // whisper-thin hairline so dense schedules don't stripe.
+                      const rowDividerClass = isBlockCellNotLast
+                        ? ""
+                        : isHourBoundary
+                        ? "border-b border-neutral-300"
+                        : "border-b border-neutral-100";
 
                       return (
                         <ErrorBoundary key={provider.id} name={rowScopeName} fallback={errorFallback}>
                           <Fragment>
                           <td
-                            className={`p-0 ${isBlockCellNotLast ? "" : "border-b border-border"}`}
+                            className={`p-0 ${rowDividerClass}`}
                             style={{
                               width: 28,
                               minWidth: 28,
@@ -440,7 +480,7 @@ export default function TimeGridRenderer({
                             />
                           </td>
                           <td
-                            className={`p-0 ${isBlockCellNotLast ? "" : "border-b border-border"}`}
+                            className={`p-0 ${rowDividerClass}`}
                             style={{
                               minWidth: colWidth,
                               height: rowHeight,
@@ -454,8 +494,19 @@ export default function TimeGridRenderer({
                               style={{ height: rowHeight, maxHeight: rowHeight, overflow: "hidden" }}
                               draggable={hasBlock && onMoveBlockEnabled && !outsideHours}
                               onDragStart={(e) => hasBlock && !outsideHours && onDragStart(e, row.time, provider.id)}
-                              onDragOver={(e) => !outsideHours && (isEmpty || sidebarDragging) && onDragOver(e, row.time, provider.id)}
+                              // Loop 10: allow dragOver on ALL non-outside-hours cells while a grid
+                              // drag is in progress, so the preview paints red/amber/green across
+                              // the would-be target range even when it overlaps existing blocks.
+                              onDragOver={(e) => {
+                                if (outsideHours) return;
+                                if (isEmpty || sidebarDragging || (!!dragState && hasBlock)) {
+                                  onDragOver(e, row.time, provider.id);
+                                }
+                              }}
                               onDragLeave={onDragLeave}
+                              // Drop stays restricted to empty cells for grid-block moves; sidebar
+                              // drops always write over their target via onAddBlock. handleDrop
+                              // in TimeSlotInteraction additionally refuses 'conflict' previews.
                               onDrop={(e) => !outsideHours && (isEmpty || sidebarDragging) && onDrop(e, row.time, provider.id)}
                               onDragEnd={onDragEnd}
                             >
@@ -480,12 +531,16 @@ export default function TimeGridRenderer({
                                 isBlockLast={blockInfo?.isLast || false}
                                 isDragOver={isCellDragOver}
                                 isDragging={isDraggingSource}
+                                dragValidity={cellDragValidity}
+                                flashPulse={isFlashing}
                                 hasConflict={cellHasConflict}
                                 conflictTooltip={conflictTooltip ?? dTimeConflictTooltip}
                                 dTimeMin={isCompactRow ? 0 : cellDTimeMin}
                                 aTimeMin={isCompactRow ? 0 : cellATimeMin}
                                 hasDTimeConflict={hasDTimeConflict}
                                 isHighProduction={isCompactRow ? false : isHighProduction}
+                                rationale={slot?.rationale}
+                                partnerKind={partnerKind}
                               />
                             </div>
                           </td>

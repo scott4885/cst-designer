@@ -61,6 +61,12 @@ interface ToolbarRibbonProps {
   onExportDpms: () => void;
   onPrint: () => void;
   onClone: () => void;
+  /** Loop 9: open the "Copy day to…" modal. */
+  onCopyDay: () => void;
+  /** Loop 9: set/clear variant label ("EOF" / "Opt1" / "Opt2" / null) on the active day. */
+  onSetVariant: (label: string | null) => void;
+  /** Loop 9: per-day variant labels for tab badges. */
+  variantLabelsByDay: Record<string, string | null | undefined>;
   onClearAll: () => void;
   onDeleteOffice: () => void;
   onSmartFill: () => void;
@@ -116,6 +122,9 @@ export default function ToolbarRibbon({
   onExportDpms,
   onPrint,
   onClone,
+  onCopyDay,
+  onSetVariant,
+  variantLabelsByDay,
   onClearAll,
   onDeleteOffice,
   onSmartFill,
@@ -127,6 +136,8 @@ export default function ToolbarRibbon({
   lastSavedAt,
   dpmsLabel,
 }: ToolbarRibbonProps) {
+  const activeVariantLabel = variantLabelsByDay[activeDay] ?? null;
+  const VARIANT_PRESETS = ["EOF", "Opt1", "Opt2"];
   return (
     <div className="flex-shrink-0 border-b border-border/60 bg-white px-3 py-1.5">
       {/* Single row toolbar */}
@@ -152,6 +163,7 @@ export default function ToolbarRibbon({
             const isActive = activeDay === day;
             const hasSchedule = scheduleExistsPerDay[day];
             const conflicts = conflictsPerDay[day] ?? 0;
+            const variant = variantLabelsByDay[day] ?? null;
 
             return (
               <button
@@ -164,7 +176,19 @@ export default function ToolbarRibbon({
                     : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                 }`}
               >
-                {DAY_LABELS[day] ?? day.slice(0, 3)}
+                <span className="inline-flex items-center gap-1">
+                  {DAY_LABELS[day] ?? day.slice(0, 3)}
+                  {variant ? (
+                    <span
+                      data-testid={`day-variant-badge-${day}`}
+                      className={`text-[9px] font-bold px-1 py-0 rounded leading-4 ${
+                        isActive ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {variant}
+                    </span>
+                  ) : null}
+                </span>
                 {hasSchedule && !isActive && (
                   <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 )}
@@ -350,14 +374,47 @@ export default function ToolbarRibbon({
                 <MoreHorizontal className="w-4 h-4" aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem onClick={onGenerateAll} disabled={isGenerating}>
                 <Sparkles className="w-4 h-4 mr-2" />
                 Generate All Days
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={onCopyDay} disabled={!hasSchedules}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy {DAY_LABELS[activeDay] ?? "day"} to…
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Variant ({DAY_LABELS[activeDay] ?? activeDay})
+              </div>
+              {VARIANT_PRESETS.map((v) => (
+                <DropdownMenuItem
+                  key={v}
+                  onClick={() => onSetVariant(activeVariantLabel === v ? null : v)}
+                  disabled={!hasSchedules}
+                >
+                  <span
+                    className={`w-4 h-4 mr-2 inline-flex items-center justify-center text-[10px] font-bold rounded ${
+                      activeVariantLabel === v ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    {activeVariantLabel === v ? "✓" : ""}
+                  </span>
+                  {v === "EOF" ? "EOF (Early-Off Friday)" : v}
+                </DropdownMenuItem>
+              ))}
+              {activeVariantLabel && !VARIANT_PRESETS.includes(activeVariantLabel) && (
+                <DropdownMenuItem onClick={() => onSetVariant(null)}>
+                  <span className="w-4 h-4 mr-2 inline-flex items-center justify-center text-[10px] font-bold rounded bg-amber-500 text-white">
+                    ✓
+                  </span>
+                  {activeVariantLabel} (clear)
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onClone}>
                 <Copy className="w-4 h-4 mr-2" />
-                Clone Template
+                Clone to another office
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href={`/offices/${officeId}/edit`}>

@@ -1,5 +1,5 @@
 /**
- * Schedule Quality Score — Sprint 11
+ * Schedule Quality Score — Sprint 11 + Loop 4 morning-load penalty
  *
  * Calculates a 0–100 quality score for a generated schedule based on:
  *   - Production Goal Achievement (30 pts)
@@ -7,11 +7,20 @@
  *   - Clinical Rules Compliance (20 pts)
  *   - Time Utilization (15 pts)
  *   - Provider Coverage (10 pts)
+ *
+ * Plus a Loop 4 morning-load penalty:
+ *   - ratio < 0.70  → tier capped at 'fair', -10 raw pts
+ *   - 0.70 ≤ ratio < 0.80 → linear -5 to -10 raw pts
+ *   - ratio ≥ 0.80 → no penalty
  */
 
 import type { GenerationResult, ProviderInput, BlockTypeInput } from './types';
 import { isMixValid } from './generator';
 import type { ClinicalWarning } from './clinical-rules';
+import {
+  MORNING_LOAD_TARGET,
+  MORNING_LOAD_HARD_CAP,
+} from './morning-load-enforcer';
 
 // ─── Public Types ─────────────────────────────────────────────────────────────
 
@@ -299,8 +308,13 @@ export function calculateQualityScore(
   schedule: GenerationResult,
   providers: ProviderInput[],
   blockTypes: BlockTypeInput[],
-  clinicalWarnings: ClinicalWarning[] = []
+  clinicalWarnings: ClinicalWarning[] = [],
+  // Loop 3 options — kept optional + ignored by the current scorer so that
+  // retry-envelope + goldens can pass mix-adherence context without a breaking
+  // signature change. A future mix-adherence component will read from this.
+  _options?: { intensity?: number; timeIncrement?: number }
 ): QualityScore {
+  void _options;
   const components: QualityScoreComponent[] = [
     scoreProductionGoal(schedule, providers),
     scoreProcedureMix(schedule, providers, blockTypes),
@@ -309,8 +323,34 @@ export function calculateQualityScore(
     scoreProviderCoverage(schedule, providers),
   ];
 
-  const total = Math.min(100, components.reduce((sum, c) => sum + c.score, 0));
-  const tier = getTier(total);
+  const rawTotal = components.reduce((sum, c) => sum + c.score, 0);
+
+  // ─── Loop 4: Morning-Load Penalty ────────────────────────────────────────
+  // Burkhart 80/20 rule enforced as HARD constraint post-fill. If the
+  // generator's morning-load enforcer couldn't lift the schedule-wide ratio
+  // to target, assess a raw-score penalty and (below hard-cap) cap the tier.
+  const scheduleRatio = schedule.morningLoadSwaps?.scheduleRatio ?? 1;
+  let morningLoadPenalty = 0;
+  let tierCappedAtFair = false;
+
+  if (scheduleRatio < MORNING_LOAD_HARD_CAP) {
+    // Below 70% → hard violation. Cap tier at 'fair', -10 raw.
+    morningLoadPenalty = 10;
+    tierCappedAtFair = true;
+  } else if (scheduleRatio < MORNING_LOAD_TARGET) {
+    // 70–79% → linear -5 (at 0.80) to -10 (at 0.70).
+    const t =
+      (scheduleRatio - MORNING_LOAD_HARD_CAP) /
+      (MORNING_LOAD_TARGET - MORNING_LOAD_HARD_CAP);
+    morningLoadPenalty = Math.round(10 - t * 5);
+  }
+
+  const total = Math.max(0, Math.min(100, rawTotal - morningLoadPenalty));
+
+  let tier = getTier(total);
+  if (tierCappedAtFair && (tier === 'excellent' || tier === 'good')) {
+    tier = 'fair';
+  }
   const { emoji, label: tierLabel } = TIER_META[tier];
 
   return { total, tier, emoji, tierLabel, components };

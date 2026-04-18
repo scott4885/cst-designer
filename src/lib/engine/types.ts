@@ -195,6 +195,12 @@ export interface GenerationInput {
   rules: ScheduleRules;
   timeIncrement: number; // 10 or 15
   dayOfWeek: string;
+  /** Loop 1: optional seed for deterministic generation (goldens + retry-envelope). */
+  seed?: number;
+  /** Loop 1: optional pre-built seeded RNG function (takes precedence over seed). */
+  rng?: () => number;
+  /** Loop 3: 0..1 intensity dial for default mix prescription (defaults to 0.5). */
+  intensity?: number;
 }
 
 export interface TimeSlotOutput {
@@ -209,6 +215,8 @@ export interface TimeSlotOutput {
   blockInstanceId?: string | null;
   /** Per-block override of the production minimum (overrides blockType.minimumAmount for this specific placed block) */
   customProductionAmount?: number | null;
+  /** Loop 5: one-line explanation of why the engine placed this block (null = user-placed or pre-Loop-5 data). */
+  rationale?: string | null;
 }
 
 export interface GenerationResult {
@@ -216,6 +224,31 @@ export interface GenerationResult {
   slots: TimeSlotOutput[];
   productionSummary: ProviderProductionSummary[];
   warnings: string[];
+  /**
+   * Loop 9: optional variant tag (e.g. "EOF" for Early-Off Friday, "Opt1"/"Opt2"
+   * for alternate schedules). Null/undefined/empty = regular (non-variant) day.
+   */
+  variantLabel?: string | null;
+  /** Loop 4: Morning-load enforcer telemetry (optional; omitted if no doctors). */
+  morningLoadSwaps?: {
+    /** Schedule-wide ratio of morning doctor restorative $ / total doctor restorative $. */
+    scheduleRatio: number;
+    /** Per provider+operatory key → ratio. */
+    perOpRatios: Record<string, number>;
+    /** List of provider+operatory keys still below the hard cap after enforcement. */
+    hardCapViolators: string[];
+    /** Swap operations recorded by the enforcer, in order of application. */
+    swaps: Array<{
+      providerId: string;
+      operatory: string;
+      amBlockLabel: string;
+      amBlockTime: string;
+      pmBlockLabel: string;
+      pmBlockTime: string;
+      ratioBefore: number;
+      ratioAfter: number;
+    }>;
+  };
 }
 
 export interface ProviderProductionSummary {
