@@ -9,10 +9,25 @@
 
 import { describe, it, expect } from 'vitest';
 import { BUILT_IN_TEMPLATES } from '@/lib/template-library-seed';
-import { generateOptimizationSuggestions, type OptimizationSuggestion } from '@/lib/engine/optimizer';
-import type { GenerationResult, ProviderInput, BlockTypeInput } from '@/lib/engine/types';
+import { generateOptimizationSuggestions } from '@/lib/engine/optimizer';
+import type { GenerationResult, ProviderInput, BlockTypeInput, TimeSlotOutput } from '@/lib/engine/types';
 import type { QualityScore } from '@/lib/engine/quality-score';
 import type { ClinicalWarning } from '@/lib/engine/clinical-rules';
+
+/**
+ * Template slot shape (as stored in slotsJson strings on built-in templates).
+ * These use role-relative provider IDs like "DOCTOR_0" / "HYGIENIST_1" which
+ * get mapped to real provider IDs when a template is applied.
+ */
+interface TemplateSlot {
+  time: string;
+  providerId: string;
+  blockLabel?: string | null;
+  blockTypeId?: string | null;
+  isBreak?: boolean;
+  operatory?: string;
+  staffingCode?: 'D' | 'A' | 'H' | null;
+}
 
 // ─── Task 1: Template Library ────────────────────────────────────────────────
 
@@ -61,7 +76,7 @@ describe('Template Library — built-in templates', () => {
       const parsed = JSON.parse(t.slotsJson);
       for (const [, slots] of Object.entries(parsed)) {
         expect(Array.isArray(slots)).toBe(true);
-        expect((slots as any[]).length).toBeGreaterThan(0);
+        expect((slots as TemplateSlot[]).length).toBeGreaterThan(0);
       }
     }
   });
@@ -69,8 +84,8 @@ describe('Template Library — built-in templates', () => {
   it('slots use role-relative provider IDs (DOCTOR_N, HYGIENIST_N)', () => {
     for (const t of BUILT_IN_TEMPLATES) {
       const parsed = JSON.parse(t.slotsJson);
-      const firstDay = Object.values(parsed)[0] as any[];
-      const nonBreakSlots = firstDay.filter((s: any) => !s.isBreak);
+      const firstDay = Object.values(parsed)[0] as TemplateSlot[];
+      const nonBreakSlots = firstDay.filter((s) => !s.isBreak);
       for (const slot of nonBreakSlots) {
         expect(slot.providerId).toMatch(/^(DOCTOR|HYGIENIST)_\d+$/);
       }
@@ -81,8 +96,8 @@ describe('Template Library — built-in templates', () => {
     const gp = BUILT_IN_TEMPLATES.find(t => t.name.includes('Standard GP'));
     expect(gp).toBeTruthy();
     const parsed = JSON.parse(gp!.slotsJson);
-    const monday = parsed['MONDAY'] as any[];
-    const providerIds = new Set(monday.map((s: any) => s.providerId));
+    const monday = parsed['MONDAY'] as TemplateSlot[];
+    const providerIds = new Set(monday.map((s) => s.providerId));
     expect(providerIds.has('DOCTOR_0')).toBe(true);
     expect(providerIds.has('HYGIENIST_0')).toBe(true);
     expect(providerIds.has('DOCTOR_1')).toBe(false);
@@ -92,8 +107,8 @@ describe('Template Library — built-in templates', () => {
     const hv = BUILT_IN_TEMPLATES.find(t => t.name.includes('High Volume'));
     expect(hv).toBeTruthy();
     const parsed = JSON.parse(hv!.slotsJson);
-    const monday = parsed['MONDAY'] as any[];
-    const providerIds = new Set(monday.map((s: any) => s.providerId));
+    const monday = parsed['MONDAY'] as TemplateSlot[];
+    const providerIds = new Set(monday.map((s) => s.providerId));
     expect(providerIds.has('HYGIENIST_1')).toBe(true);
   });
 
@@ -101,18 +116,18 @@ describe('Template Library — built-in templates', () => {
     const endo = BUILT_IN_TEMPLATES.find(t => t.name.includes('Endo'));
     expect(endo).toBeTruthy();
     const parsed = JSON.parse(endo!.slotsJson);
-    const monday = parsed['MONDAY'] as any[];
-    const labels = monday.map((s: any) => s.blockLabel);
-    expect(labels.some((l: string) => l.toLowerCase().includes('root canal'))).toBe(true);
+    const monday = parsed['MONDAY'] as TemplateSlot[];
+    const labels = monday.map((s) => s.blockLabel);
+    expect(labels.some((l) => (l ?? '').toLowerCase().includes('root canal'))).toBe(true);
   });
 
   it('includes New Patient Focused template with NP exam blocks', () => {
     const np = BUILT_IN_TEMPLATES.find(t => t.name.includes('New Patient'));
     expect(np).toBeTruthy();
     const parsed = JSON.parse(np!.slotsJson);
-    const monday = parsed['MONDAY'] as any[];
-    const labels = monday.map((s: any) => s.blockLabel);
-    expect(labels.some((l: string) => l.includes('New Patient'))).toBe(true);
+    const monday = parsed['MONDAY'] as TemplateSlot[];
+    const labels = monday.map((s) => s.blockLabel);
+    expect(labels.some((l) => (l ?? '').includes('New Patient'))).toBe(true);
   });
 });
 
@@ -120,7 +135,7 @@ describe('Template Library — built-in templates', () => {
 
 describe('Template Library — apply role-mapping logic', () => {
   function buildRoleIndex(slotsJson: string, officeProviders: { id: string; role: string }[]) {
-    const templateSlots = JSON.parse(slotsJson) as Record<string, any[]>;
+    const templateSlots = JSON.parse(slotsJson) as Record<string, TemplateSlot[]>;
     const doctors = officeProviders.filter(p => p.role === 'DOCTOR');
     const hygienists = officeProviders.filter(p => p.role === 'HYGIENIST');
 
@@ -128,13 +143,13 @@ describe('Template Library — apply role-mapping logic', () => {
     doctors.forEach((d, i) => { roleIndexToProviderId[`DOCTOR_${i}`] = d.id; });
     hygienists.forEach((h, i) => { roleIndexToProviderId[`HYGIENIST_${i}`] = h.id; });
 
-    const mapped: Record<string, any[]> = {};
+    const mapped: Record<string, TemplateSlot[]> = {};
     for (const [day, slots] of Object.entries(templateSlots)) {
-      mapped[day] = (slots as any[]).map(slot => {
+      mapped[day] = slots.map(slot => {
         const realId = roleIndexToProviderId[slot.providerId];
         if (!realId) return null;
         return { ...slot, providerId: realId };
-      }).filter(Boolean);
+      }).filter((s): s is TemplateSlot => s !== null);
     }
     return { mapped, roleIndexToProviderId };
   }
@@ -147,7 +162,7 @@ describe('Template Library — apply role-mapping logic', () => {
     ];
     const { mapped } = buildRoleIndex(gp.slotsJson, officeProviders);
     const monday = mapped['MONDAY'];
-    const drSlots = monday.filter((s: any) => s.providerId === 'dr-smith');
+    const drSlots = monday.filter((s) => s.providerId === 'dr-smith');
     expect(drSlots.length).toBeGreaterThan(0);
   });
 
@@ -159,7 +174,7 @@ describe('Template Library — apply role-mapping logic', () => {
     ];
     const { mapped } = buildRoleIndex(gp.slotsJson, officeProviders);
     const monday = mapped['MONDAY'];
-    const hygSlots = monday.filter((s: any) => s.providerId === 'hyg-jane');
+    const hygSlots = monday.filter((s) => s.providerId === 'hyg-jane');
     expect(hygSlots.length).toBeGreaterThan(0);
   });
 
@@ -172,10 +187,10 @@ describe('Template Library — apply role-mapping logic', () => {
     const { mapped } = buildRoleIndex(hv.slotsJson, officeProviders);
     const monday = mapped['MONDAY'];
     // No slot should have HYGIENIST_1 mapped (it gets dropped)
-    const hyg1Slots = monday.filter((s: any) => s.providerId === 'hyg-b');
+    const hyg1Slots = monday.filter((s) => s.providerId === 'hyg-b');
     expect(hyg1Slots.length).toBeGreaterThan(0); // hyg-b = HYGIENIST_0, should be mapped
     // No slots should reference a missing provider
-    expect(monday.every((s: any) => s.providerId !== undefined)).toBe(true);
+    expect(monday.every((s) => s.providerId !== undefined)).toBe(true);
   });
 });
 
@@ -216,7 +231,7 @@ describe('Schedule Version History — snapshot structure', () => {
 
     const restored: GenerationResult = {
       dayOfWeek: 'MONDAY',
-      slots: slots as any,
+      slots: slots as unknown as TimeSlotOutput[],
       productionSummary: summary,
       warnings: [],
     };

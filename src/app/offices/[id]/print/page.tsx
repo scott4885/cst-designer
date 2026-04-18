@@ -78,13 +78,21 @@ export default function PrintSchedulePage() {
     const multiOpIds = new Set(
       providers.filter(p => (p.operatories || []).length > 1).map(p => p.id)
     );
-    const byTime: Record<string, any[]> = {};
+    const byTime: Record<string, TimeSlotOutput['slots']> = {};
     for (const slot of schedule.slots) {
       if (!byTime[slot.time]) byTime[slot.time] = [];
       const displayId = multiOpIds.has(slot.providerId)
         ? `${slot.providerId}::${slot.operatory}`
         : slot.providerId;
-      byTime[slot.time].push({ ...slot, providerId: displayId });
+      byTime[slot.time].push({
+        providerId: displayId,
+        staffingCode: slot.staffingCode ?? undefined,
+        blockLabel: slot.blockLabel ?? undefined,
+        blockTypeId: slot.blockTypeId ?? undefined,
+        isBreak: slot.isBreak,
+        blockInstanceId: slot.blockInstanceId ?? null,
+        customProductionAmount: slot.customProductionAmount ?? null,
+      });
     }
     return Object.entries(byTime)
       .map(([time, slots]) => ({ time, slots }))
@@ -195,7 +203,7 @@ export default function PrintSchedulePage() {
                   ${s.actualScheduled.toLocaleString()}
                 </span>
                 <span className="text-[10px] text-gray-500">
-                  Target: ${((s as any).target75 ?? (prov ? prov.dailyGoal * 0.75 : 0)).toLocaleString()}
+                  Target: ${(s.target75 ?? (prov ? prov.dailyGoal * 0.75 : 0)).toLocaleString()}
                 </span>
                 <span className={`text-[10px] font-bold ${isMet ? 'text-green-600' : 'text-yellow-600'}`}>
                   {isMet ? '✓ MET' : '⚠ UNDER'}

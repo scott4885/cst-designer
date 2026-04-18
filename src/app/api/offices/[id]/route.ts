@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getOfficeById, updateOffice, deleteOffice } from '@/lib/data-access';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { UpdateOfficeInputSchema } from '@/lib/contracts/api-schemas';
 
 /**
  * GET /api/offices/:id
@@ -12,21 +14,14 @@ export async function GET(
   try {
     const { id } = await params;
     const office = await getOfficeById(id);
-    
+
     if (!office) {
-      return NextResponse.json(
-        { error: 'Office not found' },
-        { status: 404 }
-      );
+      throw new ApiError(404, 'Office not found');
     }
 
     return NextResponse.json(office);
   } catch (error) {
-    console.error('Error fetching office:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch office' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -42,45 +37,54 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    const parsed = UpdateOfficeInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
+    }
+    const data = parsed.data;
+
     const office = await getOfficeById(id);
     if (!office) {
-      return NextResponse.json(
-        { error: 'Office not found' },
-        { status: 404 }
-      );
+      throw new ApiError(404, 'Office not found');
     }
 
-    // Update office in database
-    const updatedOffice = await updateOffice(id, {
-      name: body.name,
-      dpmsSystem: body.dpmsSystem,
-      workingDays: body.workingDays,
-      timeIncrement: body.timeIncrement,
-      feeModel: body.feeModel,
-      providers: body.providers,
-      blockTypes: body.blockTypes,
-      rules: body.rules,
-      schedulingRules: body.schedulingRules,
-      alternateWeekEnabled: body.alternateWeekEnabled,
-      rotationEnabled: body.rotationEnabled,
-      rotationWeeks: body.rotationWeeks,
-      schedulingWindows: body.schedulingWindows,
-    });
+    // Build partial update — only include fields that were present in the request body.
+    // (Zod transforms normalize casing; anything the user didn't send stays undefined.)
+    const updatePayload: Parameters<typeof updateOffice>[1] = {};
+    if (data.name !== undefined) updatePayload.name = data.name;
+    if (data.dpmsSystem !== undefined) updatePayload.dpmsSystem = data.dpmsSystem;
+    if (data.workingDays !== undefined) updatePayload.workingDays = data.workingDays as string[];
+    if (data.timeIncrement !== undefined) updatePayload.timeIncrement = data.timeIncrement;
+    if (data.feeModel !== undefined) updatePayload.feeModel = data.feeModel;
+    if (data.providers !== undefined) {
+      // Narrow role union (Zod → 'DOCTOR' | 'HYGIENIST'; engine type accepts these)
+      updatePayload.providers = data.providers as unknown as Parameters<typeof updateOffice>[1]['providers'];
+    }
+    if (data.blockTypes !== undefined) {
+      updatePayload.blockTypes = data.blockTypes as unknown as Parameters<typeof updateOffice>[1]['blockTypes'];
+    }
+    if (data.rules !== undefined) {
+      updatePayload.rules = data.rules as unknown as Parameters<typeof updateOffice>[1]['rules'];
+    }
+    if (data.schedulingRules !== undefined) updatePayload.schedulingRules = data.schedulingRules;
+    if (data.alternateWeekEnabled !== undefined) updatePayload.alternateWeekEnabled = data.alternateWeekEnabled;
+    if (data.rotationEnabled !== undefined) updatePayload.rotationEnabled = data.rotationEnabled;
+    if (data.rotationWeeks !== undefined) updatePayload.rotationWeeks = data.rotationWeeks;
+    if (data.schedulingWindows !== undefined) {
+      updatePayload.schedulingWindows = typeof data.schedulingWindows === 'string'
+        ? data.schedulingWindows
+        : JSON.stringify(data.schedulingWindows);
+    }
+
+    const updatedOffice = await updateOffice(id, updatePayload);
 
     if (!updatedOffice) {
-      return NextResponse.json(
-        { error: 'Failed to update office' },
-        { status: 500 }
-      );
+      throw new ApiError(500, 'Failed to update office');
     }
 
     return NextResponse.json(updatedOffice);
   } catch (error) {
-    console.error('Error updating office:', error);
-    return NextResponse.json(
-      { error: 'Failed to update office' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -107,23 +111,16 @@ export async function DELETE(
     const { id } = await params;
 
     const deleted = await deleteOffice(id);
-    
+
     if (!deleted) {
-      return NextResponse.json(
-        { error: 'Office not found or failed to delete' },
-        { status: 404 }
-      );
+      throw new ApiError(404, 'Office not found or failed to delete');
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Office ${id} deleted successfully` 
+    return NextResponse.json({
+      success: true,
+      message: `Office ${id} deleted successfully`,
     });
   } catch (error) {
-    console.error('Error deleting office:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete office' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

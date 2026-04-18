@@ -6,7 +6,6 @@ import {
   OpenDentalScheduleEntry,
   ProviderMapping,
   BlockTypeMapping,
-  OpenDentalExportInput,
 } from '../open-dental';
 import type { GenerationResult, TimeSlotOutput } from '@/lib/engine/types';
 

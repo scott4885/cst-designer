@@ -229,6 +229,95 @@ describe('localStorage helpers', () => {
   });
 });
 
+// ─── Iter 12a — cloneTemplateToOffices deep-clone isolation ───────────────────
+
+describe('cloneTemplateToOffices — target office isolation (Iter 12a)', () => {
+  beforeEach(() => {
+    const store: Record<string, string> = {};
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => { store[k] = v; },
+      removeItem: (k: string) => { delete store[k]; },
+      clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+    });
+  });
+
+  it('mutating one target office does not leak into another target office', () => {
+    // Source office has a MONDAY schedule with one doctor block.
+    const srcProviders = [makeProvider('d1', 'DOCTOR')];
+    const srcSchedules: Record<string, GenerationResult> = {
+      MONDAY: makeSchedule([makeSlot('08:00', 'd1', 'OP1', 'HP', 'bt-hp')]),
+    };
+    saveSchedulesToStorage('src-office', srcSchedules);
+
+    const tgtA = {
+      id: 'tgt-A',
+      name: 'Office A',
+      providers: [makeProvider('dA', 'DOCTOR')],
+    };
+    const tgtB = {
+      id: 'tgt-B',
+      name: 'Office B',
+      providers: [makeProvider('dB', 'DOCTOR')],
+    };
+
+    const { results } = cloneTemplateToOffices(
+      'src-office',
+      srcProviders,
+      [tgtA, tgtB],
+      { days: ['MONDAY'], weeks: ['A'], cloneLibrary: false }
+    );
+
+    expect(results).toHaveLength(2);
+    const resA = results.find(r => r.officeId === 'tgt-A')!;
+    const resB = results.find(r => r.officeId === 'tgt-B')!;
+
+    // Both offices got the MONDAY schedule with their own doctor id remapped.
+    expect(resA.schedules.MONDAY.slots[0].providerId).toBe('dA');
+    expect(resB.schedules.MONDAY.slots[0].providerId).toBe('dB');
+
+    // Mutate Office A's cloned slot (the bug: mutation bleeds into Office B).
+    resA.schedules.MONDAY.slots[0].blockLabel = 'MUTATED';
+
+    // Office B must be unaffected.
+    expect(resB.schedules.MONDAY.slots[0].blockLabel).toBe('HP');
+
+    // And localStorage for Office B must still hold the unmutated value.
+    const lsB = loadSchedulesFromStorage('tgt-B');
+    expect(lsB.MONDAY.slots[0].blockLabel).toBe('HP');
+  });
+
+  it('mutating cloned result does not leak back into localStorage', () => {
+    const srcProviders = [makeProvider('d1', 'DOCTOR')];
+    const srcSchedules: Record<string, GenerationResult> = {
+      MONDAY: makeSchedule([makeSlot('08:00', 'd1', 'OP1', 'ORIGINAL', 'bt-hp')]),
+    };
+    saveSchedulesToStorage('src-office', srcSchedules);
+
+    const tgtA = {
+      id: 'tgt-A',
+      name: 'Office A',
+      providers: [makeProvider('dA', 'DOCTOR')],
+    };
+
+    const { results } = cloneTemplateToOffices(
+      'src-office',
+      srcProviders,
+      [tgtA],
+      { days: ['MONDAY'], weeks: ['A'], cloneLibrary: false }
+    );
+
+    // Mutate the in-memory result aggressively.
+    results[0].schedules.MONDAY.slots[0].blockLabel = 'CORRUPTED';
+    results[0].schedules.MONDAY.slots.push(makeSlot('09:00', 'dA', 'OP1', 'INJECTED'));
+
+    // localStorage must still have the clean, pristine clone.
+    const persisted = loadSchedulesFromStorage('tgt-A');
+    expect(persisted.MONDAY.slots).toHaveLength(1);
+    expect(persisted.MONDAY.slots[0].blockLabel).toBe('ORIGINAL');
+  });
+});
+
 // ─── Dashboard Filter/Sort Tests ───────────────────────────────────────────────
 
 describe('applyFilters', () => {

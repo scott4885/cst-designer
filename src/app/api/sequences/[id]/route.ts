@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma as db } from '@/lib/db';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { SequenceUpdateSchema } from '@/lib/contracts/api-schemas';
 
 export async function GET(
   _req: NextRequest,
@@ -8,11 +10,10 @@ export async function GET(
   const { id } = await params;
   try {
     const sequence = await db.treatmentSequence.findUnique({ where: { id } });
-    if (!sequence) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!sequence) throw new ApiError(404, 'Not found');
     return NextResponse.json(sequence);
   } catch (err) {
-    console.error('GET /api/sequences/[id]', err);
-    return NextResponse.json({ error: 'Failed to fetch sequence' }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
@@ -23,24 +24,30 @@ export async function PATCH(
   const { id } = await params;
   try {
     const seq = await db.treatmentSequence.findUnique({ where: { id } });
-    if (!seq) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!seq) throw new ApiError(404, 'Not found');
     if (seq.isBuiltIn) {
-      return NextResponse.json({ error: 'Cannot edit built-in sequences' }, { status: 403 });
+      throw new ApiError(403, 'Cannot edit built-in sequences');
     }
 
     const body = await req.json();
+
+    const parsed = SequenceUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
+    }
+    const data = parsed.data;
+
     const updated = await db.treatmentSequence.update({
       where: { id },
       data: {
-        name: body.name ?? seq.name,
-        description: body.description ?? seq.description,
-        stepsJson: body.stepsJson ?? seq.stepsJson,
+        name: data.name ?? seq.name,
+        description: data.description ?? seq.description,
+        stepsJson: data.stepsJson ?? seq.stepsJson,
       },
     });
     return NextResponse.json(updated);
   } catch (err) {
-    console.error('PATCH /api/sequences/[id]', err);
-    return NextResponse.json({ error: 'Failed to update sequence' }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
@@ -51,14 +58,13 @@ export async function DELETE(
   const { id } = await params;
   try {
     const seq = await db.treatmentSequence.findUnique({ where: { id } });
-    if (!seq) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!seq) throw new ApiError(404, 'Not found');
     if (seq.isBuiltIn) {
-      return NextResponse.json({ error: 'Cannot delete built-in sequences' }, { status: 403 });
+      throw new ApiError(403, 'Cannot delete built-in sequences');
     }
     await db.treatmentSequence.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('DELETE /api/sequences/[id]', err);
-    return NextResponse.json({ error: 'Failed to delete sequence' }, { status: 500 });
+    return handleApiError(err);
   }
 }

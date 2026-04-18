@@ -5,7 +5,6 @@ import {
   inferTimeIncrement,
   calculateStaggerOffset,
   DEFAULT_COLUMN_STAGGER_MIN,
-  type ConflictResult,
   type StaggerSuggestion,
 } from '../stagger';
 import type { GenerationResult, ProviderInput, TimeSlotOutput } from '../types';

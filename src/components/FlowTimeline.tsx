@@ -10,7 +10,7 @@
 
 import React, { useState } from 'react';
 import type { DoctorFlowResult, DoctorFlowSegment, ExamWindow, FlowConflict } from '@/lib/engine/doctor-flow';
-import type { HygieneExamRequest, HygieneExamFitResult } from '@/lib/engine/hygiene-exam-finder';
+import type { HygieneExamFitResult } from '@/lib/engine/hygiene-exam-finder';
 
 interface FlowTimelineProps {
   flow: DoctorFlowResult;

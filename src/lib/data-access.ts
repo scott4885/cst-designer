@@ -5,8 +5,23 @@ import { prisma } from './db';
 import type { ProviderInput, BlockTypeInput, ScheduleRules, GenerationResult } from './engine/types';
 import { generateSchedule as engineGenerateSchedule } from './engine/generator';
 import { detectConflicts } from './engine/stagger';
+import { autoResolveStaggerConflicts } from './engine/stagger-resolver';
 import { defaultRules } from './mock-data';
 import { DEFAULT_OPERATORIES } from './operatory-utils';
+import type {
+  Office as DbOffice,
+  Provider as DbProvider,
+  BlockType as DbBlockType,
+  ScheduleRule as DbScheduleRule,
+  ScheduleTemplate as DbScheduleTemplate,
+} from '@/generated/prisma';
+
+// Office with its relations as loaded in getOfficeById (providers, blockTypes, rules)
+type DbOfficeWithRelations = DbOffice & {
+  providers?: DbProvider[];
+  blockTypes?: DbBlockType[];
+  rules?: DbScheduleRule | null;
+};
 
 export interface OfficeListItem {
   id: string;
@@ -60,8 +75,8 @@ export interface CreateOfficeInput {
 // Helpers to convert DB rows → app shapes
 // ---------------------------------------------------------------------------
 
-function dbOfficeToDetail(office: any): OfficeDetail {
-  const providers: ProviderInput[] = (office.providers || []).map((p: any) => ({
+function dbOfficeToDetail(office: DbOfficeWithRelations): OfficeDetail {
+  const providers: ProviderInput[] = (office.providers || []).map((p) => ({
     id: p.id,
     name: p.name,
     role: p.role as ProviderInput['role'],
@@ -75,13 +90,13 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     dailyGoal: p.dailyGoal,
     color: p.color,
     seesNewPatients: p.seesNewPatients,
-    staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
-    providerSchedule: safeParseJSON((p as any).providerSchedule, {}),
-    currentProcedureMix: safeParseJSON((p as any).currentProcedureMix, {}),
-    futureProcedureMix: safeParseJSON((p as any).futureProcedureMix, {}),
+    staggerOffsetMin: p.staggerOffsetMin ?? 0,
+    providerSchedule: safeParseJSON(p.providerSchedule, {}),
+    currentProcedureMix: safeParseJSON(p.currentProcedureMix, {}),
+    futureProcedureMix: safeParseJSON(p.futureProcedureMix, {}),
   }));
 
-  const blockTypes: BlockTypeInput[] = (office.blockTypes || []).map((b: any) => ({
+  const blockTypes: BlockTypeInput[] = (office.blockTypes || []).map((b) => ({
     id: b.id,
     label: b.label,
     description: b.description || undefined,
@@ -123,11 +138,11 @@ function dbOfficeToDetail(office: any): OfficeDetail {
     blockTypes,
     rules,
     totalDailyGoal,
-    schedulingRules: (office as any).schedulingRules || '',
-    alternateWeekEnabled: (office as any).alternateWeekEnabled ?? false,
-    rotationEnabled: (office as any).rotationEnabled ?? false,
-    rotationWeeks: (office as any).rotationWeeks ?? 2,
-    schedulingWindows: (office as any).schedulingWindows || '[]',
+    schedulingRules: office.schedulingRules || '',
+    alternateWeekEnabled: office.alternateWeekEnabled ?? false,
+    rotationEnabled: office.rotationEnabled ?? false,
+    rotationWeeks: office.rotationWeeks ?? 2,
+    schedulingWindows: office.schedulingWindows || '[]',
   };
 }
 
@@ -193,7 +208,7 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
           name: p.name,
           role: p.role,
           operatories: JSON.stringify(p.operatories),
-          columns: (p as any).columns ?? 1,
+          columns: p.columns ?? 1,
           workingStart: p.workingStart,
           workingEnd: p.workingEnd,
           lunchEnabled: p.lunchEnabled !== false,
@@ -202,10 +217,10 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
           dailyGoal: p.dailyGoal,
           color: p.color,
           seesNewPatients: p.seesNewPatients !== false,
-          staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
-          providerSchedule: JSON.stringify((p as any).providerSchedule ?? {}),
-          currentProcedureMix: JSON.stringify((p as any).currentProcedureMix ?? {}),
-          futureProcedureMix: JSON.stringify((p as any).futureProcedureMix ?? {}),
+          staggerOffsetMin: p.staggerOffsetMin ?? 0,
+          providerSchedule: JSON.stringify(p.providerSchedule ?? {}),
+          currentProcedureMix: JSON.stringify(p.currentProcedureMix ?? {}),
+          futureProcedureMix: JSON.stringify(p.futureProcedureMix ?? {}),
         })),
       },
       blockTypes: {
@@ -218,9 +233,9 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
           durationMax: b.durationMax || b.durationMin,
           color: '#666',
           isHygieneType: b.appliesToRole === 'HYGIENIST',
-          dTimeMin: (b as any).dTimeMin ?? 0,
-          aTimeMin: (b as any).aTimeMin ?? 0,
-          procedureCategory: (b as any).procedureCategory || 'BASIC_RESTORATIVE',
+          dTimeMin: b.dTimeMin ?? 0,
+          aTimeMin: b.aTimeMin ?? 0,
+          procedureCategory: b.procedureCategory || 'BASIC_RESTORATIVE',
         })),
       },
       rules: {
@@ -267,7 +282,7 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
   if (data.providers) {
     // Collect IDs that should be kept; any provider in DB but not in payload gets deleted
     const incomingIds = data.providers
-      .map((p) => (p as any).id)
+      .map((p) => p.id)
       .filter((id): id is string => typeof id === 'string' && id.length > 0);
 
     // Delete providers that are no longer in the payload
@@ -282,13 +297,13 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
     // Upsert each provider individually to preserve IDs and role integrity
     for (let i = 0; i < data.providers.length; i++) {
       const p = data.providers[i];
-      const providerId = (p as any).id;
+      const providerId = p.id;
       const providerData = {
         officeId: id,
         name: p.name,
         role: p.role,
         operatories: JSON.stringify(p.operatories),
-        columns: (p as any).columns ?? 1,
+        columns: p.columns ?? 1,
         workingStart: p.workingStart,
         workingEnd: p.workingEnd,
         lunchEnabled: p.lunchEnabled !== false,
@@ -297,10 +312,10 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
         dailyGoal: p.dailyGoal,
         color: p.color,
         seesNewPatients: p.seesNewPatients !== false,
-        staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
-        providerSchedule: JSON.stringify((p as any).providerSchedule ?? {}),
-        currentProcedureMix: JSON.stringify((p as any).currentProcedureMix ?? {}),
-        futureProcedureMix: JSON.stringify((p as any).futureProcedureMix ?? {}),
+        staggerOffsetMin: p.staggerOffsetMin ?? 0,
+        providerSchedule: JSON.stringify(p.providerSchedule ?? {}),
+        currentProcedureMix: JSON.stringify(p.currentProcedureMix ?? {}),
+        futureProcedureMix: JSON.stringify(p.futureProcedureMix ?? {}),
       };
 
       if (providerId) {
@@ -329,9 +344,9 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
         durationMax: b.durationMax || b.durationMin,
         color: '#666',
         isHygieneType: b.appliesToRole === 'HYGIENIST',
-        dTimeMin: (b as any).dTimeMin ?? 0,
-        aTimeMin: (b as any).aTimeMin ?? 0,
-        procedureCategory: (b as any).procedureCategory || 'BASIC_RESTORATIVE',
+        dTimeMin: b.dTimeMin ?? 0,
+        aTimeMin: b.aTimeMin ?? 0,
+        procedureCategory: b.procedureCategory || 'BASIC_RESTORATIVE',
       })),
     });
   }
@@ -378,9 +393,16 @@ export async function deleteOffice(id: string): Promise<boolean> {
 // Schedule generation (still uses the engine, now persists to DB)
 // ---------------------------------------------------------------------------
 
-export async function generateSchedule(officeId: string, days: string[], _weekType = 'A'): Promise<GenerationResult[]> {
+export async function generateSchedule(
+  officeId: string,
+  days: string[],
+  _weekType = 'A',
+  options: { autoApplyStagger?: boolean } = {},
+): Promise<GenerationResult[]> {
   const office = await getOfficeById(officeId);
   if (!office) throw new Error('Office not found');
+
+  const { autoApplyStagger = true } = options;
 
   const results: GenerationResult[] = [];
 
@@ -394,13 +416,37 @@ export async function generateSchedule(officeId: string, days: string[], _weekTy
       activeWeek: _weekType,
     });
 
-    // Detect conflicts
-    const conflicts = detectConflicts(result, office.providers);
-    if (conflicts.length > 0) {
-      const conflictWarnings = conflicts.map(
-        (c) => `Conflict at ${c.time}: provider ${c.providerId} is double-booked in ${c.operatories.join(' and ')}`
+    // Auto-resolve multi-column D-time conflicts (A-D zigzag) before surfacing warnings.
+    // The resolver mutates result.slots in place and returns any conflicts it could
+    // not shift out of the way; those remain as warnings for the UI.
+    if (autoApplyStagger) {
+      const { appliedMoves, remainingConflicts } = autoResolveStaggerConflicts(
+        result,
+        office.providers,
       );
-      result.warnings = [...(result.warnings ?? []), ...conflictWarnings];
+
+      if (appliedMoves.length > 0) {
+        result.warnings = [
+          ...(result.warnings ?? []),
+          `Stagger resolver applied ${appliedMoves.length} auto-shift${appliedMoves.length === 1 ? '' : 's'} to eliminate D-time overlaps.`,
+        ];
+      }
+
+      if (remainingConflicts.length > 0) {
+        const conflictWarnings = remainingConflicts.map(
+          (c) => `Unresolved conflict at ${c.time}: provider ${c.providerId} is double-booked in ${c.operatories.join(' and ')}`,
+        );
+        result.warnings = [...(result.warnings ?? []), ...conflictWarnings];
+      }
+    } else {
+      // Resolver disabled — fall back to plain detection so the UI still sees conflicts.
+      const conflicts = detectConflicts(result, office.providers);
+      if (conflicts.length > 0) {
+        const conflictWarnings = conflicts.map(
+          (c) => `Conflict at ${c.time}: provider ${c.providerId} is double-booked in ${c.operatories.join(' and ')}`,
+        );
+        result.warnings = [...(result.warnings ?? []), ...conflictWarnings];
+      }
     }
 
     results.push(result);
@@ -422,7 +468,7 @@ export async function getScheduleTemplates(officeId: string, weekType?: string) 
     id: t.id,
     name: t.name,
     dayOfWeek: t.dayOfWeek,
-    weekType: (t as any).weekType ?? 'A',
+    weekType: t.weekType ?? 'A',
     slots: safeParseJSON(t.slotsJson, []),
     productionSummary: safeParseJSON(t.summaryJson, []),
     warnings: safeParseJSON(t.warningsJson, []),
@@ -430,4 +476,225 @@ export async function getScheduleTemplates(officeId: string, weekType?: string) 
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Schedule persistence (new — bridges localStorage gap)
+// ---------------------------------------------------------------------------
+
+export interface SaveScheduleInput {
+  dayOfWeek: string;
+  weekType: string;
+  slots: unknown;
+  productionSummary: unknown;
+  warnings: unknown;
+  label?: string;
+}
+
+export interface UpdateScheduleInput {
+  slots: unknown;
+  productionSummary: unknown;
+  warnings: unknown;
+  label?: string;
+}
+
+export interface AutoSaveInput {
+  dayOfWeek: string;
+  weekType: string;
+  slots: unknown;
+  productionSummary: unknown;
+  warnings: unknown;
+}
+
+export interface MigrateInput {
+  schedules: Record<string, { slots: unknown; productionSummary: unknown; warnings: unknown }>;
+  weekType: string;
+}
+
+/** Validate that an office exists; throws if not found. */
+async function requireOffice(officeId: string): Promise<void> {
+  const office = await prisma.office.findUnique({ where: { id: officeId }, select: { id: true } });
+  if (!office) throw new Error(`Office not found: ${officeId}`);
+}
+
+/** Parse a ScheduleTemplate DB row into an API-friendly shape. */
+function parseScheduleRow(t: DbScheduleTemplate) {
+  return {
+    id: t.id,
+    officeId: t.officeId,
+    name: t.name,
+    dayOfWeek: t.dayOfWeek,
+    weekType: t.weekType ?? 'A',
+    type: t.type ?? 'WORKING',
+    label: t.name,
+    slots: safeParseJSON(t.slotsJson, []),
+    productionSummary: safeParseJSON(t.summaryJson, []),
+    warnings: safeParseJSON(t.warningsJson, []),
+    isActive: t.isActive,
+    createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : String(t.createdAt),
+    updatedAt: t.updatedAt instanceof Date ? t.updatedAt.toISOString() : String(t.updatedAt),
+  };
+}
+
+/**
+ * List schedules for an office, with optional filters.
+ */
+export async function getSchedules(
+  officeId: string,
+  filters?: { weekType?: string; dayOfWeek?: string; type?: string },
+) {
+  await requireOffice(officeId);
+
+  const rows = await prisma.scheduleTemplate.findMany({
+    where: {
+      officeId,
+      ...(filters?.weekType ? { weekType: filters.weekType } : {}),
+      ...(filters?.dayOfWeek ? { dayOfWeek: filters.dayOfWeek } : {}),
+      ...(filters?.type ? { type: filters.type } : {}),
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  return rows.map(parseScheduleRow);
+}
+
+/**
+ * Get a single schedule by ID.
+ */
+export async function getScheduleById(scheduleId: string) {
+  const row = await prisma.scheduleTemplate.findUnique({ where: { id: scheduleId } });
+  if (!row) return null;
+  return parseScheduleRow(row);
+}
+
+/**
+ * Save a new NAMED schedule snapshot for an office+day+week.
+ */
+export async function saveSchedule(officeId: string, data: SaveScheduleInput) {
+  await requireOffice(officeId);
+
+  const row = await prisma.scheduleTemplate.create({
+    data: {
+      officeId,
+      name: data.label || `${data.dayOfWeek} ${data.weekType}`,
+      dayOfWeek: data.dayOfWeek,
+      weekType: data.weekType,
+      type: 'NAMED',
+      slotsJson: JSON.stringify(data.slots),
+      summaryJson: JSON.stringify(data.productionSummary),
+      warningsJson: JSON.stringify(data.warnings),
+    },
+  });
+
+  return parseScheduleRow(row);
+}
+
+/**
+ * Update an existing schedule (any type).
+ */
+export async function updateSchedule(scheduleId: string, data: UpdateScheduleInput) {
+  const existing = await prisma.scheduleTemplate.findUnique({ where: { id: scheduleId } });
+  if (!existing) throw new Error(`Schedule not found: ${scheduleId}`);
+
+  const row = await prisma.scheduleTemplate.update({
+    where: { id: scheduleId },
+    data: {
+      slotsJson: JSON.stringify(data.slots),
+      summaryJson: JSON.stringify(data.productionSummary),
+      warningsJson: JSON.stringify(data.warnings),
+      ...(data.label !== undefined && { name: data.label }),
+    },
+  });
+
+  return parseScheduleRow(row);
+}
+
+/**
+ * Delete a schedule by ID.
+ */
+export async function deleteSchedule(scheduleId: string): Promise<void> {
+  const existing = await prisma.scheduleTemplate.findUnique({ where: { id: scheduleId } });
+  if (!existing) throw new Error(`Schedule not found: ${scheduleId}`);
+  await prisma.scheduleTemplate.delete({ where: { id: scheduleId } });
+}
+
+/**
+ * Auto-save: upsert a WORKING schedule for a given office+day+week.
+ * Uses the compound unique index to ensure one working copy per slot.
+ */
+export async function autoSaveSchedule(officeId: string, data: AutoSaveInput) {
+  await requireOffice(officeId);
+
+  const row = await prisma.scheduleTemplate.upsert({
+    where: {
+      unique_working_schedule: {
+        officeId,
+        dayOfWeek: data.dayOfWeek,
+        weekType: data.weekType,
+        type: 'WORKING',
+      },
+    },
+    update: {
+      slotsJson: JSON.stringify(data.slots),
+      summaryJson: JSON.stringify(data.productionSummary),
+      warningsJson: JSON.stringify(data.warnings),
+    },
+    create: {
+      officeId,
+      name: `${data.dayOfWeek} ${data.weekType} (working)`,
+      dayOfWeek: data.dayOfWeek,
+      weekType: data.weekType,
+      type: 'WORKING',
+      slotsJson: JSON.stringify(data.slots),
+      summaryJson: JSON.stringify(data.productionSummary),
+      warningsJson: JSON.stringify(data.warnings),
+    },
+  });
+
+  return parseScheduleRow(row);
+}
+
+/**
+ * One-time migration of localStorage schedules into the DB.
+ * Creates a WORKING schedule for each day key in the record.
+ */
+export async function migrateLocalStorageSchedules(
+  officeId: string,
+  data: MigrateInput,
+): Promise<{ migratedCount: number; scheduleIds: string[] }> {
+  await requireOffice(officeId);
+
+  const scheduleIds: string[] = [];
+
+  for (const [dayOfWeek, schedule] of Object.entries(data.schedules)) {
+    const row = await prisma.scheduleTemplate.upsert({
+      where: {
+        unique_working_schedule: {
+          officeId,
+          dayOfWeek,
+          weekType: data.weekType,
+          type: 'WORKING',
+        },
+      },
+      update: {
+        slotsJson: JSON.stringify(schedule.slots),
+        summaryJson: JSON.stringify(schedule.productionSummary),
+        warningsJson: JSON.stringify(schedule.warnings),
+      },
+      create: {
+        officeId,
+        name: `${dayOfWeek} ${data.weekType} (migrated)`,
+        dayOfWeek,
+        weekType: data.weekType,
+        type: 'WORKING',
+        slotsJson: JSON.stringify(schedule.slots),
+        summaryJson: JSON.stringify(schedule.productionSummary),
+        warningsJson: JSON.stringify(schedule.warnings),
+      },
+    });
+
+    scheduleIds.push(row.id);
+  }
+
+  return { migratedCount: scheduleIds.length, scheduleIds };
 }

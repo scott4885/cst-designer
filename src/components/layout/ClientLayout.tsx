@@ -75,7 +75,9 @@ export default function ClientLayout({
               <Header onMobileMenuToggle={() => setMobileSidebarOpen((v) => !v)} />
             )}
             <main className={`flex-1 min-h-0 overflow-auto bg-background ${fullScreen ? "p-0" : isBuilder ? "p-2" : "p-4 sm:p-6"}`}>
-              <ErrorBoundary>{children}</ErrorBoundary>
+              <ErrorBoundary name="main-layout" scope="the page">
+                {children}
+              </ErrorBoundary>
             </main>
           </div>
         </div>

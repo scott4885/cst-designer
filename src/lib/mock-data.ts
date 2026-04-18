@@ -1,4 +1,4 @@
-import { ProviderInput, BlockTypeInput, ScheduleRules, GenerationResult } from './engine/types';
+import { ProviderInput, BlockTypeInput, ScheduleRules } from './engine/types';
 
 export interface OfficeData {
   id: string;
@@ -18,6 +18,8 @@ export interface OfficeData {
   rotationWeeks?: number;
   /** JSON array of SchedulingWindow objects for smart scheduling windows (Sprint 17) */
   schedulingWindows?: string;
+  /** Free-form scheduling rules (notes / policy text) */
+  schedulingRules?: string;
   providers?: ProviderInput[];
   blockTypes?: BlockTypeInput[];
   rules?: ScheduleRules;

@@ -329,7 +329,7 @@ export default function CloneTemplateModal({
               <div className="flex items-start gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                 <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                  <p className="text-sm font-medium text-green-700">
                     Cloned to {cloneResults.length} office{cloneResults.length !== 1 ? 's' : ''}!
                   </p>
                   {totalMismatches > 0 && (
@@ -351,7 +351,7 @@ export default function CloneTemplateModal({
                     {cloneResults.filter(r => r.mismatches.length > 0).map(r => (
                       <div key={r.officeId} className="text-xs bg-amber-500/10 border border-amber-500/20 rounded p-2">
                         {r.mismatches.map((m, i) => (
-                          <p key={i} className="text-amber-700 dark:text-amber-400">{m.message}</p>
+                          <p key={i} className="text-amber-700">{m.message}</p>
                         ))}
                       </div>
                     ))}

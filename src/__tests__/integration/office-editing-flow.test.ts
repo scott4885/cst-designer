@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import { POST as CREATE_OFFICE } from '@/app/api/offices/route';
-import { GET as GET_OFFICE, PUT as UPDATE_OFFICE, DELETE as DELETE_OFFICE } from '@/app/api/offices/[id]/route';
+import { GET as GET_OFFICE, PUT as UPDATE_OFFICE } from '@/app/api/offices/[id]/route';
 import { POST as GENERATE } from '@/app/api/offices/[id]/generate/route';
 import { prisma } from '@/lib/db';
 

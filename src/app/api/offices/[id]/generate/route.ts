@@ -1,57 +1,76 @@
 import { NextResponse } from 'next/server';
-import { getOfficeById, generateSchedule } from '@/lib/data-access';
+import { getOfficeById, generateSchedule, autoSaveSchedule } from '@/lib/data-access';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { GenerateInputSchema } from '@/lib/contracts/api-schemas';
 
 /**
  * POST /api/offices/:id/generate
- * Generate schedule for an office and save to database
+ * Generate schedule for an office.
+ * Optional query param: ?autoApplyStagger=true — auto-saves generated
+ * schedules as WORKING copies in the database.
  */
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const body = await request.json();
 
+    // Body may be empty — default to {} so safeParse still runs.
+    const parsed = GenerateInputSchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
+    }
+    const parsedBody = parsed.data;
+
+    const url = new URL(request.url);
+    const autoApplyStaggerParam = url.searchParams.get('autoApplyStagger');
+    // Stagger resolver defaults ON — only disable if explicitly set to 'false'.
+    const autoApplyStagger = autoApplyStaggerParam !== 'false';
+    // Legacy behavior: the same flag also triggers auto-saving the generated
+    // schedules as WORKING copies. Preserve the opt-in shape (must be 'true').
+    const autoSaveGenerated = autoApplyStaggerParam === 'true';
+
     // Find the office in database
     const office = await getOfficeById(id);
-    
+
     if (!office) {
-      return NextResponse.json(
-        { error: 'Office not found' },
-        { status: 404 }
-      );
+      throw new ApiError(404, 'Office not found');
     }
 
     // Validate office has required data
     if (!office.providers || !office.blockTypes || !office.rules) {
-      return NextResponse.json(
-        { error: 'Office missing required data (providers, blockTypes, or rules)' },
-        { status: 400 }
-      );
+      throw new ApiError(400, 'Office missing required data (providers, blockTypes, or rules)');
     }
-
-    // Validate arrays are not empty
     if (office.providers.length === 0) {
-      return NextResponse.json(
-        { error: 'Office must have at least one provider to generate schedules' },
-        { status: 400 }
-      );
+      throw new ApiError(400, 'Office must have at least one provider to generate schedules');
     }
-
     if (office.blockTypes.length === 0) {
-      return NextResponse.json(
-        { error: 'Office must have at least one block type to generate schedules' },
-        { status: 400 }
-      );
+      throw new ApiError(400, 'Office must have at least one block type to generate schedules');
     }
 
     // Get days to generate from request or use office working days
-    const daysToGenerate = body.days || office.workingDays;
-    const weekType = body.weekType || 'A';
+    const daysToGenerate = parsedBody.days || office.workingDays;
+    const weekType = parsedBody.weekType || 'A';
 
-    // Generate and save schedules to database
-    const schedules = await generateSchedule(id, daysToGenerate, weekType);
+    // Generate schedules via the engine (stagger resolver runs by default)
+    const schedules = await generateSchedule(id, daysToGenerate, weekType, {
+      autoApplyStagger,
+    });
+
+    // Optionally auto-save each generated result as a WORKING schedule
+    if (autoSaveGenerated) {
+      for (const result of schedules) {
+        await autoSaveSchedule(id, {
+          dayOfWeek: result.dayOfWeek,
+          weekType,
+          slots: result.slots,
+          productionSummary: result.productionSummary ?? [],
+          warnings: result.warnings ?? [],
+        });
+      }
+    }
 
     return NextResponse.json({
       officeId: id,
@@ -60,10 +79,6 @@ export async function POST(
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error generating schedule:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate schedule', details: String(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

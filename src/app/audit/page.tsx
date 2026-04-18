@@ -6,9 +6,9 @@
  * Analyzes which block types are used vs. unused across all saved schedules.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { Download, Trash2, ArrowLeft, AlertCircle, CheckCircle2, BarChart2 } from "lucide-react";
+import { Download, ArrowLeft, AlertCircle, CheckCircle2, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

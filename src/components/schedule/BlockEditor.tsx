@@ -183,13 +183,13 @@ export default function BlockEditor({
             </div>
             <div className="flex items-center gap-2">
               {(selectedBlock.dTimeMin ?? 0) > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
                   <span>D</span>
                   <span>{selectedBlock.dTimeMin}min</span>
                 </span>
               )}
               {(selectedBlock.aTimeMin ?? 0) > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
                   <span>A</span>
                   <span>{selectedBlock.aTimeMin}min</span>
                 </span>

@@ -3,7 +3,6 @@ import {
   scoreScheduleAlignment,
   DEFAULT_IDEAL_DAY_TEMPLATE,
   type IdealDayTemplate,
-  type AlignmentScore,
 } from '../ideal-day';
 import type { GenerationResult, TimeSlotOutput } from '../types';
 

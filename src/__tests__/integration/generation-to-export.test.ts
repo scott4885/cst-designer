@@ -115,7 +115,7 @@ describe('Generation to Export Flow Integration', () => {
 
     // Step 3: Validate workbook structure
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
 
     // Summary + 2 instruction + 1 day = 4 sheets minimum
     expect(workbook.worksheets.length).toBeGreaterThanOrEqual(3);
@@ -150,7 +150,7 @@ describe('Generation to Export Flow Integration', () => {
     const buffer = await generateExcel(exportInput);
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
 
     const sheetNames = workbook.worksheets.map(ws => ws.name);
     expect(sheetNames).toContain('Monday');

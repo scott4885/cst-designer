@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { BulkGoalsInputSchema } from '@/lib/contracts/api-schemas';
 
 /**
  * PATCH /api/offices/bulk-goals
@@ -19,25 +21,12 @@ import { prisma } from '@/lib/db';
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { officeIds, doctorGoal, hygienistGoal } = body as {
-      officeIds: string[];
-      doctorGoal: number | null;
-      hygienistGoal: number | null;
-    };
 
-    if (!Array.isArray(officeIds) || officeIds.length === 0) {
-      return NextResponse.json(
-        { error: 'officeIds must be a non-empty array' },
-        { status: 400 }
-      );
+    const parsed = BulkGoalsInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
     }
-
-    if (doctorGoal === null && hygienistGoal === null) {
-      return NextResponse.json(
-        { error: 'At least one of doctorGoal or hygienistGoal must be provided' },
-        { status: 400 }
-      );
-    }
+    const { officeIds, doctorGoal, hygienistGoal } = parsed.data;
 
     let updatedProviders = 0;
 
@@ -77,10 +66,6 @@ export async function PATCH(request: Request) {
       updatedOffices: officeIds.length,
     });
   } catch (error) {
-    console.error('Error in bulk-goals PATCH:', error);
-    return NextResponse.json(
-      { error: 'Failed to update provider goals' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

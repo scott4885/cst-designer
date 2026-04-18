@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { POST as CREATE_OFFICE } from '@/app/api/offices/route';
-import { DELETE as DELETE_OFFICE } from '@/app/api/offices/[id]/route';
 import { POST as GENERATE } from '@/app/api/offices/[id]/generate/route';
 import { prisma } from '@/lib/db';
 
@@ -68,7 +67,7 @@ describe('POST /api/offices/[id]/generate', () => {
     expect(Array.isArray(data.schedules)).toBe(true);
     expect(data.schedules.length).toBeGreaterThan(0);
 
-    const mondaySchedule = data.schedules.find((s: any) => s.dayOfWeek === 'MONDAY');
+    const mondaySchedule = data.schedules.find((s: { dayOfWeek: string }) => s.dayOfWeek === 'MONDAY');
     expect(mondaySchedule).toBeDefined();
     expect(mondaySchedule.slots).toBeDefined();
     expect(Array.isArray(mondaySchedule.slots)).toBe(true);

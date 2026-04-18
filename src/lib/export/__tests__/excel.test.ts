@@ -88,7 +88,7 @@ describe('Excel Export', () => {
   it('should have correct number of sheets', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
     
     // Summary + 2 instruction sheets + 2 day schedules = 5 sheets
     expect(workbook.worksheets.length).toBe(5);
@@ -97,7 +97,7 @@ describe('Excel Export', () => {
   it('should have correct sheet names', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
     
     const sheetNames = workbook.worksheets.map(ws => ws.name);
     expect(sheetNames).toContain('Summary');
@@ -110,7 +110,7 @@ describe('Excel Export', () => {
   it('should contain provider data in day sheets', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
     
     const mondaySheet = workbook.getWorksheet('Monday 1.26');
     expect(mondaySheet).toBeDefined();
@@ -124,7 +124,7 @@ describe('Excel Export', () => {
   it('should contain time slots from 7:00 AM to 6:00 PM', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
     
     const mondaySheet = workbook.getWorksheet('Monday 1.26');
     expect(mondaySheet).toBeDefined();
@@ -147,7 +147,7 @@ describe('Excel Export', () => {
   it('should contain block type legend', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
     
     const mondaySheet = workbook.getWorksheet('Monday 1.26');
     expect(mondaySheet).toBeDefined();
@@ -168,7 +168,7 @@ describe('Excel Export', () => {
   it('should apply provider colors to cells', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
     
     const mondaySheet = workbook.getWorksheet('Monday 1.26');
     expect(mondaySheet).toBeDefined();
@@ -191,7 +191,7 @@ describe('Excel Export', () => {
   it('should include production summary in footer', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
     
     const mondaySheet = workbook.getWorksheet('Monday 1.26');
     expect(mondaySheet).toBeDefined();
@@ -217,7 +217,7 @@ describe('Excel Export', () => {
   it('should set correct workbook properties', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
     
     expect(workbook.creator).toBe('Custom Schedule Template');
     expect(workbook.subject).toBe('Customized Schedule Template - Smile Cascade');
@@ -226,7 +226,7 @@ describe('Excel Export', () => {
   it('should handle multiple days correctly', async () => {
     const buffer = await generateExcel(mockExportInput);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer);
     
     // Should have Monday and Tuesday sheets
     const mondaySheet = workbook.getWorksheet('Monday 1.26');

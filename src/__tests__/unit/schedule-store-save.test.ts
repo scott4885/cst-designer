@@ -7,7 +7,7 @@
  * 3. Production calculation counts each block once (not per-row)
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useScheduleStore } from '@/store/schedule-store';
 import type { GenerationResult, ProviderInput, BlockTypeInput } from '@/lib/engine/types';
 

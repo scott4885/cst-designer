@@ -4,10 +4,8 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  ProductionMix,
   ProviderMix,
   CategoryEntry,
-  BenchmarkComparison,
   BlockCategory,
   calculateProductionMix,
   compareToIndustryBenchmark,
@@ -110,13 +108,17 @@ function DonutChart({
     );
   }
 
-  let currentAngle = 0;
-  const paths = activeSegments.map((seg) => {
+  // Precompute cumulative angles so we don't reassign a let during render
+  const angleBounds: { startAngle: number; endAngle: number }[] = [];
+  activeSegments.reduce((acc, seg) => {
     const sliceDeg = (seg.percentage / total) * 360;
-    const startAngle = currentAngle;
-    const endAngle = currentAngle + sliceDeg;
-    currentAngle = endAngle;
+    const endAngle = acc + sliceDeg;
+    angleBounds.push({ startAngle: acc, endAngle });
+    return endAngle;
+  }, 0);
 
+  const paths = activeSegments.map((seg, i) => {
+    const { startAngle, endAngle } = angleBounds[i];
     const isHovered = hovered === seg.category;
     const rOuter = isHovered ? outerR + 4 : outerR;
 

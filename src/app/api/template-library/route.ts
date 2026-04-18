@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { seedBuiltInTemplates } from '@/lib/template-library-seed';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { TemplateLibraryCreateInputSchema } from '@/lib/contracts/api-schemas';
 
 /**
  * GET /api/template-library
@@ -20,8 +22,7 @@ export async function GET() {
 
     return NextResponse.json(items);
   } catch (error) {
-    console.error('Error fetching template library:', error);
-    return NextResponse.json({ error: 'Failed to fetch template library' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -32,11 +33,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, description, category, slotsJson } = body;
 
-    if (!name) {
-      return NextResponse.json({ error: 'name is required' }, { status: 400 });
+    const parsed = TemplateLibraryCreateInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
     }
+    const { name, description, category, slotsJson } = parsed.data;
 
     const item = await prisma.templateLibraryItem.create({
       data: {
@@ -50,7 +52,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(item, { status: 201 });
   } catch (error) {
-    console.error('Error creating template library item:', error);
-    return NextResponse.json({ error: 'Failed to create template' }, { status: 500 });
+    return handleApiError(error);
   }
 }

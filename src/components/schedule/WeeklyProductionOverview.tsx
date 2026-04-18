@@ -37,27 +37,27 @@ const DAY_LABELS: Record<string, string> = {
 
 function getStatusColor(status: DaySummary["status"]): string {
   switch (status) {
-    case "green": return "border-green-300 dark:border-green-700";
-    case "amber": return "border-amber-300 dark:border-amber-700";
-    case "red":   return "border-red-300 dark:border-red-700";
+    case "green": return "border-green-300";
+    case "amber": return "border-amber-300";
+    case "red":   return "border-red-300";
     default:      return "border-border";
   }
 }
 
 function getStatusBg(status: DaySummary["status"]): string {
   switch (status) {
-    case "green": return "bg-green-50 dark:bg-green-950/30";
-    case "amber": return "bg-amber-50 dark:bg-amber-950/30";
-    case "red":   return "bg-red-50 dark:bg-red-950/30";
+    case "green": return "bg-green-50";
+    case "amber": return "bg-amber-50";
+    case "red":   return "bg-red-50";
     default:      return "bg-muted/30";
   }
 }
 
 function getStatusText(status: DaySummary["status"]): string {
   switch (status) {
-    case "green": return "text-green-700 dark:text-green-400";
-    case "amber": return "text-amber-700 dark:text-amber-400";
-    case "red":   return "text-red-700 dark:text-red-400";
+    case "green": return "text-green-700";
+    case "amber": return "text-amber-700";
+    case "red":   return "text-red-700";
     default:      return "text-muted-foreground";
   }
 }
@@ -189,7 +189,7 @@ export default function WeeklyProductionOverview({
 
             {/* Progress bar */}
             {day.status !== "empty" && (
-              <div className="h-1.5 w-full bg-white/50 dark:bg-black/20 rounded-full overflow-hidden mb-1.5">
+              <div className="h-1.5 w-full bg-white/50 rounded-full overflow-hidden mb-1.5">
                 <div
                   className={`h-full rounded-full ${getProgressBg(day.status)}`}
                   style={{ width: `${Math.min(day.pct, 100)}%` }}

@@ -44,7 +44,7 @@ const DEFAULT_BLOCK_COLOR = '#94a3b8';
 function getBlockColor(blockTypeId: string | null, blockTypes: BlockTypeInput[]): string {
   if (!blockTypeId) return DEFAULT_BLOCK_COLOR;
   const bt = blockTypes.find(b => b.id === blockTypeId);
-  return (bt as any)?.color ?? DEFAULT_BLOCK_COLOR;
+  return bt?.color ?? DEFAULT_BLOCK_COLOR;
 }
 
 /**

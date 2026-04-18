@@ -100,10 +100,10 @@ export default function BlockPicker({
           >
             <div className="flex items-center justify-between">
               <span className="font-medium text-foreground flex items-center gap-1.5">
-                {"color" in bt && (bt as any).color ? (
+                {bt.color ? (
                   <span
                     className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: (bt as any).color }}
+                    style={{ backgroundColor: bt.color }}
                   />
                 ) : null}
                 {bt.label}

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -216,7 +216,7 @@ function BlockTypeForm({ initial = EMPTY_FORM, onSave, onCancel, isSubmitting, m
         <Label>Applies To</Label>
         <Select
           value={form.appliesToRole}
-          onValueChange={(v) => set("appliesToRole", v as any)}
+          onValueChange={(v) => set("appliesToRole", v as "DOCTOR" | "HYGIENIST" | "BOTH")}
         >
           <SelectTrigger>
             <SelectValue />
@@ -704,7 +704,7 @@ export default function AppointmentLibraryPage() {
           <DialogHeader>
             <DialogTitle>Edit Appointment Type</DialogTitle>
             <DialogDescription>
-              Update the details of "{editTarget?.label}".
+              Update the details of &ldquo;{editTarget?.label}&rdquo;.
             </DialogDescription>
           </DialogHeader>
           {editTarget && (
@@ -725,7 +725,7 @@ export default function AppointmentLibraryPage() {
             <DialogTitle>Delete Appointment Type</DialogTitle>
             <DialogDescription>
               Are you sure you want to remove{" "}
-              <span className="font-semibold text-foreground">"{deleteTarget?.label}"</span>{" "}
+              <span className="font-semibold text-foreground">&ldquo;{deleteTarget?.label}&rdquo;</span>{" "}
               from the library? This cannot be undone.
             </DialogDescription>
           </DialogHeader>

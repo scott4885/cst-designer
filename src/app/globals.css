@@ -114,43 +114,7 @@
   --sidebar-bg: oklch(14% 0 0);
 }
 
-/* Respect system preference when no manual toggle */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: oklch(18% 0 0);
-    --foreground: oklch(88% 0 0);
-    --card: oklch(22% 0 0);
-    --card-foreground: oklch(88% 0 0);
-    --popover: oklch(22% 0 0);
-    --popover-foreground: oklch(88% 0 0);
-    --primary: oklch(62% 0.1 240);
-    --primary-foreground: oklch(18% 0 0);
-    --secondary: oklch(28% 0 0);
-    --secondary-foreground: oklch(88% 0 0);
-    --muted: oklch(28% 0 0);
-    --muted-foreground: oklch(65% 0 0);
-    --accent: oklch(62% 0.1 240);
-    --accent-foreground: oklch(18% 0 0);
-    --destructive: oklch(55% 0.22 25);
-    --destructive-foreground: oklch(88% 0 0);
-    --border: oklch(28% 0 0);
-    --input: oklch(28% 0 0);
-    --ring: oklch(62% 0.1 240);
-
-    --surface: oklch(22% 0 0);
-    --text-secondary: oklch(65% 0 0);
-    --success: oklch(60% 0.15 145);
-    --warning: oklch(65% 0.15 60);
-    --error: oklch(55% 0.22 25);
-
-    --provider-1: oklch(68% 0.15 50);
-    --provider-2: oklch(70% 0.1 240);
-    --provider-3: oklch(80% 0.15 95);
-    --provider-4: oklch(75% 0.12 180);
-
-    --sidebar-bg: oklch(14% 0 0);
-  }
-}
+/* System dark preference disabled — light theme only */
 
 /* ──────────────────────────────────────────────────────────────
    Tailwind v4 @theme — maps CSS vars to Tailwind utility classes

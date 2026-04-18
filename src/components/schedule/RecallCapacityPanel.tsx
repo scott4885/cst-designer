@@ -135,7 +135,7 @@ export default function RecallCapacityPanel({ offices }: RecallCapacityPanelProp
         officeId: o.id,
         officeName: o.name,
         hygienistCount: countHygienists(o),
-        workingDays: (o as any).workingDays ?? [
+        workingDays: o.workingDays ?? [
           "MONDAY",
           "TUESDAY",
           "WEDNESDAY",

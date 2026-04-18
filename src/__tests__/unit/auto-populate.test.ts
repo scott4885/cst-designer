@@ -11,7 +11,7 @@ function lsKey(officeId: string, week: 'A' | 'B'): string {
   return week === 'B' ? `${LS_PREFIX}${officeId}:weekB` : `${LS_PREFIX}${officeId}`;
 }
 
-type ScheduleMap = Record<string, { dayOfWeek: string; slots: any[]; productionSummary: any[]; warnings: string[] }>;
+type ScheduleMap = Record<string, { dayOfWeek: string; slots: unknown[]; productionSummary: unknown[]; warnings: string[] }>;
 
 function persistSchedules(officeId: string, week: 'A' | 'B', schedules: ScheduleMap) {
   localStorage.setItem(lsKey(officeId, week), JSON.stringify(schedules));

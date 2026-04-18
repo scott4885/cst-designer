@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useBlockTypeStore, BLOCK_TYPE_STORAGE_KEY, type LibraryBlockType } from '@/store/block-type-store';
 import { defaultBlockTypes } from '@/lib/mock-data';
 

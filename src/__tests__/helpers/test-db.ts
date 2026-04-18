@@ -3,7 +3,7 @@
  * Placeholder implementations for localStorage-based persistence.
  */
 
-export const testPrisma = null as any;
+export const testPrisma: unknown = null;
 
 export async function clearTestDatabase() {
   return;

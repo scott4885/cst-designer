@@ -444,7 +444,7 @@ describe('T7 — Legacy alternateWeekEnabled backward compat', () => {
     };
     expect(office.alternateWeekEnabled).toBe(true);
     // rotationEnabled/rotationWeeks are optional — not breaking
-    expect((office as any).rotationEnabled).toBeUndefined();
+    expect(office.rotationEnabled).toBeUndefined();
   });
 });
 

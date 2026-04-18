@@ -4,7 +4,7 @@
  * 100 runs → P50/P90 completion times, expected patient count, bottleneck slot.
  */
 
-import type { GenerationResult, ProviderInput, BlockTypeInput } from './types';
+import type { GenerationResult, ProviderInput } from './types';
 
 export interface PatientFlowResult {
   providerId: string;

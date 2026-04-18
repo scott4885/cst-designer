@@ -28,7 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOfficeStore } from "@/store/office-store";
 import { useScheduleStore } from "@/store/schedule-store";
 import {

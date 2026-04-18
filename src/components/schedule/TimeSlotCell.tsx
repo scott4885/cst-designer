@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CONFLICT_COLORS, hexToRgba } from "@/lib/engine/block-categories";
 
 interface TimeSlotCellProps {
   time?: string;
@@ -54,6 +55,15 @@ export default function TimeSlotCell({
 }: TimeSlotCellProps) {
   const [isHovered, setIsHovered] = useState(false);
 
+  // Shared keyboard activation handler — Space/Enter triggers the same onClick.
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick) return;
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   // Time column cell
   if (time) {
     return (
@@ -75,6 +85,7 @@ export default function TimeSlotCell({
 
   // Empty or break cell
   if (isBreak || (!staffingCode && !blockLabel)) {
+    const isInteractiveEmpty = !!onClick && !isBreak && isClickable;
     return (
       <div
         className={`provider-cell px-1 py-0 h-full ${
@@ -85,10 +96,20 @@ export default function TimeSlotCell({
             : "bg-background"
         } ${
           isClickable && !isBreak
-            ? "cursor-pointer hover:bg-accent/10 transition-colors group/cell"
+            ? "cursor-pointer hover:bg-accent/10 transition-colors group/cell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
             : ""
         }`}
         onClick={!isBreak ? onClick : undefined}
+        onKeyDown={isInteractiveEmpty ? handleKeyDown : undefined}
+        role={isInteractiveEmpty ? "button" : undefined}
+        tabIndex={isInteractiveEmpty ? 0 : undefined}
+        aria-label={
+          isInteractiveEmpty
+            ? "Empty slot, press Enter to add block"
+            : isBreak
+            ? "Lunch break"
+            : undefined
+        }
       >
         {isBreak && <span className="text-muted-foreground text-[10px] font-medium leading-none">LUNCH</span>}
         {isDragOver && !isBreak && (
@@ -109,7 +130,7 @@ export default function TimeSlotCell({
           isBreak ? "bg-muted/40" : ""
         }`}
         style={providerColor && !isBreak ? {
-          backgroundColor: providerColor + "20",
+          backgroundColor: hexToRgba(providerColor, 0.125),
           borderLeft: `2px solid ${providerColor}`,
         } : {}}
       >
@@ -131,7 +152,7 @@ export default function TimeSlotCell({
 
   // Effective conflict: regular conflict OR D-time conflict
   const effectiveConflict = hasConflict || hasDTimeConflict;
-  const conflictColor = hasDTimeConflict && !hasConflict ? "#f97316" : "#ef4444"; // orange for D-time, red for hard conflict
+  const conflictColor = hasDTimeConflict && !hasConflict ? CONFLICT_COLORS.DTIME_OVERLAP : CONFLICT_COLORS.HARD;
 
   // Assisted Hygiene blocks get a distinct teal/cyan color overriding the provider color
   const isAssistedHyg = !!(blockLabel && (blockLabel.toUpperCase().includes('ASSISTED HYG') || blockLabel.toUpperCase().includes('ASSISTED HYGIENE')));
@@ -140,33 +161,29 @@ export default function TimeSlotCell({
   // Outside provider work hours — gray, non-interactive (compact)
   // (duplicated here intentionally for flow control)
 
-  // Provider cell with data
+  // Provider cell with data — clean continuous fills, thin left accent only
   const cellStyle = effectiveProviderColor
     ? {
         backgroundColor: effectiveConflict
-          ? (hasDTimeConflict && !hasConflict ? "rgba(249,115,22,0.10)" : "rgba(239,68,68,0.12)")
-          : effectiveProviderColor + "30",
-        borderLeft: effectiveConflict ? `4px solid ${conflictColor}` : `4px solid ${effectiveProviderColor}`,
-        borderRight: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${effectiveProviderColor}`,
-        ...(isBlockFirst && {
-          borderTop: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${effectiveProviderColor}`,
-          borderTopLeftRadius: '4px',
-          borderTopRightRadius: '4px',
-        }),
-        ...(isBlockLast && {
-          borderBottom: effectiveConflict ? `3px solid ${conflictColor}` : `3px solid ${effectiveProviderColor}`,
-          borderBottomLeftRadius: '4px',
-          borderBottomRightRadius: '4px',
-        }),
+          ? (hasDTimeConflict && !hasConflict ? hexToRgba(CONFLICT_COLORS.DTIME_OVERLAP, 0.10) : hexToRgba(CONFLICT_COLORS.HARD, 0.12))
+          : hexToRgba(effectiveProviderColor, 0.1875),
+        borderLeft: `3px solid ${effectiveConflict ? conflictColor : effectiveProviderColor}`,
       }
     : effectiveConflict
-    ? { borderLeft: `4px solid ${conflictColor}`, backgroundColor: hasDTimeConflict ? "rgba(249,115,22,0.08)" : "rgba(239,68,68,0.08)" }
+    ? { borderLeft: `3px solid ${conflictColor}`, backgroundColor: hasDTimeConflict ? hexToRgba(CONFLICT_COLORS.DTIME_OVERLAP, 0.08) : hexToRgba(CONFLICT_COLORS.HARD, 0.08) }
     : {};
+
+  const isInteractiveBlock = !!onClick && isClickable;
+  const blockAriaLabel = blockLabel
+    ? `${staffingCode ? staffingCode + " " : ""}${blockLabel} block${
+        effectiveConflict ? " — scheduling conflict" : ""
+      }${isInteractiveBlock ? ", press Enter to edit" : ""}`
+    : undefined;
 
   return (
     <div
       className={`provider-cell relative group px-1 py-0 h-full transition-all ${
-        isClickable ? "cursor-pointer hover:brightness-110" : ""
+        isClickable ? "cursor-pointer hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1" : ""
       } ${
         isDragging
           ? "opacity-40 ring-2 ring-amber-400/60 ring-inset cursor-grabbing"
@@ -176,6 +193,10 @@ export default function TimeSlotCell({
       }`}
       style={cellStyle}
       onClick={onClick}
+      onKeyDown={isInteractiveBlock ? handleKeyDown : undefined}
+      role={isInteractiveBlock ? "button" : undefined}
+      tabIndex={isInteractiveBlock ? 0 : undefined}
+      aria-label={blockAriaLabel}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       title={effectiveConflict && conflictTooltip ? conflictTooltip : blockLabel ? `${staffingCode || ""} ${blockLabel}` : ""}
@@ -196,12 +217,12 @@ export default function TimeSlotCell({
           title={blockLabel}
         >
           {isAssistedHyg && isBlockFirst && (
-            <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 border border-violet-300 dark:border-violet-700 shrink-0">
+            <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-violet-100 text-violet-700 border border-violet-300 shrink-0">
               AH
             </span>
           )}
           {isHighProduction && isBlockFirst && (
-            <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shrink-0" title="High Production">
+            <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-amber-100 text-amber-700 border border-amber-300 shrink-0" title="High Production">
               HP
             </span>
           )}
@@ -228,26 +249,26 @@ export default function TimeSlotCell({
       {/* D/A time label — small text badge on first cell */}
       {hasDASplit && (
         <div className="flex items-center gap-1 mt-0.5">
-          <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+          <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-blue-100 text-blue-700">
             D·{dTimeMin}m
           </span>
-          <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+          <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-emerald-100 text-emerald-700">
             A·{aTimeMin}m
           </span>
         </div>
       )}
 
-      {/* Conflict warning icons */}
+      {/* Conflict warning icons — decorative; conflict info is conveyed textually in tooltip + aria-label. */}
       {(hasConflict || hasDTimeConflict) && (
-        <div className="absolute top-0.5 right-0.5 z-10 pointer-events-none flex gap-0.5" aria-label="conflict">
+        <div className="absolute top-0.5 right-0.5 z-10 pointer-events-none flex gap-0.5" aria-hidden="true">
           {hasConflict && (
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="#ef4444">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill={CONFLICT_COLORS.HARD}>
               <title>Double-booking conflict</title>
               <path d="M8 1L1 14h14L8 1zm0 2.5l5.5 9.5H2.5L8 3.5zM7.25 7v3h1.5V7h-1.5zm0 4v1.5h1.5V11h-1.5z" />
             </svg>
           )}
           {hasDTimeConflict && !hasConflict && (
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="#f97316">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill={CONFLICT_COLORS.DTIME_OVERLAP}>
               <title>D-time overlap</title>
               <path d="M8 1L1 14h14L8 1zm0 2.5l5.5 9.5H2.5L8 3.5zM7.25 7v3h1.5V7h-1.5zm0 4v1.5h1.5V11h-1.5z" />
             </svg>

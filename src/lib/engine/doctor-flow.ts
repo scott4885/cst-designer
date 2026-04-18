@@ -59,11 +59,6 @@ export interface DoctorFlowResult {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function parseStartMinutes(startTime: string): number {
-  const [h, m] = startTime.split(':').map(Number);
-  return h * 60 + m;
-}
-
 /** Get D-time ratio for a block type. Falls back to 0.5 if not set. */
 function getDRatio(bt: BlockTypeInput): number {
   if (bt.dTimeMin && bt.durationMin > 0) {

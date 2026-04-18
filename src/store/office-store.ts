@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { OfficeData } from '@/lib/mock-data';
+import type { ProviderInput } from '@/lib/engine/types';
 
 interface OfficeState {
   currentOffice: OfficeData | null;
@@ -23,6 +24,11 @@ export const useOfficeStore = create<OfficeState>((set) => ({
   },
 
   fetchOffices: async () => {
+    // Skip during SSR/static generation — relative URLs fail server-side
+    if (typeof window === 'undefined') {
+      set({ offices: [], isLoading: false });
+      return;
+    }
     set({ isLoading: true });
     try {
       const res = await fetch('/api/offices');
@@ -37,13 +43,18 @@ export const useOfficeStore = create<OfficeState>((set) => ({
   },
 
   fetchOffice: async (id: string) => {
+    // Skip during SSR/static generation — relative URLs fail server-side
+    if (typeof window === 'undefined') {
+      set({ currentOffice: null, isLoading: false });
+      return;
+    }
     set({ isLoading: true });
     try {
       const res = await fetch(`/api/offices/${id}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Failed to fetch office');
       const office = await res.json();
       const providerCount = office.providers?.length || 0;
-      const totalDailyGoal = office.providers?.reduce((sum: number, p: any) => sum + (p.dailyGoal || 0), 0) || 0;
+      const totalDailyGoal = office.providers?.reduce((sum: number, p: ProviderInput) => sum + (p.dailyGoal || 0), 0) || 0;
       const currentOffice: OfficeData = {
         ...(office as unknown as OfficeData),
         providerCount,

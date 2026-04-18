@@ -38,5 +38,7 @@ RUN mkdir -p /app/data
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 # On startup: seed DB if new, run migrations via prisma.config.ts, then start
 CMD ["sh", "-c", "[ ! -f /app/data/schedules.db ] && cp /app/seed.db /app/data/schedules.db; DATABASE_URL=file:/app/data/schedules.db ./node_modules/.bin/prisma migrate deploy --config /app/prisma.config.ts 2>&1 || true; node server.js"]

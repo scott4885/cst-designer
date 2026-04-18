@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { TemplateCreateInputSchema } from '@/lib/contracts/api-schemas';
 
 /**
  * GET /api/offices/:id/templates?day=MONDAY
@@ -29,7 +31,7 @@ export async function GET(
         id: t.id,
         name: t.name,
         dayOfWeek: t.dayOfWeek,
-        weekType: (t as any).weekType ?? 'A',
+        weekType: t.weekType ?? 'A',
         isActive: t.isActive,
         createdAt: t.createdAt.toISOString(),
         updatedAt: t.updatedAt.toISOString(),
@@ -39,8 +41,7 @@ export async function GET(
       }))
     );
   } catch (error) {
-    console.error('Error fetching templates:', error);
-    return NextResponse.json({ error: 'Failed to fetch templates' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -56,14 +57,11 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
 
-    const { name, dayOfWeek, weekType, slots, productionSummary, warnings } = body;
-
-    if (!name || !dayOfWeek) {
-      return NextResponse.json(
-        { error: 'Missing required fields: name, dayOfWeek' },
-        { status: 400 }
-      );
+    const parsed = TemplateCreateInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
     }
+    const { name, dayOfWeek, weekType, slots, productionSummary, warnings } = parsed.data;
 
     const template = await prisma.scheduleTemplate.create({
       data: {
@@ -82,13 +80,12 @@ export async function POST(
       id: template.id,
       name: template.name,
       dayOfWeek: template.dayOfWeek,
-      weekType: (template as any).weekType ?? 'A',
+      weekType: template.weekType ?? 'A',
       isActive: template.isActive,
       createdAt: template.createdAt.toISOString(),
       updatedAt: template.updatedAt.toISOString(),
     }, { status: 201 });
   } catch (error) {
-    console.error('Error creating template:', error);
-    return NextResponse.json({ error: 'Failed to create template' }, { status: 500 });
+    return handleApiError(error);
   }
 }

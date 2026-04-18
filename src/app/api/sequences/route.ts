@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma as db } from '@/lib/db';
 import { BUILT_IN_SEQUENCES, serializeSteps } from '@/lib/treatment-sequences';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { SequenceCreateSchema } from '@/lib/contracts/api-schemas';
 
 // Seed built-in sequences if none exist
 async function ensureBuiltIns() {
@@ -28,23 +30,19 @@ export async function GET() {
     });
     return NextResponse.json(sequences);
   } catch (err) {
-    console.error('GET /api/sequences', err);
-    return NextResponse.json({ error: 'Failed to fetch sequences' }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, description, stepsJson } = body as {
-      name: string;
-      description?: string;
-      stepsJson: string;
-    };
 
-    if (!name || !stepsJson) {
-      return NextResponse.json({ error: 'name and stepsJson are required' }, { status: 400 });
+    const parsed = SequenceCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
     }
+    const { name, description, stepsJson } = parsed.data;
 
     const sequence = await db.treatmentSequence.create({
       data: {
@@ -57,7 +55,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(sequence, { status: 201 });
   } catch (err) {
-    console.error('POST /api/sequences', err);
-    return NextResponse.json({ error: 'Failed to create sequence' }, { status: 500 });
+    return handleApiError(err);
   }
 }

@@ -209,6 +209,20 @@ export function saveSchedulesToStorage(
 }
 
 /**
+ * Deep-clone a schedules map so target offices never share references with
+ * source offices or localStorage. Uses structuredClone when available and
+ * falls back to JSON clone for older runtimes. (Iter 12a fix.)
+ */
+function deepCloneSchedules(
+  schedules: Record<string, GenerationResult>
+): Record<string, GenerationResult> {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(schedules);
+  }
+  return JSON.parse(JSON.stringify(schedules)) as Record<string, GenerationResult>;
+}
+
+/**
  * Perform a full clone operation from source to multiple target offices.
  *
  * @param sourceOfficeId - ID of the source office
@@ -275,10 +289,19 @@ export function cloneTemplateToOffices(
         }
       }
 
+      // Iter 12a fix: Deep-clone the merged schedules before saving and before
+      // pushing to cloneResult. Previously, days NOT in options.days were
+      // pulled from `existingTargetSchedules` (loaded from localStorage) and
+      // carried by reference into every target office's result — mutation of
+      // one office's slot later could bleed into another office's state.
+      const deepCloned = deepCloneSchedules(mergedSchedules);
+
       // Also save to localStorage for target office
-      saveSchedulesToStorage(targetOffice.id, mergedSchedules, week);
-      // Merge into result (week-agnostic for now)
-      Object.assign(cloneResult.schedules, mergedSchedules);
+      saveSchedulesToStorage(targetOffice.id, deepCloned, week);
+      // Merge into result (week-agnostic for now). Use another deep clone so
+      // cloneResult does NOT share references with what we just persisted,
+      // which would let a mutation on the caller side leak into localStorage.
+      Object.assign(cloneResult.schedules, deepCloneSchedules(deepCloned));
     }
 
     results.push(cloneResult);

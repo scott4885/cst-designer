@@ -39,7 +39,7 @@ export default function PatientFlowPanel({
           <Users className="w-4 h-4 text-muted-foreground" />
           👥 Patient Flow Estimate
           {hasWarnings && (
-            <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 text-[10px] px-1.5 py-0.5">
+            <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50 text-[10px] px-1.5 py-0.5">
               ⚠️ Overrun Risk
             </Badge>
           )}
@@ -82,7 +82,7 @@ export default function PatientFlowPanel({
                     <span className="text-[10px] text-muted-foreground uppercase tracking-wide">P90 End</span>
                     <div className="flex items-center gap-1 mt-0.5">
                       <TrendingUp className={`w-3 h-3 ${result.runLongWarning ? "text-red-500" : "text-orange-400"}`} />
-                      <span className={`text-xs font-medium ${result.runLongWarning ? "text-red-600 dark:text-red-400" : "text-foreground"}`}>
+                      <span className={`text-xs font-medium ${result.runLongWarning ? "text-red-600" : "text-foreground"}`}>
                         {result.p90EndTime}
                       </span>
                     </div>
@@ -91,9 +91,9 @@ export default function PatientFlowPanel({
 
                 {/* Run long warning */}
                 {result.runLongWarning && (
-                  <div className="flex items-start gap-1.5 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-2 py-1.5">
+                  <div className="flex items-start gap-1.5 rounded-md bg-yellow-50 border border-yellow-200 px-2 py-1.5">
                     <AlertTriangle className="w-3 h-3 text-yellow-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-[10px] text-yellow-800 dark:text-yellow-200 leading-snug">
+                    <p className="text-[10px] text-yellow-800 leading-snug">
                       ⚠️ {result.providerName}&apos;s schedule may run long on 1 in 10 days
                     </p>
                   </div>

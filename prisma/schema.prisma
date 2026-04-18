@@ -76,7 +76,7 @@ model ScheduleRule {
   npBlocksPerDay    Int     @default(2)
   srpBlocksPerDay   Int     @default(2)
   hpPlacement       String  @default("MORNING")
-  doubleBooking     Boolean @default(false)
+  doubleBooking     Boolean @default(true)
   matrixing         Boolean @default(true)
   emergencyHandling String  @default("ACCESS_BLOCKS")
   office            Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
@@ -88,6 +88,7 @@ model ScheduleTemplate {
   name         String
   dayOfWeek    String
   weekType     String   @default("A")
+  type         String   @default("WORKING")
   slotsJson    String   @default("[]")
   summaryJson  String   @default("[]")
   warningsJson String   @default("[]")
@@ -95,6 +96,8 @@ model ScheduleTemplate {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   office       Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@unique([officeId, dayOfWeek, weekType, type], name: "unique_working_schedule")
 }
 
 // Sprint 13 — Global Template Library

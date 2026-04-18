@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { ScheduleVersionCreateInputSchema } from '@/lib/contracts/api-schemas';
 
 const MAX_VERSIONS = 20;
 
@@ -33,8 +35,7 @@ export async function GET(
       createdAt: v.createdAt.toISOString(),
     })));
   } catch (error) {
-    console.error('Error fetching schedule versions:', error);
-    return NextResponse.json({ error: 'Failed to fetch versions' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -49,11 +50,12 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { dayOfWeek, weekType = 'A', slots, productionSummary, label } = body;
 
-    if (!dayOfWeek) {
-      return NextResponse.json({ error: 'dayOfWeek is required' }, { status: 400 });
+    const parsed = ScheduleVersionCreateInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
     }
+    const { dayOfWeek, weekType = 'A', slots, productionSummary, label } = parsed.data;
 
     // Create the new version
     const version = await prisma.scheduleVersion.create({
@@ -87,7 +89,6 @@ export async function POST(
       createdAt: version.createdAt.toISOString(),
     }, { status: 201 });
   } catch (error) {
-    console.error('Error creating schedule version:', error);
-    return NextResponse.json({ error: 'Failed to create version' }, { status: 500 });
+    return handleApiError(error);
   }
 }

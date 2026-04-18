@@ -36,20 +36,19 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
   const pathname = usePathname();
   const isBuilder = isTemplateBuilderPage(pathname);
 
-  // Collapsed state: default collapsed on Template Builder, expanded elsewhere
+  // Collapsed state: default collapsed on Template Builder, expanded elsewhere.
+  // Track previous isBuilder value to reset collapse when entering builder (React docs pattern).
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === "undefined") return isBuilder;
     const stored = localStorage.getItem("cst:nav-collapsed");
     if (stored !== null) return stored === "true";
     return isBuilder; // default collapsed on builder
   });
-
-  // Auto-collapse when navigating TO Template Builder, auto-expand when leaving
-  useEffect(() => {
-    if (isBuilder) {
-      setCollapsed(true);
-    }
-  }, [isBuilder]);
+  const [prevIsBuilder, setPrevIsBuilder] = useState(isBuilder);
+  if (isBuilder !== prevIsBuilder) {
+    setPrevIsBuilder(isBuilder);
+    if (isBuilder) setCollapsed(true);
+  }
 
   // Persist
   useEffect(() => {

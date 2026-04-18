@@ -8,7 +8,6 @@ import {
   GitCompareArrows,
   ClipboardCopy,
   Loader2,
-  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import ScheduleGrid, { ProviderInput } from "@/components/schedule/ScheduleGrid";
 import type { TimeSlotOutput } from "@/components/schedule/ScheduleGrid";
 import { useOfficeStore } from "@/store/office-store";
-import { loadSchedulesFromStorage, saveSchedulesToStorage, cloneTemplateToOffices } from "@/lib/clone-template";
+import { loadSchedulesFromStorage, cloneTemplateToOffices } from "@/lib/clone-template";
 import type { GenerationResult } from "@/lib/engine/types";
 import type { OfficeData } from "@/lib/mock-data";
 import { toast } from "sonner";
@@ -107,7 +106,7 @@ function scheduleToTimeSlots(
       .map(p => p.id)
   );
 
-  const slotsByTime: Record<string, any[]> = {};
+  const slotsByTime: Record<string, TimeSlotOutput['slots']> = {};
   for (const slot of schedule.slots) {
     if (!slotsByTime[slot.time]) slotsByTime[slot.time] = [];
     const displayProviderId = multiOpIds.has(slot.providerId)
@@ -309,7 +308,7 @@ function ComparePageInner() {
         const o: OfficeData = {
           ...data,
           providerCount: data.providers?.length ?? 0,
-          totalDailyGoal: data.providers?.reduce((s: number, p: any) => s + (p.dailyGoal || 0), 0) ?? 0,
+          totalDailyGoal: data.providers?.reduce((s: number, p: { dailyGoal?: number }) => s + (p.dailyGoal || 0), 0) ?? 0,
           updatedAt: data.updatedAt ?? new Date().toISOString(),
         };
         setOfficeA(o);
@@ -331,7 +330,7 @@ function ComparePageInner() {
         const o: OfficeData = {
           ...data,
           providerCount: data.providers?.length ?? 0,
-          totalDailyGoal: data.providers?.reduce((s: number, p: any) => s + (p.dailyGoal || 0), 0) ?? 0,
+          totalDailyGoal: data.providers?.reduce((s: number, p: { dailyGoal?: number }) => s + (p.dailyGoal || 0), 0) ?? 0,
           updatedAt: data.updatedAt ?? new Date().toISOString(),
         };
         setOfficeB(o);

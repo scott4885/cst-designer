@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+*.log
 
 # debug
 npm-debug.log*
@@ -31,7 +32,12 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.production
+.env.*.local
+# but keep the example template
+!.env.example
 
 # vercel
 .vercel
@@ -50,5 +56,9 @@ data/*.db
 data/*.db-journal
 data/
 
-# Local Netlify folder
+# Local Netlify folder (deprecated — no longer a deploy target)
 .netlify
+
+# OpenNext / Cloudflare build artifacts (deprecated adapter, kept out of git)
+.open-next/
+.wrangler/

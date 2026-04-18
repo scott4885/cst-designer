@@ -47,7 +47,7 @@ export default function BlockPalette({
         Block Palette — drag onto grid
       </p>
       {applicable.map((bt) => {
-        const color = (bt as any).color as string | undefined;
+        const color = bt.color;
         return (
           <div
             key={bt.id}

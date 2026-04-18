@@ -1,60 +1,76 @@
-import { NextResponse } from 'next/server';
 import { generateExcel, ExportInput, ExportDaySchedule } from '@/lib/export/excel';
-import { getOfficeById } from '@/lib/data-access';
+import { getOfficeById, getSchedules } from '@/lib/data-access';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { ExportInputSchema } from '@/lib/contracts/api-schemas';
+import type { TimeSlotOutput, ProviderProductionSummary, BlockTypeInput } from '@/lib/engine/types';
+
+interface ExportScheduleEntry {
+  dayOfWeek: string;
+  variant?: string;
+  slots: TimeSlotOutput[];
+  productionSummary: ProviderProductionSummary[];
+}
 
 /**
  * POST /api/offices/:id/export
- * Generate and download Excel file for an office schedule
+ * Generate and download Excel file for an office schedule.
+ *
+ * Two modes:
+ *   1. Body contains `schedules` array — uses client-provided data (legacy).
+ *   2. Body contains `weekType` (no schedules) — reads WORKING schedules from DB.
  */
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const body = await request.json();
 
+    const parsed = ExportInputSchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
+    }
+    const parsedBody = parsed.data;
+
     // Find the office in database
     const office = await getOfficeById(id);
-    
+
     if (!office) {
-      return NextResponse.json(
-        { error: 'Office not found' },
-        { status: 404 }
-      );
+      throw new ApiError(404, 'Office not found');
     }
 
-    // Get schedule data from request body
-    const { schedules } = body;
-    
-    if (!schedules || !Array.isArray(schedules)) {
-      return NextResponse.json(
-        { error: 'Missing schedules data in request body' },
-        { status: 400 }
-      );
+    // Determine schedule data source
+    let schedules: ExportScheduleEntry[];
+
+    if (parsedBody.schedules && Array.isArray(parsedBody.schedules)) {
+      // Legacy mode: schedules provided in request body
+      schedules = parsedBody.schedules as unknown as ExportScheduleEntry[];
+    } else {
+      // DB mode: read WORKING schedules from database
+      const weekType = parsedBody.weekType || 'A';
+      const dbSchedules = await getSchedules(id, { weekType, type: 'WORKING' });
+
+      if (dbSchedules.length === 0) {
+        throw new ApiError(400, 'No saved schedules found for this office. Generate or save schedules first.');
+      }
+
+      schedules = dbSchedules.map((s) => ({
+        dayOfWeek: s.dayOfWeek,
+        slots: s.slots as TimeSlotOutput[],
+        productionSummary: s.productionSummary as ProviderProductionSummary[],
+      }));
     }
 
     // Validate office has required data
     if (!office.providers || !office.blockTypes) {
-      return NextResponse.json(
-        { error: 'Office missing required data (providers or blockTypes)' },
-        { status: 400 }
-      );
+      throw new ApiError(400, 'Office missing required data (providers or blockTypes)');
     }
-
-    // Validate arrays are not empty
     if (office.providers.length === 0) {
-      return NextResponse.json(
-        { error: 'Office must have at least one provider to export schedules' },
-        { status: 400 }
-      );
+      throw new ApiError(400, 'Office must have at least one provider to export schedules');
     }
-
     if (office.blockTypes.length === 0) {
-      return NextResponse.json(
-        { error: 'Office must have at least one block type to export schedules' },
-        { status: 400 }
-      );
+      throw new ApiError(400, 'Office must have at least one block type to export schedules');
     }
 
     // Transform data for Excel export
@@ -76,20 +92,20 @@ export async function POST(
         minimumAmount: b.minimumAmount,
         color: undefined,
       })),
-      daySchedules: schedules.map((schedule: any) => {
+      daySchedules: schedules.map((schedule) => {
         const daySchedule: ExportDaySchedule = {
           dayOfWeek: schedule.dayOfWeek,
           variant: schedule.variant,
-          slots: schedule.slots.map((slot: any) => ({
+          slots: schedule.slots.map((slot) => ({
             time: slot.time,
             providerId: slot.providerId,
             staffingCode: slot.staffingCode,
-            blockLabel: slot.blockLabel 
+            blockLabel: slot.blockLabel
               ? formatBlockLabel(slot.blockLabel, office!.blockTypes!, slot.blockTypeId)
               : null,
             isBreak: slot.isBreak,
           })),
-          productionSummary: schedule.productionSummary.map((summary: any) => ({
+          productionSummary: schedule.productionSummary.map((summary) => ({
             providerId: summary.providerId,
             actualScheduled: summary.actualScheduled,
             status: summary.status,
@@ -111,11 +127,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error('Error exporting schedule:', error);
-    return NextResponse.json(
-      { error: 'Failed to export schedule', details: String(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -157,7 +169,7 @@ function calculateHourlyRate(
  */
 function formatBlockLabel(
   label: string,
-  blockTypes: any[],
+  blockTypes: BlockTypeInput[],
   blockTypeId: string | null
 ): string {
   if (label === 'LUNCH') return 'LUNCH';

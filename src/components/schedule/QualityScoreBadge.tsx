@@ -8,10 +8,10 @@ interface QualityScoreBadgeProps {
 }
 
 const TIER_BADGE: Record<string, string> = {
-  excellent:  "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
-  good:       "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700",
-  fair:       "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700",
-  needs_work: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
+  excellent:  "bg-green-100 text-green-800 border-green-300",
+  good:       "bg-yellow-100 text-yellow-800 border-yellow-300",
+  fair:       "bg-orange-100 text-orange-800 border-orange-300",
+  needs_work: "bg-red-100 text-red-800 border-red-300",
 };
 
 const TRACK_COLOR: Record<string, string> = {
@@ -47,6 +47,8 @@ export default function QualityScoreBadge({ score }: QualityScoreBadgeProps) {
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer hover:opacity-90 transition-opacity ${tierStyle}`}
         onClick={() => setOpen(v => !v)}
         title="Schedule quality score — click for breakdown"
+        aria-label={`Schedule quality score ${score.total} of 100, ${score.tierLabel}. Click for breakdown.`}
+        aria-expanded={open}
       >
         <span className="text-base leading-none">{score.emoji}</span>
         <span>{score.total}/100</span>

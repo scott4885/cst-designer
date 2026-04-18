@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateClinicalRules } from '../clinical-rules';
-import type { GenerationResult, ProviderInput, BlockTypeInput } from '../types';
+import type { GenerationResult, ProviderInput, BlockTypeInput, TimeSlotOutput, ProviderProductionSummary } from '../types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -75,7 +75,7 @@ function makeSlot(
   };
 }
 
-function makeSchedule(slots: any[], productionSummary: any[] = []): GenerationResult {
+function makeSchedule(slots: TimeSlotOutput[], productionSummary: ProviderProductionSummary[] = []): GenerationResult {
   return {
     dayOfWeek: 'MONDAY',
     slots,

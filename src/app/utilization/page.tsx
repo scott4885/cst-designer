@@ -10,11 +10,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import { Download, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useOfficeStore } from "@/store/office-store";
 import {
   calculateChairUtilization,
@@ -71,10 +69,22 @@ function loadSlotsFromStorage(officeId: string): ScheduledSlotSummary[] {
     const key = `schedule-designer:schedule-state:${officeId}`;
     const raw = localStorage.getItem(key);
     if (!raw) return [];
-    const schedules = JSON.parse(raw) as Record<string, any>;
+    interface StoredSlot {
+      blockInstanceId?: string;
+      time?: string;
+      providerId?: string;
+      blockLabel?: string | null;
+      blockTypeId?: string | null;
+      operatory?: string;
+      isBreak?: boolean;
+    }
+    interface StoredSchedule {
+      slots?: StoredSlot[];
+    }
+    const schedules = JSON.parse(raw) as Record<string, StoredSchedule | null>;
     for (const [day, sched] of Object.entries(schedules)) {
       if (!sched) continue;
-      const slotList: any[] = (sched as any).slots ?? [];
+      const slotList: StoredSlot[] = sched.slots ?? [];
       // Build instance → duration map
       const instanceSeen = new Map<string, boolean>();
       const instanceDuration = new Map<string, number>();
@@ -268,7 +278,7 @@ export default function UtilizationPage() {
         const endTime = "17:00";
         const lunchStart = "12:00";
         const lunchEnd = "13:00";
-        const workingDays: string[] = (o as any).workingDays ?? [
+        const workingDays: string[] = o.workingDays ?? [
           "MONDAY",
           "TUESDAY",
           "WEDNESDAY",
@@ -277,7 +287,7 @@ export default function UtilizationPage() {
         ];
         // Count operatories from providers
         const operatories = new Set<string>();
-        ((o as any).providers ?? []).forEach((p: any) => {
+        (o.providers ?? []).forEach((p) => {
           (p.operatories ?? []).forEach((op: string) => operatories.add(op));
         });
         const operatoryCount = Math.max(1, operatories.size);
@@ -423,7 +433,7 @@ export default function UtilizationPage() {
               />
               <YAxis tick={{ fontSize: 11 }} unit="h" />
               <Tooltip
-                formatter={(v: any, name: any) => [
+                formatter={(v, name) => [
                   `${v}h`,
                   name === "scheduled" ? "Scheduled" : "Empty",
                 ]}

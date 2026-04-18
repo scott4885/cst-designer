@@ -5,7 +5,7 @@
  * - Schedule store: activeWeek state, setActiveWeek, per-week localStorage
  * - OfficeData: alternateWeekEnabled field present in interface
  */
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useScheduleStore } from '@/store/schedule-store';
 import type { GenerationResult } from '@/lib/engine/types';
 
@@ -195,6 +195,6 @@ describe('OfficeData — alternateWeekEnabled', () => {
       updatedAt: new Date().toISOString(),
     };
     // Not set — should be undefined (falsy)
-    expect((office as any).alternateWeekEnabled).toBeFalsy();
+    expect(office.alternateWeekEnabled).toBeFalsy();
   });
 });

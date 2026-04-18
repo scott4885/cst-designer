@@ -99,9 +99,9 @@ export default function DPMSImportButton({ dpmsSystem = "OPEN_DENTAL", onApply }
             </div>
 
             {result.warnings.length > 0 && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg space-y-1">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
                 {result.warnings.map((w, i) => (
-                  <p key={i} className="text-xs text-amber-700 dark:text-amber-400">⚠ {w}</p>
+                  <p key={i} className="text-xs text-amber-700">⚠ {w}</p>
                 ))}
               </div>
             )}

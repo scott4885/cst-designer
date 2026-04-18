@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated / built code — not source:
+    ".netlify/**",
+    ".open-next/**",
+    "src/generated/**",
+    "coverage/**",
+    "playwright-report/**",
+    "test-results/**",
+    "node_modules/**",
   ]),
 ]);
 

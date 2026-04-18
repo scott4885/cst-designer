@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { TemplateUpdateInputSchema } from '@/lib/contracts/api-schemas';
 
 /**
  * GET /api/offices/:id/templates/:templateId
@@ -17,7 +19,7 @@ export async function GET(
     });
 
     if (!template) {
-      return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+      throw new ApiError(404, 'Template not found');
     }
 
     return NextResponse.json({
@@ -32,8 +34,7 @@ export async function GET(
       updatedAt: template.updatedAt.toISOString(),
     });
   } catch (error) {
-    console.error('Error fetching template:', error);
-    return NextResponse.json({ error: 'Failed to fetch template' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -49,8 +50,14 @@ export async function PUT(
     const { id, templateId } = await params;
     const body = await request.json();
 
+    const parsed = TemplateUpdateInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
+    }
+    const data = parsed.data;
+
     // If setting active, deactivate all other templates for this office+day first
-    if (body.isActive === true) {
+    if (data.isActive === true) {
       const template = await prisma.scheduleTemplate.findUnique({ where: { id: templateId } });
       if (template) {
         await prisma.scheduleTemplate.updateMany({
@@ -63,8 +70,8 @@ export async function PUT(
     const updated = await prisma.scheduleTemplate.update({
       where: { id: templateId },
       data: {
-        ...(body.name !== undefined && { name: body.name }),
-        ...(body.isActive !== undefined && { isActive: body.isActive }),
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
       },
     });
 
@@ -77,8 +84,7 @@ export async function PUT(
       updatedAt: updated.updatedAt.toISOString(),
     });
   } catch (error) {
-    console.error('Error updating template:', error);
-    return NextResponse.json({ error: 'Failed to update template' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -96,7 +102,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting template:', error);
-    return NextResponse.json({ error: 'Failed to delete template' }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -196,7 +196,7 @@ describe('wouldExceedVarietyCap', () => {
   }
 
   it('should return false when no slots are filled', () => {
-    const ps = makeMinimalProviderSlots(10) as any;
+    const ps = makeMinimalProviderSlots(10) as unknown as Parameters<typeof wouldExceedVarietyCap>[1];
     const slots = makeSlotsArray(10);
     expect(wouldExceedVarietyCap(slots, ps, 'hp1', 3)).toBe(false);
   });
@@ -205,7 +205,7 @@ describe('wouldExceedVarietyCap', () => {
     // 6 slots total, 3 filled with 'hp1', placing 1 more → 4/6 = 67% > 65%
     // but if we check 4/6 = 0.667 > 0.65 → this should return TRUE
     // So: 6 slots, 0 filled, placing 4 → 4/6 = 67% → over cap
-    const ps = makeMinimalProviderSlots(10) as any;
+    const ps = makeMinimalProviderSlots(10) as unknown as Parameters<typeof wouldExceedVarietyCap>[1];
     const slots = makeSlotsArray(10, 'hp1', 0);
     // Placing 6 out of 10 non-break slots = 60% → under cap (65%)
     expect(wouldExceedVarietyCap(slots, ps, 'hp1', 6)).toBe(false);
@@ -213,7 +213,7 @@ describe('wouldExceedVarietyCap', () => {
 
   it('should return true when placing would exceed 65% cap', () => {
     // 10 slots total, 5 already filled with 'hp1', placing 3 more → 8/10 = 80% → over cap
-    const ps = makeMinimalProviderSlots(10) as any;
+    const ps = makeMinimalProviderSlots(10) as unknown as Parameters<typeof wouldExceedVarietyCap>[1];
     const slots = makeSlotsArray(10, 'hp1', 5);
     expect(wouldExceedVarietyCap(slots, ps, 'hp1', 3)).toBe(true);
   });
@@ -221,7 +221,7 @@ describe('wouldExceedVarietyCap', () => {
   it('should not count breaks toward the total', () => {
     // 10 slots, 5 are breaks → only 5 non-break slots
     // 3 already filled with 'hp1', placing 1 more → 4/5 = 80% → over cap
-    const ps = makeMinimalProviderSlots(10) as any;
+    const ps = makeMinimalProviderSlots(10) as unknown as Parameters<typeof wouldExceedVarietyCap>[1];
     const slots = makeSlotsArray(10, 'hp1', 3).map((s, i) => ({
       ...s,
       isBreak: i >= 5, // slots 5-9 are breaks
@@ -232,7 +232,7 @@ describe('wouldExceedVarietyCap', () => {
   it('should not cap a different block type', () => {
     // 10 slots, 8 filled with 'hp1' → but we're placing 'mp1' (different type)
     // mp1 count = 0, placing 1 → 1/10 = 10% → under cap
-    const ps = makeMinimalProviderSlots(10) as any;
+    const ps = makeMinimalProviderSlots(10) as unknown as Parameters<typeof wouldExceedVarietyCap>[1];
     const slots = makeSlotsArray(10, 'hp1', 8);
     expect(wouldExceedVarietyCap(slots, ps, 'mp1', 1)).toBe(false);
   });

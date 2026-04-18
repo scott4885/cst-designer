@@ -7,6 +7,15 @@ import { detectDTimeConflicts } from '@/lib/engine/da-time';
 
 export type RotationWeek = 'A' | 'B' | 'C' | 'D';
 
+// ---------------------------------------------------------------------------
+// Undo/Redo stack
+// ---------------------------------------------------------------------------
+const MAX_UNDO_DEPTH = 50;
+
+interface UndoEntry {
+  generatedSchedules: Record<string, GenerationResult>;
+}
+
 interface ScheduleState {
   generatedSchedules: Record<string, GenerationResult>; // keyed by dayOfWeek
   activeDay: string;
@@ -15,6 +24,11 @@ interface ScheduleState {
   isGenerating: boolean;
   isExporting: boolean;
   currentOfficeId: string | null;
+  // Undo/Redo
+  undoStack: UndoEntry[];
+  redoStack: UndoEntry[];
+  canUndo: boolean;
+  canRedo: boolean;
   setActiveDay: (day: string) => void;
   /** Switch to a different week and reload persisted schedules for that week. */
   setActiveWeek: (week: RotationWeek) => void;
@@ -33,6 +47,9 @@ interface ScheduleState {
   removeBlockInDay: (day: string, time: string, providerId: string, providers: ProviderInput[], blockTypes: BlockTypeInput[]) => void;
   moveBlockInDay: (day: string, fromTime: string, fromProviderId: string, toTime: string, toProviderId: string, providers: ProviderInput[], blockTypes: BlockTypeInput[]) => void;
   updateBlockInDay: (day: string, time: string, providerId: string, newBlockType: BlockTypeInput, newDurationSlots: number, providers: ProviderInput[], blockTypes: BlockTypeInput[], customProductionAmount?: number | null) => void;
+  // Undo/Redo
+  undo: () => void;
+  redo: () => void;
 }
 
 function generateBlockInstanceId(): string {
@@ -192,6 +209,48 @@ function clearPersistedSchedules(officeId: string, week: RotationWeek = 'A'): vo
   }
 }
 
+/**
+ * Push current state onto the undo stack (called before every mutation).
+ */
+function pushUndo(get: () => ScheduleState, set: (partial: Partial<ScheduleState>) => void) {
+  const { generatedSchedules, undoStack } = get();
+  const entry: UndoEntry = { generatedSchedules: { ...generatedSchedules } };
+  const newStack = [...undoStack, entry].slice(-MAX_UNDO_DEPTH);
+  set({ undoStack: newStack, redoStack: [], canUndo: true, canRedo: false });
+}
+
+// ---------------------------------------------------------------------------
+// Debounced API persistence (2-second delay)
+// ---------------------------------------------------------------------------
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+
+function debouncedApiPersist(officeId: string, schedulesMap: Record<string, GenerationResult>, week: RotationWeek) {
+  // Always persist to localStorage immediately (fast, reliable)
+  persistSchedules(officeId, schedulesMap, week);
+
+  // Debounce the API call
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(async () => {
+    try {
+      for (const [day, result] of Object.entries(schedulesMap)) {
+        await fetch(`/api/offices/${officeId}/schedules/auto-save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dayOfWeek: day,
+            weekType: week,
+            slots: result.slots,
+            productionSummary: result.productionSummary,
+            warnings: result.warnings,
+          }),
+        }).catch(() => {}); // silently fail API persistence — localStorage is the fallback
+      }
+    } catch {
+      // API persistence is best-effort
+    }
+  }, 2000);
+}
+
 export const useScheduleStore = create<ScheduleState>((set, get) => ({
   generatedSchedules: {},
   activeDay: 'MONDAY',
@@ -199,6 +258,10 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
   isGenerating: false,
   isExporting: false,
   currentOfficeId: null,
+  undoStack: [],
+  redoStack: [],
+  canUndo: false,
+  canRedo: false,
 
   setActiveDay: (day: string) => set({ activeDay: day }),
 
@@ -252,22 +315,115 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
       return;
     }
 
-    // Try to restore persisted schedules from localStorage (week-aware)
+    // Iter 12a fix: Cross-device localStorage masking DB
+    // Prior implementation loaded from localStorage only, so a second device
+    // with empty localStorage would see an empty schedule even when DB had
+    // data. Fix: load localStorage (fast path) AND fetch the DB in parallel.
+    // If DB returns more/fresher data than localStorage, use DB and overwrite
+    // localStorage so the next load is fast.
     const persisted = loadPersistedSchedules(officeId, activeWeek);
     if (persisted && Object.keys(persisted).length > 0) {
+      // Fast path: show localStorage data immediately
       set({
         currentOfficeId: officeId,
         generatedSchedules: persisted,
       });
     } else {
+      // No local data — at minimum set the office id
       set({
         currentOfficeId: officeId,
         generatedSchedules: {},
       });
     }
+
+    // Parallel DB fetch — runs regardless of localStorage state. If DB has
+    // data that localStorage does not, merge it in. Never throws: API
+    // failures fall back to whatever localStorage gave us.
+    try {
+      if (typeof window === 'undefined' || typeof fetch === 'undefined') return;
+      const response = await fetch(
+        `/api/offices/${officeId}/schedules?weekType=${activeWeek}`,
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      const rows: Array<{ dayOfWeek: string; slots: unknown; productionSummary: unknown; warnings: unknown }> =
+        data?.schedules ?? [];
+      if (rows.length === 0) return;
+
+      // Build a dayOfWeek → GenerationResult map from DB rows.
+      const dbSchedules: Record<string, GenerationResult> = {};
+      for (const row of rows) {
+        if (!row?.dayOfWeek) continue;
+        // If we already have a row for this day from DB, keep the first one
+        // (ordered by updatedAt desc per data-access.ts).
+        if (dbSchedules[row.dayOfWeek]) continue;
+        dbSchedules[row.dayOfWeek] = {
+          dayOfWeek: row.dayOfWeek,
+          slots: (row.slots as GenerationResult['slots']) ?? [],
+          productionSummary:
+            (row.productionSummary as GenerationResult['productionSummary']) ?? [],
+          warnings: (row.warnings as string[]) ?? [],
+        };
+      }
+
+      // Stale state can happen if the user switched offices mid-fetch; bail
+      // out so we don't clobber a different office's state.
+      if (get().currentOfficeId !== officeId) return;
+
+      // Merge: prefer DB data when it has days that localStorage lacks, OR
+      // when localStorage was empty. If both have the same day, localStorage
+      // wins (it's the edited-in-memory source of truth for this session).
+      const current = get().generatedSchedules;
+      const merged: Record<string, GenerationResult> = { ...dbSchedules, ...current };
+      const mergedKeys = Object.keys(merged);
+      const currentKeys = Object.keys(current);
+      const isFresher =
+        mergedKeys.length > currentKeys.length ||
+        (currentKeys.length === 0 && mergedKeys.length > 0);
+      if (!isFresher) return;
+
+      set({ generatedSchedules: merged });
+      // Overwrite localStorage so subsequent same-device loads are fast
+      persistSchedules(officeId, merged, activeWeek);
+    } catch {
+      // Best-effort: API failures fall back silently to localStorage/in-memory.
+    }
+  },
+
+  undo: () => {
+    const { undoStack, generatedSchedules, redoStack, currentOfficeId, activeWeek } = get();
+    if (undoStack.length === 0) return;
+    const prev = undoStack[undoStack.length - 1];
+    const newUndo = undoStack.slice(0, -1);
+    const newRedo = [...redoStack, { generatedSchedules }].slice(-MAX_UNDO_DEPTH);
+    set({
+      generatedSchedules: prev.generatedSchedules,
+      undoStack: newUndo,
+      redoStack: newRedo,
+      canUndo: newUndo.length > 0,
+      canRedo: true,
+    });
+    if (currentOfficeId) debouncedApiPersist(currentOfficeId, prev.generatedSchedules, activeWeek);
+  },
+
+  redo: () => {
+    const { redoStack, generatedSchedules, undoStack, currentOfficeId, activeWeek } = get();
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    const newRedo = redoStack.slice(0, -1);
+    const newUndo = [...undoStack, { generatedSchedules }].slice(-MAX_UNDO_DEPTH);
+    set({
+      generatedSchedules: next.generatedSchedules,
+      undoStack: newUndo,
+      redoStack: newRedo,
+      canUndo: true,
+      canRedo: newRedo.length > 0,
+    });
+    if (currentOfficeId) debouncedApiPersist(currentOfficeId, next.generatedSchedules, activeWeek);
   },
 
   placeBlockInDay: (day, time, providerId, blockType, durationSlots, providers, blockTypes) => {
+    pushUndo(get, set);
     const state = get();
     const schedule = state.generatedSchedules[day];
     if (!schedule) return false;
@@ -323,13 +479,14 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
 
     const newSchedules = { ...state.generatedSchedules, [day]: updated };
     set({ generatedSchedules: newSchedules });
-    // Persist changes to localStorage
+    // Persist changes (localStorage + debounced API)
     const officeIdForPersist = get().currentOfficeId;
-    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules, get().activeWeek);
+    if (officeIdForPersist) debouncedApiPersist(officeIdForPersist, newSchedules, get().activeWeek);
     return true;
   },
 
   removeBlockInDay: (day, time, providerId, providers, blockTypes) => {
+    pushUndo(get, set);
     const state = get();
     const schedule = state.generatedSchedules[day];
     if (!schedule) return;
@@ -400,12 +557,13 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
 
     const newSchedules = { ...state.generatedSchedules, [day]: updated };
     set({ generatedSchedules: newSchedules });
-    // Persist changes to localStorage
+    // Persist changes (localStorage + debounced API)
     const officeIdForPersist = get().currentOfficeId;
-    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules, get().activeWeek);
+    if (officeIdForPersist) debouncedApiPersist(officeIdForPersist, newSchedules, get().activeWeek);
   },
 
   moveBlockInDay: (day, fromTime, fromProviderId, toTime, toProviderId, providers, blockTypes) => {
+    pushUndo(get, set);
     const state = get();
     const schedule = state.generatedSchedules[day];
     if (!schedule) return;
@@ -516,9 +674,9 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
 
     const newSchedules = { ...state.generatedSchedules, [day]: updated };
     set({ generatedSchedules: newSchedules });
-    // Persist changes to localStorage
+    // Persist changes (localStorage + debounced API)
     const officeIdForPersist = get().currentOfficeId;
-    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules, get().activeWeek);
+    if (officeIdForPersist) debouncedApiPersist(officeIdForPersist, newSchedules, get().activeWeek);
   },
 
   copyWeekFromA: (targetWeek: RotationWeek, officeId: string): boolean => {
@@ -536,6 +694,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
   },
 
   updateBlockInDay: (day, time, providerId, newBlockType, newDurationSlots, providers, blockTypes, customProductionAmount) => {
+    pushUndo(get, set);
     const state = get();
     const schedule = state.generatedSchedules[day];
     if (!schedule) return;
@@ -625,8 +784,8 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
 
     const newSchedules = { ...state.generatedSchedules, [day]: updated };
     set({ generatedSchedules: newSchedules });
-    // Persist changes to localStorage
+    // Persist changes (localStorage + debounced API)
     const officeIdForPersist = get().currentOfficeId;
-    if (officeIdForPersist) persistSchedules(officeIdForPersist, newSchedules, get().activeWeek);
+    if (officeIdForPersist) debouncedApiPersist(officeIdForPersist, newSchedules, get().activeWeek);
   },
 }));

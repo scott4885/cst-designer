@@ -18,7 +18,7 @@ describe('Office CRUD Flow Integration', () => {
     for (const id of createdOfficeIds) {
       try {
         await prisma.office.delete({ where: { id } });
-      } catch (e) {
+      } catch {
         // Ignore if already deleted
       }
     }
@@ -30,7 +30,7 @@ describe('Office CRUD Flow Integration', () => {
     for (const id of createdOfficeIds) {
       try {
         await prisma.office.delete({ where: { id } });
-      } catch (e) {
+      } catch {
         // Ignore if already deleted
       }
     }
@@ -126,7 +126,7 @@ describe('Office CRUD Flow Integration', () => {
     const offices = await listResponse.json();
 
     // Should include our created office plus seeded offices
-    const foundOffice = offices.find((o: any) => o.id === officeId);
+    const foundOffice = offices.find((o: { id: string }) => o.id === officeId);
     expect(foundOffice).toBeDefined();
     expect(foundOffice.name).toBe('Integration Test Office');
 
@@ -202,7 +202,7 @@ describe('Office CRUD Flow Integration', () => {
     // Verify not in list
     const listAfterDelete = await LIST_OFFICES();
     const officesAfterDelete = await listAfterDelete.json();
-    const deletedOffice = officesAfterDelete.find((o: any) => o.id === officeId);
+    const deletedOffice = officesAfterDelete.find((o: { id: string }) => o.id === officeId);
     expect(deletedOffice).toBeUndefined();
   });
 });

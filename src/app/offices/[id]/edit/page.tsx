@@ -20,7 +20,7 @@ import { useOfficeStore } from "@/store/office-store";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import DPMSImportButton from "@/components/dpms/DPMSImportButton";
 // updateOffice uses API route
-import type { BlockTypeInput, ProviderDayScheduleEntry, ProviderSchedule, ProcedureMix, ProcedureCategory } from "@/lib/engine/types";
+import type { ProviderDayScheduleEntry, ProviderSchedule, ProcedureMix } from "@/lib/engine/types";
 import { ALL_PROCEDURE_CATEGORIES, PROCEDURE_CATEGORY_LABELS, PROCEDURE_MIX_BENCHMARKS } from "@/lib/engine/types";
 import { getMixTotal } from "@/lib/engine/procedure-mix";
 
@@ -169,10 +169,10 @@ export default function EditOfficePage() {
   // Populate form when office loads
   useEffect(() => {
     if (currentOffice) {
-      const rules = (currentOffice as any).rules;
+      const rules = currentOffice.rules;
       // Infer staggerMinutes from second doctor's staggerOffsetMin (= 1 * staggerMinutes)
       const doctors = currentOffice.providers?.filter(p => p.role === 'DOCTOR') || [];
-      const inferredStagger = (doctors[1] as any)?.staggerOffsetMin ?? 0;
+      const inferredStagger = doctors[1]?.staggerOffsetMin ?? 0;
 
       // Load per-day schedules into state
       const scheduleMap: Record<number, ProviderSchedule> = {};
@@ -180,14 +180,14 @@ export default function EditOfficePage() {
       const curMixMap: Record<number, ProcedureMix> = {};
       const futMixMap: Record<number, ProcedureMix> = {};
       (currentOffice.providers || []).forEach((p, i) => {
-        const ps = (p as any).providerSchedule;
+        const ps = p.providerSchedule;
         if (ps && typeof ps === 'object' && Object.keys(ps).length > 0) {
           scheduleMap[i] = ps as ProviderSchedule;
           detailMap[i] = true;
         }
-        const cur = (p as any).currentProcedureMix;
+        const cur = p.currentProcedureMix;
         if (cur && typeof cur === 'object' && Object.keys(cur).length > 0) curMixMap[i] = cur as ProcedureMix;
-        const fut = (p as any).futureProcedureMix;
+        const fut = p.futureProcedureMix;
         if (fut && typeof fut === 'object' && Object.keys(fut).length > 0) futMixMap[i] = fut as ProcedureMix;
       });
       setProviderScheduleMap(scheduleMap);
@@ -199,29 +199,29 @@ export default function EditOfficePage() {
         name: currentOffice.name,
         timeIncrement: currentOffice.timeIncrement ?? 10,
         staggerMinutes: inferredStagger,
-        alternateWeekEnabled: (currentOffice as any).alternateWeekEnabled ?? false,
-        rotationEnabled: (currentOffice as any).rotationEnabled ?? false,
-        rotationWeeks: (currentOffice as any).rotationWeeks ?? 2,
-        schedulingRules: (currentOffice as any).schedulingRules || '',
+        alternateWeekEnabled: currentOffice.alternateWeekEnabled ?? false,
+        rotationEnabled: currentOffice.rotationEnabled ?? false,
+        rotationWeeks: currentOffice.rotationWeeks ?? 2,
+        schedulingRules: currentOffice.schedulingRules || '',
         providers: currentOffice.providers?.map(p => ({
           id: p.id,
           name: p.name,
-          providerId: (p as any).providerId || '',
+          providerId: p.providerId || '',
           role: p.role,
           operatories: p.operatories || ["OP1"],
-          columns: (p as any).columns ?? 1,
+          columns: p.columns ?? 1,
           workingStart: p.workingStart || "07:00",
           workingEnd: p.workingEnd || "16:00",
-          lunchEnabled: (p as any).lunchEnabled !== false,
+          lunchEnabled: p.lunchEnabled !== false,
           lunchStart: p.lunchStart || "12:00",
           lunchEnd: p.lunchEnd || "13:00",
           dailyGoal: p.dailyGoal || 5000,
           color: p.color || "#666",
           seesNewPatients: p.seesNewPatients !== false,
           enabledBlockTypeIds: p.enabledBlockTypeIds || [],
-          assistedHygiene: (p as any).assistedHygiene === true,
-          providerSchedule: (p as any).providerSchedule || {},
-          staggerOffsetMin: (p as any).staggerOffsetMin ?? 0,
+          assistedHygiene: p.assistedHygiene === true,
+          providerSchedule: p.providerSchedule || {},
+          staggerOffsetMin: p.staggerOffsetMin ?? 0,
         })) || [],
         scheduleRules: {
           npModel: rules?.npModel || "DOCTOR_ONLY",
@@ -316,7 +316,7 @@ export default function EditOfficePage() {
     index: number,
     day: string,
     field: keyof ProviderDayScheduleEntry,
-    value: any
+    value: ProviderDayScheduleEntry[keyof ProviderDayScheduleEntry]
   ) => {
     setProviderScheduleMap(prev => {
       const schedule = { ...(prev[index] || {}) };
@@ -472,11 +472,14 @@ export default function EditOfficePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="name">Office Name</Label>
+              <Label htmlFor="name">
+                Office Name <span className="text-red-500" aria-label="required">*</span>
+              </Label>
               <Input
                 id="name"
                 {...register("name")}
                 placeholder="e.g., Smile Cascade"
+                aria-required="true"
               />
               {errors.name && (
                 <p className="text-sm text-error mt-1">{errors.name.message}</p>
@@ -506,7 +509,10 @@ export default function EditOfficePage() {
         {/* Providers */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Providers</CardTitle>
+            <CardTitle>
+              Providers <span className="text-red-500 text-base" aria-label="required">*</span>
+              <span className="ml-2 text-xs font-normal text-muted-foreground">(at least 1 required)</span>
+            </CardTitle>
             <Button type="button" onClick={addProvider} size="sm" className="gap-2 min-h-[44px]">
               <Plus className="w-4 h-4" />
               Add Provider
@@ -557,7 +563,7 @@ export default function EditOfficePage() {
             </div>
             {providerFields.length === 0 && (
               <p className="text-muted-foreground text-center py-6">
-                No providers added. Click "Add Provider" to start.
+                No providers added. Click &ldquo;Add Provider&rdquo; to start.
               </p>
             )}
 
@@ -589,7 +595,7 @@ export default function EditOfficePage() {
                     <Label>Role</Label>
                     <Select
                       onValueChange={(value) =>
-                        setValue(`providers.${index}.role`, value as any, { shouldDirty: true })
+                        setValue(`providers.${index}.role`, value as 'DOCTOR' | 'HYGIENIST' | 'OTHER', { shouldDirty: true })
                       }
                       value={watchProviders?.[index]?.role || "DOCTOR"}
                     >
@@ -667,7 +673,7 @@ export default function EditOfficePage() {
                           <HelpCircle className="w-3 h-3 text-muted-foreground" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          Minutes this doctor's schedule starts after the previous doctor. 0 = auto-calculate from office stagger setting.
+                          Minutes this doctor&apos;s schedule starts after the previous doctor. 0 = auto-calculate from office stagger setting.
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -732,11 +738,17 @@ export default function EditOfficePage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label>Daily Goal ($)</Label>
+                    <Label>
+                      Daily Goal ($) <span className="text-red-500" aria-label="required">*</span>
+                    </Label>
                     <Input
                       type="number"
+                      min={0}
+                      max={100000}
+                      step={100}
                       {...register(`providers.${index}.dailyGoal`, { valueAsNumber: true })}
                       placeholder="5000"
+                      aria-required="true"
                     />
                   </div>
                   <div>
@@ -760,9 +772,9 @@ export default function EditOfficePage() {
                   <div>
                     <Label>Working Hours</Label>
                     <div className="flex flex-col sm:flex-row gap-2 mt-1">
-                      <Input type="time" {...register(`providers.${index}.workingStart`)} className="flex-1" />
+                      <Input type="time" min="06:00" max="22:00" {...register(`providers.${index}.workingStart`)} className="flex-1" />
                       <span className="self-center text-sm text-muted-foreground text-center">to</span>
-                      <Input type="time" {...register(`providers.${index}.workingEnd`)} className="flex-1" />
+                      <Input type="time" min="06:00" max="22:00" {...register(`providers.${index}.workingEnd`)} className="flex-1" />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">e.g. 7:00 AM – 5:00 PM</p>
                   </div>
@@ -784,9 +796,9 @@ export default function EditOfficePage() {
                     {watchProviders?.[index]?.lunchEnabled !== false ? (
                       <>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <Input type="time" {...register(`providers.${index}.lunchStart`)} className="flex-1" />
+                          <Input type="time" min="06:00" max="22:00" {...register(`providers.${index}.lunchStart`)} className="flex-1" />
                           <span className="self-center text-sm text-muted-foreground text-center">to</span>
-                          <Input type="time" {...register(`providers.${index}.lunchEnd`)} className="flex-1" />
+                          <Input type="time" min="06:00" max="22:00" {...register(`providers.${index}.lunchEnd`)} className="flex-1" />
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
                       </>
@@ -836,7 +848,7 @@ export default function EditOfficePage() {
                             const dayEntry = providerScheduleMap[index]?.[day] || { enabled: true, workingStart: '07:00', workingEnd: '16:00' };
                             const isEnabled = dayEntry.enabled !== false;
                             const rotWeeks = watch("rotationWeeks") === 4 ? ['A','B','C','D'] : ['A','B'];
-                            const selectedRotWeeks: string[] = (dayEntry as any).rotationWeeks ?? rotWeeks; // default = all weeks
+                            const selectedRotWeeks: string[] = dayEntry.rotationWeeks ?? rotWeeks; // default = all weeks
                             return (
                               <tr key={day} className={`border-t border-border/50 ${!isEnabled ? 'opacity-40' : ''}`}>
                                 <td className="pr-3 py-1.5 font-medium">{DAY_LABELS[day]}</td>
@@ -898,7 +910,7 @@ export default function EditOfficePage() {
                                               const updated = e.target.checked
                                                 ? [...selectedRotWeeks, w]
                                                 : selectedRotWeeks.filter(x => x !== w);
-                                              updateDayField(index, day, 'rotationWeeks' as any, updated.length === rotWeeks.length ? undefined : updated);
+                                              updateDayField(index, day, 'rotationWeeks', updated.length === rotWeeks.length ? undefined : updated);
                                             }}
                                             className="w-3 h-3"
                                           />
@@ -1017,11 +1029,11 @@ export default function EditOfficePage() {
                                     onChange={e => {
                                       const val = e.target.value === '' ? undefined : Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
                                       setMixMap(prev => {
-                                        const updated = { ...(prev[index] ?? {}) };
+                                        const updated: ProcedureMix = { ...(prev[index] ?? {}) };
                                         if (val === undefined) {
-                                          delete (updated as any)[cat];
+                                          delete updated[cat];
                                         } else {
-                                          (updated as any)[cat] = val;
+                                          updated[cat] = val;
                                         }
                                         return { ...prev, [index]: updated };
                                       });
@@ -1225,7 +1237,7 @@ export default function EditOfficePage() {
               <div>
                 <Label>New Patient Model</Label>
                 <Select
-                  onValueChange={(value) => setValue("scheduleRules.npModel", value as any)}
+                  onValueChange={(value) => setValue("scheduleRules.npModel", value as 'DOCTOR_ONLY' | 'HYGIENIST_ONLY' | 'EITHER')}
                   defaultValue={watch("scheduleRules.npModel") || "DOCTOR_ONLY"}
                 >
                   <SelectTrigger>
@@ -1241,7 +1253,7 @@ export default function EditOfficePage() {
               <div>
                 <Label>HP Placement</Label>
                 <Select
-                  onValueChange={(value) => setValue("scheduleRules.hpPlacement", value as any)}
+                  onValueChange={(value) => setValue("scheduleRules.hpPlacement", value as 'MORNING' | 'AFTERNOON' | 'ANY')}
                   defaultValue={watch("scheduleRules.hpPlacement") || "MORNING"}
                 >
                   <SelectTrigger>
@@ -1282,7 +1294,7 @@ export default function EditOfficePage() {
             <div>
               <Label>Emergency Handling</Label>
               <Select
-                onValueChange={(value) => setValue("scheduleRules.emergencyHandling", value as any)}
+                onValueChange={(value) => setValue("scheduleRules.emergencyHandling", value as 'ACCESS_BLOCKS' | 'DEDICATED' | 'FLEX')}
                 defaultValue={watch("scheduleRules.emergencyHandling") || "ACCESS_BLOCKS"}
               >
                 <SelectTrigger>

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { ScheduleVersionUpdateInputSchema } from '@/lib/contracts/api-schemas';
 
 /**
  * GET /api/offices/:id/schedule-versions/:versionId
@@ -14,7 +16,7 @@ export async function GET(
 
     const version = await prisma.scheduleVersion.findUnique({ where: { id: versionId } });
     if (!version) {
-      return NextResponse.json({ error: 'Version not found' }, { status: 404 });
+      throw new ApiError(404, 'Version not found');
     }
 
     return NextResponse.json({
@@ -27,8 +29,7 @@ export async function GET(
       createdAt: version.createdAt.toISOString(),
     });
   } catch (error) {
-    console.error('Error fetching schedule version:', error);
-    return NextResponse.json({ error: 'Failed to fetch version' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -42,7 +43,13 @@ export async function PATCH(
 ) {
   try {
     const { versionId } = await params;
-    const { label } = await request.json();
+    const body = await request.json();
+
+    const parsed = ScheduleVersionUpdateInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
+    }
+    const { label } = parsed.data;
 
     const version = await prisma.scheduleVersion.update({
       where: { id: versionId },
@@ -51,8 +58,7 @@ export async function PATCH(
 
     return NextResponse.json({ id: version.id, label: version.label });
   } catch (error) {
-    console.error('Error updating version label:', error);
-    return NextResponse.json({ error: 'Failed to update version' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -68,7 +74,6 @@ export async function DELETE(
     await prisma.scheduleVersion.delete({ where: { id: versionId } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting version:', error);
-    return NextResponse.json({ error: 'Failed to delete version' }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -234,6 +234,54 @@ export interface ProviderProductionSummary {
 
 export type StaffingCode = 'D' | 'A' | 'H' | null;
 
+// ---------------------------------------------------------------------------
+// Rock-Sand-Water types
+// ---------------------------------------------------------------------------
+
+/** Rock-Sand-Water production tier classification */
+export type RSWTier = 'ROCK' | 'SAND' | 'WATER';
+
+/**
+ * Configuration for Rock-Sand-Water scheduling methodology.
+ * Controls production distribution, block placement rules, and timing constraints.
+ */
+export interface RSWConfig {
+  /** Target percentage of daily production from ROCK blocks (default 0.55, aim 0.60-0.70) */
+  rockProductionPct: number;
+  /** Target percentage of restorative production in morning — Burkhart 80/20 rule (default 0.80) */
+  morningProductionPct: number;
+  /** Number of New Patient blocks per day (default 2: 1 AM ~9-10am, 1 PM ~2-3pm) */
+  npBlocksPerDay: number;
+  /** ER block placement strategy: mid-morning (10-11am) + early afternoon (2-3pm) */
+  erPlacement: 'MID_MORNING_EARLY_PM';
+  /** Protected rock blocks per half-day — Linda Miles rule (default { am: 2, pm: 1 }) */
+  protectedRockBlocks: { am: number; pm: number };
+}
+
+/**
+ * Result of auto-applying stagger fixes to a multi-column schedule.
+ * Returned by the stagger-resolver after conflict resolution.
+ */
+export interface StaggerApplicationResult {
+  /** The modified slots array */
+  modifiedSlots: TimeSlotOutput[];
+  /** Record of each move that was applied */
+  appliedMoves: Array<{
+    fromTime: string;
+    toTime: string;
+    providerId: string;
+    operatory: string;
+    reason: string;
+  }>;
+  /** Any conflicts that could not be automatically resolved */
+  remainingConflicts: Array<{
+    time: string;
+    providerId: string;
+    operatories: string[];
+    blockLabels: string[];
+  }>;
+}
+
 /**
  * Per-day working hours override.
  * Key: day abbreviation ("Mon", "Tue", etc.)

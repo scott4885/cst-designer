@@ -12,26 +12,26 @@ interface ClinicalValidationPanelProps {
 const SEVERITY_CONFIG = {
   error: {
     icon: XCircle,
-    bg: "bg-red-50 dark:bg-red-950/30",
-    border: "border-red-200 dark:border-red-800",
-    text: "text-red-700 dark:text-red-400",
-    badge: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+    bg: "bg-red-50",
+    border: "border-red-200",
+    text: "text-red-700",
+    badge: "bg-red-100 text-red-700",
     label: "Error",
   },
   warning: {
     icon: AlertTriangle,
-    bg: "bg-amber-50 dark:bg-amber-950/30",
-    border: "border-amber-200 dark:border-amber-800",
-    text: "text-amber-700 dark:text-amber-400",
-    badge: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    text: "text-amber-700",
+    badge: "bg-amber-100 text-amber-700",
     label: "Warning",
   },
   info: {
     icon: Info,
-    bg: "bg-blue-50 dark:bg-blue-950/30",
-    border: "border-blue-200 dark:border-blue-800",
-    text: "text-blue-700 dark:text-blue-400",
-    badge: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    text: "text-blue-700",
+    badge: "bg-blue-100 text-blue-700",
     label: "Info",
   },
 };
@@ -62,23 +62,23 @@ export default function ClinicalValidationPanel({ warnings }: ClinicalValidation
             <ShieldCheck className="w-4 h-4 text-muted-foreground" />
             <CardTitle className="text-sm">Clinical Validation</CardTitle>
             {totalCount === 0 ? (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
                 ✓ All clear
               </span>
             ) : (
               <div className="flex items-center gap-1">
                 {errorCount > 0 && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">
                     {errorCount} error{errorCount !== 1 ? "s" : ""}
                   </span>
                 )}
                 {warningCount > 0 && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
                     {warningCount} warn{warningCount !== 1 ? "ings" : "ing"}
                   </span>
                 )}
                 {infoCount > 0 && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
                     {infoCount} info
                   </span>
                 )}

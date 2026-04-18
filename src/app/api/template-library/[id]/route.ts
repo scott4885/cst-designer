@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ApiError, handleApiError } from '@/lib/api-error';
 
 /**
  * DELETE /api/template-library/:id
@@ -14,16 +15,15 @@ export async function DELETE(
     const item = await prisma.templateLibraryItem.findUnique({ where: { id } });
 
     if (!item) {
-      return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+      throw new ApiError(404, 'Template not found');
     }
     if (item.isBuiltIn) {
-      return NextResponse.json({ error: 'Cannot delete built-in templates' }, { status: 403 });
+      throw new ApiError(403, 'Cannot delete built-in templates');
     }
 
     await prisma.templateLibraryItem.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting template:', error);
-    return NextResponse.json({ error: 'Failed to delete template' }, { status: 500 });
+    return handleApiError(error);
   }
 }

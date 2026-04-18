@@ -11,24 +11,26 @@ import { Separator } from "@/components/ui/separator";
 import { type AppSettings, DEFAULT_SETTINGS } from "@/lib/settings";
 import { useTheme } from "next-themes";
 
+function loadStoredSettings(): AppSettings {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+  const stored = localStorage.getItem("app-settings");
+  if (!stored) return DEFAULT_SETTINGS;
+  try {
+    const parsed = JSON.parse(stored);
+    return { ...DEFAULT_SETTINGS, ...parsed };
+  } catch (error) {
+    console.error("Failed to load settings:", error);
+    return DEFAULT_SETTINGS;
+  }
+}
+
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<AppSettings>(loadStoredSettings);
   const [hasChanges, setHasChanges] = useState(false);
   const { setTheme: setNextTheme } = useTheme();
 
-  // Load settings from localStorage on mount
   useEffect(() => {
     document.title = "Settings - Custom Schedule Template";
-    
-    const stored = localStorage.getItem("app-settings");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
-      } catch (error) {
-        console.error("Failed to load settings:", error);
-      }
-    }
   }, []);
 
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
@@ -199,7 +201,7 @@ export default function SettingsPage() {
             <div>
               <Label htmlFor="warnings">Show production warnings</Label>
               <p className="text-xs text-muted-foreground">
-                Display warnings when schedules don't meet production targets
+                Display warnings when schedules don&apos;t meet production targets
               </p>
             </div>
             <Switch
@@ -225,7 +227,7 @@ export default function SettingsPage() {
             <Select
               value={settings.theme}
               onValueChange={(value) => {
-                updateSetting("theme", value as any);
+                updateSetting("theme", value as AppSettings["theme"]);
                 setNextTheme(value);
               }}
             >

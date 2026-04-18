@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Download, Camera, Grid3X3, Loader2,
+  ArrowLeft, Camera, Grid3X3, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { toast } from "sonner";
 import { useOfficeStore } from "@/store/office-store";
 import { useScheduleStore } from "@/store/schedule-store";
-import { buildMatrixData, abbreviateLabel, parseTimeToMinutes } from "@/lib/matrix-helpers";
+import { buildMatrixData, abbreviateLabel } from "@/lib/matrix-helpers";
 import type { MatrixData } from "@/lib/matrix-helpers";
 
 const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"];

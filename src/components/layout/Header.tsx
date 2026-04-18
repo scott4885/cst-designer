@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Settings, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOfficeStore } from "@/store/office-store";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 
 interface HeaderProps {
@@ -92,13 +91,12 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
         </div>
       </div>
 
-      {/* Right: notifications + theme toggle + settings */}
+      {/* Right: notifications + settings (light-only app, no theme toggle) */}
       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         <NotificationBell />
-        <ThemeToggle />
         <Link href="/settings">
-          <Button variant="ghost" size="icon" className={`rounded-full ${isBuilder ? "h-7 w-7" : "h-9 w-9 min-h-[44px] min-w-[44px]"}`}>
-            <Settings className={isBuilder ? "w-4 h-4" : "w-5 h-5"} />
+          <Button variant="ghost" size="icon" className={`rounded-full ${isBuilder ? "h-7 w-7" : "h-9 w-9 min-h-[44px] min-w-[44px]"}`} aria-label="Settings">
+            <Settings className={isBuilder ? "w-4 h-4" : "w-5 h-5"} aria-hidden="true" />
           </Button>
         </Link>
       </div>

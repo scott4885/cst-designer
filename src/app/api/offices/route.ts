@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { getOffices, createOffice } from '@/lib/data-access';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { CreateOfficeInputSchema } from '@/lib/contracts/api-schemas';
 
 /**
  * GET /api/offices
@@ -11,11 +13,7 @@ export async function GET() {
     const offices = await getOffices();
     return NextResponse.json(offices);
   } catch (error) {
-    console.error('Error fetching offices:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch offices' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -26,87 +24,67 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
-    // Validate required fields
-    if (!body.name || !body.dpmsSystem || !body.workingDays) {
-      return NextResponse.json(
-        { error: 'Missing required fields: name, dpmsSystem, workingDays' },
-        { status: 400 }
-      );
-    }
 
-    // Map providers to include IDs
-    const providers = (body.providers || []).map((p: any) => ({
-      id: randomUUID(),
+    const parsed = CreateOfficeInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
+    }
+    const data = parsed.data;
+
+    // Map providers to include IDs (role/days already validated + normalized by Zod)
+    const providers = (data.providers || []).map((p) => ({
+      id: p.id || randomUUID(),
       name: p.name,
-      role: (p.role === 'Doctor' ? 'DOCTOR' : 'HYGIENIST') as 'DOCTOR' | 'HYGIENIST',
-      operatories: p.operatories || ['OP1'],
+      role: p.role,
+      operatories: p.operatories && p.operatories.length > 0 ? p.operatories : ['OP1'],
       workingStart: p.workingHours?.start || '07:00',
       workingEnd: p.workingHours?.end || '18:00',
       lunchStart: p.lunchBreak?.start || '13:00',
       lunchEnd: p.lunchBreak?.end || '14:00',
-      dailyGoal: p.dailyGoal || 0,
+      dailyGoal: p.dailyGoal ?? 0,
       color: p.color || '#666',
     }));
 
-    // Map block types
-    const blockTypes = (body.blockTypes || []).map((b: any) => ({
-      id: randomUUID(),
+    // Map block types (role already normalized via Zod enum)
+    const blockTypes = (data.blockTypes || []).map((b) => ({
+      id: b.id || randomUUID(),
       label: b.label,
       description: b.description || '',
       minimumAmount: b.minimumAmount || 0,
-      appliesToRole: (b.role === 'Doctor' ? 'DOCTOR' : b.role === 'Hygienist' ? 'HYGIENIST' : 'BOTH') as 'DOCTOR' | 'HYGIENIST' | 'BOTH',
+      appliesToRole: b.appliesToRole || b.role || 'BOTH',
       durationMin: b.duration || 30,
       durationMax: b.durationMax || b.duration || 30,
     }));
 
-    // Normalize rules
+    // Normalize rules — Zod already validated enum values
     const rules = {
-      npModel: (body.rules?.npModel?.toUpperCase() || 'DOCTOR_ONLY') as 'DOCTOR_ONLY' | 'HYGIENIST_ONLY' | 'EITHER',
-      npBlocksPerDay: body.rules?.npBlocksPerDay || 2,
-      srpBlocksPerDay: body.rules?.srpBlocksPerDay || 2,
-      hpPlacement: (body.rules?.hpPlacement?.toUpperCase() || 'MORNING') as 'MORNING' | 'AFTERNOON' | 'ANY',
-      doubleBooking: body.rules?.doubleBooking || false,
-      matrixing: body.rules?.matrixing !== false,
-      emergencyHandling: 'ACCESS_BLOCKS' as 'DEDICATED' | 'FLEX' | 'ACCESS_BLOCKS',
+      npModel: data.rules?.npModel || 'DOCTOR_ONLY',
+      npBlocksPerDay: data.rules?.npBlocksPerDay ?? 2,
+      srpBlocksPerDay: data.rules?.srpBlocksPerDay ?? 2,
+      hpPlacement: data.rules?.hpPlacement || 'MORNING',
+      doubleBooking: data.rules?.doubleBooking ?? true,
+      matrixing: data.rules?.matrixing !== false,
+      emergencyHandling: 'ACCESS_BLOCKS' as const,
     };
 
-    // Normalize working days — accept array or comma-separated string
-    const rawDays = Array.isArray(body.workingDays)
-      ? body.workingDays
-      : typeof body.workingDays === 'string'
-        ? body.workingDays.split(',').map((d: string) => d.trim()).filter(Boolean)
-        : [];
-    const workingDays = rawDays.map((day: string) => {
-      const dayMap: Record<string, string> = {
-        Mon: 'MONDAY',
-        Tue: 'TUESDAY',
-        Wed: 'WEDNESDAY',
-        Thu: 'THURSDAY',
-        Fri: 'FRIDAY',
-      };
-      return dayMap[day] || day.toUpperCase();
-    });
+    // workingDays already normalized to uppercase full-name via Zod
+    const workingDays = data.workingDays;
 
     // Create office in database
     const newOffice = await createOffice({
-      name: body.name,
-      dpmsSystem: body.dpmsSystem.toUpperCase().replace(' ', '_'),
+      name: data.name,
+      dpmsSystem: data.dpmsSystem.toUpperCase().replace(' ', '_'),
       workingDays,
-      timeIncrement: body.timeIncrement || 10,
-      feeModel: body.feeModel || 'UCR',
+      timeIncrement: data.timeIncrement || 10,
+      feeModel: data.feeModel || 'UCR',
       providers,
       blockTypes,
       rules,
-      schedulingRules: body.schedulingRules || '',
+      schedulingRules: data.schedulingRules || '',
     });
 
     return NextResponse.json(newOffice, { status: 201 });
   } catch (error) {
-    console.error('Error creating office:', error);
-    return NextResponse.json(
-      { error: 'Failed to create office' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

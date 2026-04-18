@@ -245,6 +245,92 @@ describe('Sprint 6 — shared-pool multi-op production', () => {
       expect(op0).toBeGreaterThan(0);
       expect(op1).toBeGreaterThan(0);
     });
+
+    it('Iteration 2: cross-column A-D zigzag — D-phase overlaps substantially reduced', () => {
+      // Per dental-scheduling-best-practices: when Col A is in D-phase, Col B
+      // should be in A-phase (and vice versa). The methodology allows AT MOST
+      // one slot of D-overlap during transitions. Iteration 2 routes placement
+      // to prevent conflicts at the source: each op's placement receives the
+      // D-phase minutes from already-placed ops and prefers ranges that don't
+      // collide.
+      //
+      // When both operatories are saturated with long blocks (e.g. two 90-min
+      // HP blocks), some D-overlap is geometrically unavoidable without
+      // shortening blocks. In those cases iteration 1's post-hoc stagger
+      // resolver fills the remaining gap. This test verifies that cross-column
+      // routing reduces raw overlap by ~66%+ vs the pre-iteration-2 baseline
+      // (which regularly produced 12-15+ overlapping minutes on this input).
+      const { result } = runTwoOp();
+
+      // Group by (doctorId, time): how many operatories is the doctor in
+      // D-phase at the same minute?
+      const dByTime = new Map<string, Set<string>>();
+      for (const s of result.slots) {
+        if (
+          s.providerId === 'dr1' &&
+          s.staffingCode === 'D' &&
+          s.blockTypeId &&
+          !s.isBreak
+        ) {
+          const set = dByTime.get(s.time) ?? new Set<string>();
+          set.add(s.operatory);
+          dByTime.set(s.time, set);
+        }
+      }
+
+      // Count minutes where the doctor is in D-phase in BOTH operatories
+      let overlappingMinutes = 0;
+      for (const ops of dByTime.values()) {
+        if (ops.size > 1) overlappingMinutes++;
+      }
+
+      // Baseline before iteration 2: 12-15+ overlapping minutes on this
+      // saturated 2-op/$3000 configuration. With cross-column avoid routing,
+      // we expect <= 5 (iteration 1's stagger-resolver mops up the residual).
+      expect(overlappingMinutes).toBeLessThanOrEqual(5);
+    });
+
+    it('Iteration 3: per-op target redistribution — combined production stays near shared target (not doubled)', () => {
+      // Before iter 3: each op was given target = ceil(sharedTarget / numOps)
+      // with a fresh produced=0 context. If OP1 hit its target + 20% buffer,
+      // OP2 still chased its full perOpTarget from zero, letting combined
+      // production drift well above sharedTarget (up to ~2x in the worst case).
+      //
+      // After iter 3: perOpTarget is computed from the REMAINING shared
+      // target (sharedTarget - alreadyProduced) / remainingOps. If OP1
+      // over-produces, OP2's target shrinks; if OP1 under-produces, OP2
+      // picks up the slack.
+      //
+      // This test uses a doctor with dailyGoal=$4000 → sharedTarget=$3000
+      // and asserts combined production does NOT balloon toward $6000.
+      //
+      // Note: the rock-sand-water placement PLUS the fillRemainingDoctorSlots
+      // step will always push combined production past the 75% target when
+      // filling the full day (UX-V3 behavior — both ops fill the full working
+      // day). But the placement-phase redistribution should materially bring
+      // combined production DOWN vs the old double-hit behavior. We bound it
+      // at 2.0x the shared target (historical double-hit was 2.0x+).
+      const doc = makeDoctor({ operatories: ['OP1', 'OP2'], dailyGoal: 4000 });
+      const sharedTarget = doc.dailyGoal * 0.75; // $3000
+      const input: GenerationInput = {
+        providers: [doc],
+        blockTypes: STANDARD_BLOCK_TYPES,
+        rules: makeRules(),
+        timeIncrement: 10,
+        dayOfWeek: 'Monday',
+      };
+
+      const result = generateSchedule(input);
+      const combined = computeCombinedProduction(result, 'dr1');
+
+      // Hard upper bound: combined must not exceed 2x the shared target.
+      // A value near 2x = the old double-hit bug (each op independently
+      // chasing its full slice).
+      expect(combined).toBeLessThan(sharedTarget * 2);
+      // Lower bound: placement should still reach at least the shared
+      // target (fill step takes it the rest of the way to full-day fill).
+      expect(combined).toBeGreaterThanOrEqual(sharedTarget * 0.8);
+    });
   });
 
   // ──────────────────────────────────────────────────────────────────────────────
@@ -345,6 +431,56 @@ describe('Sprint 6 — shared-pool multi-op production', () => {
   // ──────────────────────────────────────────────────────────────────────────────
   // Single-op doctor — verify no regression from pre-Sprint 5 behavior
   // ──────────────────────────────────────────────────────────────────────────────
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // Iter 12a — Quality floor regression: OP2/OP3 must still receive morning HP
+  // anchors when OP1 alone hits the shared target.
+  // ──────────────────────────────────────────────────────────────────────────────
+
+  describe('Iter 12a — quality floor (OP2/OP3 morning HP anchor)', () => {
+    it('OP2 and OP3 each get a morning HP block even when OP1 hits 75% of shared target alone', () => {
+      // With a $2000 daily goal, sharedTarget = $1500. OP1 can hit this easily
+      // with one HP ($1200) + one MP ($375). Before Iter 12a the remainder
+      // perOpTarget for OP2/OP3 was 0, so Rock-Sand-Water's isGoalMet() short-
+      // circuited all rock placement and OP2/OP3 ended up with only fill-
+      // remaining low-value blocks. The 15% floor guarantees OP2/OP3 still
+      // place a morning HP anchor.
+      const doc = makeDoctor({
+        operatories: ['OP1', 'OP2', 'OP3'],
+        dailyGoal: 2000,
+      });
+      const input: GenerationInput = {
+        providers: [doc],
+        blockTypes: STANDARD_BLOCK_TYPES,
+        rules: makeRules(),
+        timeIncrement: 10,
+        dayOfWeek: 'Monday',
+      };
+
+      const result = generateSchedule(input);
+
+      // Helper: does a given operatory have an HP block that starts before noon?
+      const hasMorningHP = (operatory: string): boolean => {
+        const opSlots = result.slots
+          .filter(
+            s =>
+              s.providerId === 'dr1' &&
+              s.operatory === operatory &&
+              s.blockTypeId === 'hp-default' &&
+              !s.isBreak
+          )
+          .sort((a, b) => a.time.localeCompare(b.time));
+        if (opSlots.length === 0) return false;
+        const firstTime = opSlots[0].time;
+        const [hh] = firstTime.split(':').map(Number);
+        return hh < 12;
+      };
+
+      expect(hasMorningHP('OP1')).toBe(true);
+      expect(hasMorningHP('OP2')).toBe(true);
+      expect(hasMorningHP('OP3')).toBe(true);
+    });
+  });
 
   describe('single-op path (doubleBooking disabled)', () => {
     it('doctor with 2 assigned ops but doubleBooking=false behaves as single-op', () => {

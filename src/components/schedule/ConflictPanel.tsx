@@ -69,7 +69,7 @@ export default function ConflictPanel({ schedule, providers, blockTypes = [], on
       {expanded && (
         <CardContent className="pt-0 px-4 pb-4 space-y-3">
           {isClean && productionTotals && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 text-sm">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 text-green-700 text-sm">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <div>
                 <p className="font-medium">All good!</p>
@@ -128,8 +128,8 @@ function ConflictItem({
     <div
       className={`flex items-start gap-2 p-2 rounded-lg text-sm cursor-pointer hover:opacity-80 transition-opacity ${
         isError
-          ? 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400'
-          : 'bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400'
+          ? 'bg-red-50 text-red-700'
+          : 'bg-yellow-50 text-yellow-700'
       }`}
       onClick={() => {
         if (conflict.time && conflict.providerId && onSlotClick) {

@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateProductionMix,
   compareToIndustryBenchmark,
-  ProductionMix,
   ProviderMix,
   DOCTOR_BENCHMARKS,
   HYGIENIST_BENCHMARKS,

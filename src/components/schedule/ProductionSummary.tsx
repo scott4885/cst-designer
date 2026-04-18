@@ -49,9 +49,9 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
   const getHPColor = (hpAmount: number, dailyGoal: number) => {
     if (dailyGoal === 0) return "text-muted-foreground";
     const pct = (hpAmount / dailyGoal) * 100;
-    if (pct >= 75) return "text-green-600 dark:text-green-400";
-    if (pct >= 50) return "text-amber-600 dark:text-amber-400";
-    return "text-red-600 dark:text-red-400";
+    if (pct >= 75) return "text-green-600";
+    if (pct >= 50) return "text-amber-600";
+    return "text-red-600";
   };
 
   const getHPProgressColor = (hpAmount: number, dailyGoal: number) => {
@@ -66,10 +66,10 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
     if (dailyGoal === 0) return null;
     const pct = (hpAmount / dailyGoal) * 100;
     if (pct >= 75)
-      return <Badge className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400">✓ Met</Badge>;
+      return <Badge className="bg-green-100 text-green-700 border-green-300">✓ Met</Badge>;
     if (pct >= 50)
-      return <Badge className="bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400">⚠ Partial</Badge>;
-    return <Badge className="bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400">✕ Below</Badge>;
+      return <Badge className="bg-amber-100 text-amber-700 border-amber-300">⚠ Partial</Badge>;
+    return <Badge className="bg-red-100 text-red-700 border-red-300">✕ Below</Badge>;
   };
 
   const getStatusBadge = (actual: number, target: number) => {
@@ -234,9 +234,9 @@ export default function ProductionSummary({ summaries, alignmentScore }: Product
                                   <span className="text-right tabular-nums text-muted-foreground">{row.currentPct}%</span>
                                   <span className="text-right tabular-nums text-muted-foreground">{row.targetPct}%</span>
                                   <span className={`text-right tabular-nums font-semibold ${
-                                    row.severity === 'red' ? 'text-red-600 dark:text-red-400' :
-                                    row.severity === 'amber' ? 'text-amber-600 dark:text-amber-400' :
-                                    'text-green-600 dark:text-green-400'
+                                    row.severity === 'red' ? 'text-red-600' :
+                                    row.severity === 'amber' ? 'text-amber-600' :
+                                    'text-green-600'
                                   }`}>
                                     {row.gap > 0 ? '+' : ''}{row.gap}%
                                   </span>

@@ -27,10 +27,10 @@ interface OfficeCardProps {
 }
 
 function qualityBadge(score: number) {
-  if (score >= 90) return { emoji: '🟢', label: `${score}`, className: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400' };
-  if (score >= 75) return { emoji: '🟡', label: `${score}`, className: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400' };
-  if (score >= 60) return { emoji: '🟠', label: `${score}`, className: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400' };
-  return { emoji: '🔴', label: `${score}`, className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400' };
+  if (score >= 90) return { emoji: '🟢', label: `${score}`, className: 'bg-green-100 text-green-700 border-green-200' };
+  if (score >= 75) return { emoji: '🟡', label: `${score}`, className: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+  if (score >= 60) return { emoji: '🟠', label: `${score}`, className: 'bg-orange-100 text-orange-700 border-orange-200' };
+  return { emoji: '🔴', label: `${score}`, className: 'bg-red-100 text-red-700 border-red-200' };
 }
 
 export default function OfficeCard({
@@ -93,7 +93,7 @@ export default function OfficeCard({
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               <Badge variant="secondary" className="text-xs">{dpms}</Badge>
               {hasSchedule ? (
-                <Badge variant="outline" className="text-xs text-green-600 border-green-300 dark:text-green-400">
+                <Badge variant="outline" className="text-xs text-green-600 border-green-300">
                   Schedule Ready
                 </Badge>
               ) : (

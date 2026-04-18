@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Library, Trash2, Loader2, Plus, CheckCircle2, AlertCircle, Building2, X } from "lucide-react";
+import { Library, Trash2, Loader2, Plus, CheckCircle2, AlertCircle, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

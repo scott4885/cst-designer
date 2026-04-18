@@ -15,7 +15,7 @@ interface StorageLike {
 }
 
 const memoryStorage: StorageLike = (() => {
-  let store: Record<string, string> = {};
+  const store: Record<string, string> = {};
   return {
     getItem: (key: string) => (key in store ? store[key] : null),
     setItem: (key: string, value: string) => {
@@ -238,7 +238,7 @@ export async function getScheduleTemplates(officeId: string) {
           time: slot.time,
           providerId: slot.providerId || undefined,
           operatory: slot.operatory || undefined,
-          staffingCode: slot.staffingCode as any,
+          staffingCode: slot.staffingCode,
           blockTypeId: slot.blockTypeId || undefined,
           blockLabel: slot.blockLabel || undefined,
           isBreak: slot.isBreak,

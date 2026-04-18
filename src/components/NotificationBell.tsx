@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Bell, CheckCheck, Trash2, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useNotificationStore } from "@/lib/notifications";
 import type { AppNotification } from "@/lib/notifications";
 import Link from "next/link";
@@ -77,25 +76,28 @@ export default function NotificationBell() {
                 <button
                   onClick={markAllRead}
                   title="Mark all as read"
+                  aria-label="Mark all notifications as read"
                   className="p-1.5 rounded-md hover:bg-accent/20 transition-colors text-muted-foreground hover:text-foreground"
                 >
-                  <CheckCheck className="w-4 h-4" />
+                  <CheckCheck className="w-4 h-4" aria-hidden="true" />
                 </button>
               )}
               {notifications.length > 0 && (
                 <button
                   onClick={clearAll}
                   title="Clear all"
-                  className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-muted-foreground hover:text-red-600"
+                  aria-label="Clear all notifications"
+                  className="p-1.5 rounded-md hover:bg-red-100 transition-colors text-muted-foreground hover:text-red-600"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                 </button>
               )}
               <button
                 onClick={() => setOpen(false)}
+                aria-label="Close notifications panel"
                 className="p-1.5 rounded-md hover:bg-accent/20 transition-colors text-muted-foreground"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -114,7 +116,7 @@ export default function NotificationBell() {
                     key={notif.id}
                     onClick={() => handleNotifClick(notif)}
                     className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-accent/10 ${
-                      !notif.read ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
+                      !notif.read ? "bg-blue-50/50" : ""
                     }`}
                   >
                     <span className="text-base mt-0.5 flex-shrink-0">{icon}</span>

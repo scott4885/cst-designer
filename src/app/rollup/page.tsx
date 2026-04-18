@@ -17,7 +17,6 @@ import { useOfficeStore } from "@/store/office-store";
 import {
   buildProductionGapTable,
   exportGapTableToCSV,
-  type ProductionGapRow,
   type OfficeScheduleData,
   type ScheduleStatus,
 } from "@/lib/analytics";
@@ -46,7 +45,11 @@ function loadScheduleDataFromStorage(officeId: string): OfficeScheduleData | nul
     const key = `schedule-designer:schedule-state:${officeId}`;
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const schedules = JSON.parse(raw) as Record<string, any>;
+    type StoredSchedule = {
+      productionSummary?: Array<{ scheduledProduction?: number }>;
+      qualityScore?: { total?: number };
+    };
+    const schedules = JSON.parse(raw) as Record<string, StoredSchedule | null>;
     const scheduledDays = Object.keys(schedules);
     if (scheduledDays.length === 0) return null;
 
@@ -55,13 +58,13 @@ function loadScheduleDataFromStorage(officeId: string): OfficeScheduleData | nul
 
     for (const [day, sched] of Object.entries(schedules)) {
       if (!sched) continue;
-      const summary = (sched as any).productionSummary ?? [];
+      const summary = sched.productionSummary ?? [];
       const dayProd = summary.reduce(
-        (s: number, p: any) => s + (p.scheduledProduction ?? 0),
+        (s, p) => s + (p.scheduledProduction ?? 0),
         0
       );
       productionByDay[day] = dayProd;
-      const qs = (sched as any).qualityScore?.total ?? null;
+      const qs = sched.qualityScore?.total ?? null;
       if (qs !== null && qualityScore === null) qualityScore = qs;
     }
 
@@ -75,6 +78,28 @@ function loadScheduleDataFromStorage(officeId: string): OfficeScheduleData | nul
 
 type SortKey = "officeName" | "gap" | "weeklyTotal" | "goalPerDay";
 
+function SortBtn({
+  k,
+  label,
+  sortKey,
+  onClick,
+}: {
+  k: SortKey;
+  label: string;
+  sortKey: SortKey;
+  onClick: (key: SortKey) => void;
+}) {
+  return (
+    <button
+      onClick={() => onClick(k)}
+      className="flex items-center gap-1 hover:text-foreground transition-colors whitespace-nowrap"
+    >
+      {label}
+      <ArrowUpDown className={`w-3 h-3 ${sortKey === k ? "text-accent" : "text-muted-foreground/40"}`} />
+    </button>
+  );
+}
+
 function fmt(val: number) {
   if (val === 0) return "—";
   return `$${Math.round(val).toLocaleString()}`;
@@ -84,7 +109,6 @@ function fmt(val: number) {
 
 export default function RollupPage() {
   const { offices, isLoading, fetchOffices } = useOfficeStore();
-  const [scheduleDataMap, setScheduleDataMap] = useState<Map<string, OfficeScheduleData>>(new Map());
   const [sortKey, setSortKey] = useState<SortKey>("gap");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showFilters, setShowFilters] = useState(false);
@@ -98,14 +122,14 @@ export default function RollupPage() {
     fetchOffices().catch(console.error);
   }, [fetchOffices]);
 
-  useEffect(() => {
-    if (offices.length === 0) return;
+  const scheduleDataMap = useMemo(() => {
     const map = new Map<string, OfficeScheduleData>();
+    if (offices.length === 0) return map;
     for (const o of offices) {
       const data = loadScheduleDataFromStorage(o.id);
       if (data) map.set(o.id, data);
     }
-    setScheduleDataMap(map);
+    return map;
   }, [offices]);
 
   const rawRows = useMemo(
@@ -159,16 +183,6 @@ export default function RollupPage() {
   };
 
   const dpmsOptions = Array.from(new Set(offices.map(o => o.dpmsSystem)));
-
-  const SortBtn = ({ k, label }: { k: SortKey; label: string }) => (
-    <button
-      onClick={() => toggleSort(k)}
-      className="flex items-center gap-1 hover:text-foreground transition-colors whitespace-nowrap"
-    >
-      {label}
-      <ArrowUpDown className={`w-3 h-3 ${sortKey === k ? "text-accent" : "text-muted-foreground/40"}`} />
-    </button>
-  );
 
   return (
     <div className="space-y-6">
@@ -314,10 +328,10 @@ export default function RollupPage() {
             <thead>
               <tr className="border-b text-muted-foreground text-left">
                 <th className="px-4 py-3 font-medium">
-                  <SortBtn k="officeName" label="Office" />
+                  <SortBtn k="officeName" label="Office" sortKey={sortKey} onClick={toggleSort} />
                 </th>
                 <th className="px-4 py-3 font-medium text-right">
-                  <SortBtn k="goalPerDay" label="Goal/Day" />
+                  <SortBtn k="goalPerDay" label="Goal/Day" sortKey={sortKey} onClick={toggleSort} />
                 </th>
                 {DAYS.map(d => (
                   <th key={d} className="px-3 py-3 font-medium text-right text-xs">
@@ -325,10 +339,10 @@ export default function RollupPage() {
                   </th>
                 ))}
                 <th className="px-4 py-3 font-medium text-right">
-                  <SortBtn k="weeklyTotal" label="Weekly Total" />
+                  <SortBtn k="weeklyTotal" label="Weekly Total" sortKey={sortKey} onClick={toggleSort} />
                 </th>
                 <th className="px-4 py-3 font-medium text-right">
-                  <SortBtn k="gap" label="Gap" />
+                  <SortBtn k="gap" label="Gap" sortKey={sortKey} onClick={toggleSort} />
                 </th>
                 <th className="px-4 py-3 font-medium">Status</th>
               </tr>

@@ -9,7 +9,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   PieChart,
   Pie,
   Cell,
@@ -25,7 +24,6 @@ import {
   Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useOfficeStore } from "@/store/office-store";
 import RecallCapacityPanel from "@/components/schedule/RecallCapacityPanel";
 import {
@@ -35,7 +33,6 @@ import {
   computeProcedureMixBreakdown,
   computeScheduleStatusDonut,
   buildLeagueTable,
-  getScheduleStatus,
   type OfficeScheduleData,
   type OfficeLeagueRow,
 } from "@/lib/analytics";
@@ -74,7 +71,11 @@ function loadScheduleDataFromStorage(officeId: string): OfficeScheduleData | nul
     const key = `schedule-designer:schedule-state:${officeId}`;
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const schedules = JSON.parse(raw) as Record<string, any>;
+    type StoredSchedule = {
+      productionSummary?: Array<{ scheduledProduction?: number }>;
+      qualityScore?: { total?: number };
+    };
+    const schedules = JSON.parse(raw) as Record<string, StoredSchedule | null>;
     const scheduledDays = Object.keys(schedules);
     if (scheduledDays.length === 0) return null;
 
@@ -83,14 +84,14 @@ function loadScheduleDataFromStorage(officeId: string): OfficeScheduleData | nul
 
     for (const [day, sched] of Object.entries(schedules)) {
       if (!sched) continue;
-      const summary = (sched as any).productionSummary ?? [];
+      const summary = sched.productionSummary ?? [];
       const dayProd = summary.reduce(
-        (s: number, p: any) => s + (p.scheduledProduction ?? 0),
+        (s, p) => s + (p.scheduledProduction ?? 0),
         0
       );
       productionByDay[day] = dayProd;
 
-      const qs = (sched as any).qualityScore?.total ?? null;
+      const qs = sched.qualityScore?.total ?? null;
       if (qs !== null && qualityScore === null) qualityScore = qs;
     }
 
@@ -148,6 +149,28 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   not_started: { label: "Not Started", className: "bg-muted text-muted-foreground" },
 };
 
+function SortBtn({
+  k,
+  label,
+  sortKey,
+  onClick,
+}: {
+  k: LeagueSortKey;
+  label: string;
+  sortKey: LeagueSortKey;
+  onClick: (key: LeagueSortKey) => void;
+}) {
+  return (
+    <button
+      onClick={() => onClick(k)}
+      className="flex items-center gap-1 hover:text-foreground transition-colors"
+    >
+      {label}
+      <ArrowUpDown className={`w-3 h-3 ${sortKey === k ? "text-accent" : "text-muted-foreground/50"}`} />
+    </button>
+  );
+}
+
 function LeagueTable({ rows }: { rows: OfficeLeagueRow[] }) {
   const [sortKey, setSortKey] = useState<LeagueSortKey>("qualityScore");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -167,16 +190,6 @@ function LeagueTable({ rows }: { rows: OfficeLeagueRow[] }) {
     else { setSortKey(key); setSortDir("desc"); }
   };
 
-  const SortBtn = ({ k, label }: { k: LeagueSortKey; label: string }) => (
-    <button
-      onClick={() => toggleSort(k)}
-      className="flex items-center gap-1 hover:text-foreground transition-colors"
-    >
-      {label}
-      <ArrowUpDown className={`w-3 h-3 ${sortKey === k ? "text-accent" : "text-muted-foreground/50"}`} />
-    </button>
-  );
-
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -185,16 +198,16 @@ function LeagueTable({ rows }: { rows: OfficeLeagueRow[] }) {
             <th className="pb-3 pr-4 font-medium">Office</th>
             <th className="pb-3 pr-4 font-medium">DPMS</th>
             <th className="pb-3 pr-4 font-medium text-right">
-              <SortBtn k="qualityScore" label="Quality" />
+              <SortBtn k="qualityScore" label="Quality" sortKey={sortKey} onClick={toggleSort} />
             </th>
             <th className="pb-3 pr-4 font-medium text-right">
-              <SortBtn k="avgDailyProduction" label="Avg Daily Prod" />
+              <SortBtn k="avgDailyProduction" label="Avg Daily Prod" sortKey={sortKey} onClick={toggleSort} />
             </th>
             <th className="pb-3 pr-4 font-medium text-right">
-              <SortBtn k="daysScheduled" label="Days Built" />
+              <SortBtn k="daysScheduled" label="Days Built" sortKey={sortKey} onClick={toggleSort} />
             </th>
             <th className="pb-3 pr-4 font-medium text-right">
-              <SortBtn k="gap" label="Weekly Gap" />
+              <SortBtn k="gap" label="Weekly Gap" sortKey={sortKey} onClick={toggleSort} />
             </th>
             <th className="pb-3 pr-4 font-medium">Status</th>
             <th className="pb-3 font-medium">Actions</th>
@@ -283,21 +296,20 @@ type AnalyticsTab = "overview" | "recall";
 
 export default function AnalyticsPage() {
   const { offices, isLoading, fetchOffices } = useOfficeStore();
-  const [scheduleDataMap, setScheduleDataMap] = useState<Map<string, OfficeScheduleData>>(new Map());
   const [activeTab, setActiveTab] = useState<AnalyticsTab>("overview");
 
   useEffect(() => {
     fetchOffices().catch(console.error);
   }, [fetchOffices]);
 
-  useEffect(() => {
-    if (offices.length === 0) return;
+  const scheduleDataMap = useMemo(() => {
     const map = new Map<string, OfficeScheduleData>();
+    if (offices.length === 0) return map;
     for (const o of offices) {
       const data = loadScheduleDataFromStorage(o.id);
       if (data) map.set(o.id, data);
     }
-    setScheduleDataMap(map);
+    return map;
   }, [offices]);
 
   const summary = useMemo(
@@ -425,7 +437,7 @@ export default function AnalyticsPage() {
               <XAxis dataKey="label" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
               <Tooltip
-                formatter={(v: any) => [`${v} offices`, "Count"]}
+                formatter={(v) => [`${v} offices`, "Count"]}
                 contentStyle={{ fontSize: 12, borderRadius: 6 }}
               />
               <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} name="Offices" />
@@ -445,7 +457,7 @@ export default function AnalyticsPage() {
               <XAxis dataKey="day" tick={{ fontSize: 12 }} />
               <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 12 }} />
               <Tooltip
-                formatter={(v: any) => [`${v}%`, "% Meeting Target75"]}
+                formatter={(v) => [`${v}%`, "% Meeting Target75"]}
                 contentStyle={{ fontSize: 12, borderRadius: 6 }}
               />
               <Bar dataKey="pctMeetingTarget" fill="#22c55e" radius={[4, 4, 0, 0]} name="% Meeting Target75" />
@@ -466,7 +478,7 @@ export default function AnalyticsPage() {
               <XAxis type="number" tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} domain={[0, 40]} />
               <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={110} />
               <Tooltip
-                formatter={(v: any) => [`${v}%`, "Avg %"]}
+                formatter={(v) => [`${v}%`, "Avg %"]}
                 contentStyle={{ fontSize: 12, borderRadius: 6 }}
               />
               <Bar dataKey="avgPct" radius={[0, 4, 4, 0]} name="Avg %">
@@ -502,7 +514,7 @@ export default function AnalyticsPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(v: any, name: any) => [`${v} offices`, name]}
+                    formatter={(v, name) => [`${v} offices`, name]}
                     contentStyle={{ fontSize: 12, borderRadius: 6 }}
                   />
                 </PieChart>

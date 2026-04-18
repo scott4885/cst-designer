@@ -1,6 +1,5 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import { GET as LIST_OFFICES, POST as CREATE_OFFICE } from '@/app/api/offices/route';
-import { DELETE as DELETE_OFFICE } from '@/app/api/offices/[id]/route';
 import { prisma } from '@/lib/db';
 
 const createdIds: string[] = [];

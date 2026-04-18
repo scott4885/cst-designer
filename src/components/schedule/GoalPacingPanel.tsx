@@ -8,7 +8,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronUp, Target, TrendingUp, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronUp, TrendingUp, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -107,8 +107,8 @@ export default function GoalPacingPanel({ providers, slots, blockTypes }: GoalPa
               <div
                 className={`rounded-md px-3 py-2 text-sm font-medium ${
                   isOnTrack
-                    ? "bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200"
-                    : "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+                    ? "bg-green-50 text-green-800"
+                    : "bg-amber-50 text-amber-800"
                 }`}
               >
                 {isOnTrack ? "🎯" : "⚠️"} {pacing.onTrackAt}

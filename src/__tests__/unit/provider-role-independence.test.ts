@@ -120,7 +120,7 @@ describe('Provider role independence', () => {
     const result = mapProvidersForSubmit(providers, 0);
 
     // Mutating one result should not affect the other
-    (result[1] as any).role = 'OTHER';
+    (result[1] as { role: string }).role = 'OTHER';
     expect(result[0].role).toBe('DOCTOR');
     expect(providers[0].role).toBe('DOCTOR');
   });

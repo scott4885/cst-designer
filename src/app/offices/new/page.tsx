@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { getSettings } from "@/lib/settings";
 // createOffice uses API route
@@ -459,11 +458,14 @@ function NewOfficeForm() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Office Name</Label>
+                  <Label htmlFor="name">
+                    Office Name <span className="text-red-500" aria-label="required">*</span>
+                  </Label>
                   <Input
                     id="name"
                     {...register("name")}
                     placeholder="e.g., Smile Cascade"
+                    aria-required="true"
                   />
                   {errors.name && (
                     <p className="text-sm text-error mt-1">{errors.name.message}</p>
@@ -472,7 +474,7 @@ function NewOfficeForm() {
 
                 <div>
                   <Label htmlFor="dpms">DPMS System</Label>
-                  <Select onValueChange={(value) => setValue("dpms", value as any)}>
+                  <Select onValueChange={(value) => setValue("dpms", value as OfficeFormData["dpms"])}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select DPMS" />
                     </SelectTrigger>
@@ -492,7 +494,9 @@ function NewOfficeForm() {
                 </div>
 
                 <div>
-                  <Label>Working Days</Label>
+                  <Label>
+                    Working Days <span className="text-red-500" aria-label="required">*</span>
+                  </Label>
                   <div className="flex gap-2 mt-2 flex-wrap">
                     {WORKING_DAYS.map((day) => (
                       <Button
@@ -544,7 +548,10 @@ function NewOfficeForm() {
           <TabsContent value="providers" className="space-y-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Providers</CardTitle>
+                <CardTitle>
+                  Providers <span className="text-red-500 text-base" aria-label="required">*</span>
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">(at least 1 required)</span>
+                </CardTitle>
                 <Button type="button" onClick={addProvider} size="sm" className="gap-2 min-h-[44px]">
                   <Plus className="w-4 h-4" />
                   Add Provider
@@ -573,7 +580,7 @@ function NewOfficeForm() {
                 </div>
                 {providerFields.length === 0 && (
                   <p className="text-muted-foreground text-center py-6">
-                    No providers added. Click "Add Provider" to start.
+                    No providers added. Click &ldquo;Add Provider&rdquo; to start.
                   </p>
                 )}
 
@@ -600,7 +607,7 @@ function NewOfficeForm() {
                         <Label>Role</Label>
                         <Select
                           onValueChange={(value) => {
-                            setValue(`providers.${index}.role`, value as any);
+                            setValue(`providers.${index}.role`, value as "Doctor" | "Hygienist");
                             // Auto-update daily goal when role changes
                             const currentGoal = watchProviders?.[index]?.dailyGoal;
                             if (value === "Hygienist" && (currentGoal === 5000 || !currentGoal)) {
@@ -643,11 +650,17 @@ function NewOfficeForm() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label>Daily Goal ($)</Label>
+                        <Label>
+                          Daily Goal ($) <span className="text-red-500" aria-label="required">*</span>
+                        </Label>
                         <Input
                           type="number"
+                          min={0}
+                          max={100000}
+                          step={100}
                           {...register(`providers.${index}.dailyGoal`, { valueAsNumber: true })}
                           placeholder={watchProviders?.[index]?.role === "Hygienist" ? "1500" : "5000"}
+                          aria-required="true"
                         />
                       </div>
                       <div>
@@ -671,9 +684,9 @@ function NewOfficeForm() {
                       <div>
                         <Label>Working Hours</Label>
                         <div className="flex flex-col sm:flex-row gap-2 mt-1">
-                          <Input type="time" {...register(`providers.${index}.workingHours.start`)} className="flex-1" />
+                          <Input type="time" min="06:00" max="22:00" {...register(`providers.${index}.workingHours.start`)} className="flex-1" />
                           <span className="self-center text-sm text-muted-foreground text-center">to</span>
-                          <Input type="time" {...register(`providers.${index}.workingHours.end`)} className="flex-1" />
+                          <Input type="time" min="06:00" max="22:00" {...register(`providers.${index}.workingHours.end`)} className="flex-1" />
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">e.g. 7:00 AM – 4:00 PM</p>
                       </div>
@@ -695,9 +708,9 @@ function NewOfficeForm() {
                         {watchProviders?.[index]?.lunchEnabled !== false ? (
                           <>
                             <div className="flex flex-col sm:flex-row gap-2">
-                              <Input type="time" {...register(`providers.${index}.lunchBreak.start`)} className="flex-1" />
+                              <Input type="time" min="06:00" max="22:00" {...register(`providers.${index}.lunchBreak.start`)} className="flex-1" />
                               <span className="self-center text-sm text-muted-foreground text-center">to</span>
-                              <Input type="time" {...register(`providers.${index}.lunchBreak.end`)} className="flex-1" />
+                              <Input type="time" min="06:00" max="22:00" {...register(`providers.${index}.lunchBreak.end`)} className="flex-1" />
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">e.g. 12:00 PM – 1:00 PM</p>
                           </>
@@ -780,6 +793,9 @@ function NewOfficeForm() {
                       <div>
                         <Input
                           type="number"
+                          min={5}
+                          max={480}
+                          step={5}
                           {...register(`procedures.${index}.duration`, { valueAsNumber: true })}
                           placeholder="60"
                           className="text-sm"
@@ -812,7 +828,7 @@ function NewOfficeForm() {
                 <div>
                   <Label>NP Model</Label>
                   <Select
-                    onValueChange={(value) => setValue("scheduleRules.npModel", value as any)}
+                    onValueChange={(value) => setValue("scheduleRules.npModel", value as "doctor_only" | "hygienist_only" | "either")}
                     defaultValue="either"
                   >
                     <SelectTrigger>
@@ -856,7 +872,7 @@ function NewOfficeForm() {
                 <div>
                   <Label>HP Block Placement</Label>
                   <Select
-                    onValueChange={(value) => setValue("scheduleRules.hpPlacement", value as any)}
+                    onValueChange={(value) => setValue("scheduleRules.hpPlacement", value as "morning" | "afternoon" | "any")}
                     defaultValue="any"
                   >
                     <SelectTrigger>

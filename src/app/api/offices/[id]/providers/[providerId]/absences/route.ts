@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { ProviderAbsenceSchema } from '@/lib/contracts/api-schemas';
 
 /**
  * GET /api/offices/:id/providers/:providerId/absences
@@ -16,8 +18,7 @@ export async function GET(
     });
     return NextResponse.json(absences);
   } catch (error) {
-    console.error('Error fetching absences:', error);
-    return NextResponse.json({ error: 'Failed to fetch absences' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -31,11 +32,13 @@ export async function POST(
 ) {
   try {
     const { id: officeId, providerId } = await params;
-    const { date, reason } = await request.json();
+    const body = await request.json();
 
-    if (!date) {
-      return NextResponse.json({ error: 'date is required (YYYY-MM-DD)' }, { status: 400 });
+    const parsed = ProviderAbsenceSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
     }
+    const { date, reason } = parsed.data;
 
     // Upsert: if already absent on this date, update the reason
     const existing = await prisma.providerAbsence.findFirst({
@@ -56,8 +59,7 @@ export async function POST(
 
     return NextResponse.json(absence, { status: 201 });
   } catch (error) {
-    console.error('Error creating absence:', error);
-    return NextResponse.json({ error: 'Failed to create absence' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -74,13 +76,12 @@ export async function DELETE(
     const date = url.searchParams.get('date');
 
     if (!date) {
-      return NextResponse.json({ error: 'date query param required' }, { status: 400 });
+      throw new ApiError(400, 'date query param required');
     }
 
     await prisma.providerAbsence.deleteMany({ where: { providerId, date } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting absence:', error);
-    return NextResponse.json({ error: 'Failed to delete absence' }, { status: 500 });
+    return handleApiError(error);
   }
 }

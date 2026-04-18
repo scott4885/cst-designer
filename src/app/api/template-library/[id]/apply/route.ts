@@ -1,5 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ApiError, handleApiError } from '@/lib/api-error';
+import { TemplateApplyInputSchema } from '@/lib/contracts/api-schemas';
+
+interface TemplateSlot {
+  providerId: string;
+  time?: string;
+  blockTypeId?: string | null;
+  blockLabel?: string | null;
+  isBreak?: boolean;
+  operatory?: string;
+  staffingCode?: 'D' | 'A' | 'H' | null;
+  [key: string]: unknown;
+}
 
 /**
  * POST /api/template-library/:id/apply
@@ -18,11 +31,13 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { targetOfficeId } = await request.json();
+    const body = await request.json();
 
-    if (!targetOfficeId) {
-      return NextResponse.json({ error: 'targetOfficeId is required' }, { status: 400 });
+    const parsed = TemplateApplyInputSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Invalid request', parsed.error.flatten());
     }
+    const { targetOfficeId } = parsed.data;
 
     const [libraryItem, office] = await Promise.all([
       prisma.templateLibraryItem.findUnique({ where: { id } }),
@@ -33,13 +48,13 @@ export async function POST(
     ]);
 
     if (!libraryItem) {
-      return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+      throw new ApiError(404, 'Template not found');
     }
     if (!office) {
-      return NextResponse.json({ error: 'Target office not found' }, { status: 404 });
+      throw new ApiError(404, 'Target office not found');
     }
 
-    const templateSlots: Record<string, any[]> = JSON.parse(libraryItem.slotsJson || '{}');
+    const templateSlots: Record<string, TemplateSlot[]> = JSON.parse(libraryItem.slotsJson || '{}');
 
     // Build role-index → actual provider ID mapping
     const doctors = office.providers.filter(p => p.role === 'DOCTOR');
@@ -52,17 +67,17 @@ export async function POST(
     const warnings: string[] = [];
 
     // Map template slots per day-of-week
-    const mappedDaySchedules: Record<string, any[]> = {};
+    const mappedDaySchedules: Record<string, TemplateSlot[]> = {};
     for (const [day, slots] of Object.entries(templateSlots)) {
       if (!Array.isArray(slots)) continue;
-      const mappedSlots = (slots as any[]).map((slot: any) => {
+      const mappedSlots = slots.map((slot) => {
         const realProviderId = roleIndexToProviderId[slot.providerId];
         if (!realProviderId) {
           // Extra template slots (no matching provider)
           return null;
         }
         return { ...slot, providerId: realProviderId };
-      }).filter(Boolean);
+      }).filter((s): s is TemplateSlot => s !== null);
 
       mappedDaySchedules[day] = mappedSlots;
     }
@@ -84,7 +99,6 @@ export async function POST(
       warnings,
     });
   } catch (error) {
-    console.error('Error applying template:', error);
-    return NextResponse.json({ error: 'Failed to apply template' }, { status: 500 });
+    return handleApiError(error);
   }
 }
