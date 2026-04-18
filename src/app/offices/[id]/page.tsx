@@ -683,6 +683,7 @@ export default function ScheduleBuilderPage() {
               blockTypes={blockTypesForStore}
               providers={providers}
               hasSchedule={hasSchedules}
+              officeId={officeId}
             />
           </div>
         )}
@@ -795,6 +796,7 @@ export default function ScheduleBuilderPage() {
               blockTypes={blockTypesForStore}
               providers={providers}
               hasSchedule={hasSchedules}
+              officeId={officeId}
             />
           </div>
         </DialogContent>

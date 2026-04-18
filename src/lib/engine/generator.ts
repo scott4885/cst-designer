@@ -265,23 +265,37 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
       // Each subsequent op's placement avoids putting D-phase at minutes
       // where an earlier op already has D-phase (A-D cross-column zigzag).
       const avoidDMinutes = new Set<number>();
+      // Bug 2 fix: when a doctor works multiple operatories, every op must
+      // receive a per-op MINIMUM placement budget so the Rock-Sand-Water
+      // pipeline in placeDoctorBlocks runs through morning rocks, afternoon
+      // sand, and gap-fill for every op. Previously perOpTarget was derived
+      // solely from the REMAINING shared budget — if OP1 over-produced, OP2's
+      // target collapsed to ~0 and isGoalMet() short-circuited the afternoon
+      // placement, leaving OP2 with only a single forced HP (Iter 12a) and
+      // whatever fillRemainingDoctorSlots tacked on later (often resulting
+      // in an under-filled OP2 totalling ~$2,962 of a $5,000 goal).
+      //
+      // The floor is set to 60% of the per-op fair share — enough to drive
+      // placeDoctorBlocks past the morning-rock stage and keep afternoon
+      // placement active, while still allowing the shared-pool Iter 3
+      // redistribution to prevent combined production from ballooning to 2x
+      // when OP1 already covered the goal.
+      const perOpFairShare = Math.ceil(sharedTarget / numOps);
+      const perOpFloor = Math.ceil(perOpFairShare * 0.6);
       for (let oi = 0; oi < numOps; oi++) {
         const columnOffset = calculateStaggerOffset(di, oi, columnStaggerInterval);
         const totalStagger = baseStaggerMin + columnOffset;
         doctorColumnStagger.set(`${doc.id}::${opSlots[oi].operatory}`, totalStagger);
-        // Per-op fairness (Iter 3): redistribute the REMAINING shared target
-        // across remaining ops, not the original target split equally. If OP1
-        // over-produced, OP2 gets a smaller target (or 0). If OP1 under-
-        // produced, OP2 picks up the slack. sharedProductionCtx.produced is
-        // kept accurate by recomputeSharedCtxFromSlots() after each op.
-        //
-        // Note (Iter 12a): morning HP quality floor is enforced by a pre-pass
-        // BEFORE this loop, not by inflating perOpTarget. Keeping the target
-        // honest to the remaining shared budget prevents combined production
-        // from drifting above 2x when pre-placed HPs already cover the goal.
+        // Per-op fairness (Iter 3 + Bug 2): use the LARGER of the remaining
+        // shared budget share OR the per-op floor. This guarantees each op
+        // runs through Rock-Sand-Water placement even when earlier ops
+        // consumed the shared pool. The per-op context isolates isGoalMet()
+        // inside placeDoctorBlocks so OP2's placement won't bail just because
+        // OP1 already hit the combined target.
         const remainingOps = numOps - oi;
         const remainingTarget = Math.max(0, sharedTarget - sharedProductionCtx.produced);
-        const perOpTarget = Math.ceil(remainingTarget / remainingOps);
+        const remainingShare = Math.ceil(remainingTarget / remainingOps);
+        const perOpTarget = Math.max(remainingShare, perOpFloor);
         const perOpCtx = { target: perOpTarget, produced: 0 };
         if (useMixPlacement) {
           placeDoctorBlocksByMix(slots, opSlots[oi], doc, blockTypes, timeIncrement, warnings, totalStagger, perOpCtx, avoidDMinutes);

@@ -21,6 +21,7 @@ import {
   Copy,
   BarChart2,
   Grid3X3,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -357,6 +358,12 @@ export default function ToolbarRibbon({
               <DropdownMenuItem onClick={onClone}>
                 <Copy className="w-4 h-4 mr-2" />
                 Clone Template
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/offices/${officeId}/edit`}>
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Providers
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href={`/offices/${officeId}/matrix?day=${activeDay.toLowerCase()}`}>

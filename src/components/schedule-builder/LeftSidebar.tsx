@@ -22,6 +22,8 @@ interface LeftSidebarProps {
   hasSchedule: boolean;
   onSelectTemplate?: (templateId: string) => void;
   onProviderVisibilityChange?: (providerId: string, visible: boolean) => void;
+  /** Office id — enables the "+ Add Provider" footer link in the providers panel. */
+  officeId?: string;
 }
 
 type SidebarTab = "blocks" | "providers" | "templates";
@@ -32,6 +34,7 @@ export default function LeftSidebar({
   hasSchedule,
   onSelectTemplate,
   onProviderVisibilityChange,
+  officeId,
 }: LeftSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<SidebarTab>("blocks");
@@ -148,6 +151,7 @@ export default function LeftSidebar({
           <ProviderList
             providers={providers}
             onVisibilityChange={onProviderVisibilityChange}
+            officeId={officeId}
           />
         )}
         {activeTab === "templates" && (

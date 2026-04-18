@@ -373,15 +373,9 @@ export default function TimeGridRenderer({
                       }
 
                       const slot = row.slots.find((s) => s.providerId === provider.id);
-                      const timeStr = row.time;
-                      const isLunchTime =
-                        timeStr >= "1:00 PM" &&
-                        timeStr < "2:00 PM" &&
-                        timeStr.includes("PM") &&
-                        timeStr.startsWith("1:");
 
                       const hasBlock = !!(slot?.blockTypeId || slot?.blockLabel) && !slot?.isBreak;
-                      const isEmpty = !hasBlock && !slot?.isBreak && !(isLunchTime && !slot?.staffingCode);
+                      const isEmpty = !hasBlock && !slot?.isBreak;
                       const outsideHours = isOutsideProviderHours(row.time, provider);
                       const isCellDragOver =
                         dragOverCell?.time === row.time && dragOverCell?.providerId === provider.id;
@@ -441,7 +435,7 @@ export default function TimeGridRenderer({
                             <TimeSlotCell
                               staffingCode={slot?.staffingCode}
                               providerColor={slot?.staffingCode ? provider.color : undefined}
-                              isBreak={slot?.isBreak || (isLunchTime && !slot?.staffingCode)}
+                              isBreak={slot?.isBreak || false}
                               isDrExam={slot?.staffingCode === "D" && provider.role === "HYGIENIST"}
                             />
                           </td>
@@ -468,7 +462,7 @@ export default function TimeGridRenderer({
                               <TimeSlotCell
                                 blockLabel={slot?.blockLabel}
                                 providerColor={slot?.blockLabel ? provider.color : undefined}
-                                isBreak={slot?.isBreak || (isLunchTime && !slot?.blockLabel)}
+                                isBreak={slot?.isBreak || false}
                                 isOutsideHours={outsideHours && !slot?.blockLabel && !slot?.isBreak}
                                 onClick={
                                   isInteractive && !outsideHours

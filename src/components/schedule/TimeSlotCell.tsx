@@ -161,16 +161,33 @@ export default function TimeSlotCell({
   // Outside provider work hours — gray, non-interactive (compact)
   // (duplicated here intentionally for flow control)
 
-  // Provider cell with data — clean continuous fills, thin left accent only
+  // Provider cell with data — clean continuous fills, thin left accent only.
+  // First/last cell of a block gets a subtle top/bottom border so adjacent blocks
+  // (e.g., Crown Prep then MP) don't visually merge. Right border applied to every
+  // cell to close the rectangle on the trailing edge.
+  const edgeColor = effectiveProviderColor
+    ? hexToRgba(effectiveProviderColor, 0.55)
+    : effectiveConflict
+    ? conflictColor
+    : undefined;
   const cellStyle = effectiveProviderColor
     ? {
         backgroundColor: effectiveConflict
           ? (hasDTimeConflict && !hasConflict ? hexToRgba(CONFLICT_COLORS.DTIME_OVERLAP, 0.10) : hexToRgba(CONFLICT_COLORS.HARD, 0.12))
           : hexToRgba(effectiveProviderColor, 0.1875),
         borderLeft: `3px solid ${effectiveConflict ? conflictColor : effectiveProviderColor}`,
+        borderRight: `1px solid rgba(0,0,0,0.08)`,
+        ...(isBlockFirst && edgeColor ? { borderTop: `1.5px solid ${edgeColor}` } : {}),
+        ...(isBlockLast && edgeColor ? { borderBottom: `1.5px solid ${edgeColor}` } : {}),
       }
     : effectiveConflict
-    ? { borderLeft: `3px solid ${conflictColor}`, backgroundColor: hasDTimeConflict ? hexToRgba(CONFLICT_COLORS.DTIME_OVERLAP, 0.08) : hexToRgba(CONFLICT_COLORS.HARD, 0.08) }
+    ? {
+        borderLeft: `3px solid ${conflictColor}`,
+        backgroundColor: hasDTimeConflict ? hexToRgba(CONFLICT_COLORS.DTIME_OVERLAP, 0.08) : hexToRgba(CONFLICT_COLORS.HARD, 0.08),
+        borderRight: `1px solid rgba(0,0,0,0.08)`,
+        ...(isBlockFirst ? { borderTop: `1.5px solid ${conflictColor}` } : {}),
+        ...(isBlockLast ? { borderBottom: `1.5px solid ${conflictColor}` } : {}),
+      }
     : {};
 
   const isInteractiveBlock = !!onClick && isClickable;

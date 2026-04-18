@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { Eye, EyeOff, Plus } from "lucide-react";
 
 interface Provider {
   id: string;
@@ -15,11 +16,14 @@ interface Provider {
 interface ProviderListProps {
   providers: Provider[];
   onVisibilityChange?: (providerId: string, visible: boolean) => void;
+  /** When provided, renders an "+ Add Provider" footer button linking to the office edit page. */
+  officeId?: string;
 }
 
 export default function ProviderList({
   providers,
   onVisibilityChange,
+  officeId,
 }: ProviderListProps) {
   const [hiddenProviders, setHiddenProviders] = useState<Set<string>>(new Set());
 
@@ -122,6 +126,18 @@ export default function ProviderList({
       {renderGroup("Doctors", doctors)}
       {renderGroup("Hygienists", hygienists)}
       {renderGroup("Other", others)}
+      {officeId && (
+        <div className="mt-2 pt-2 border-t border-slate-200">
+          <Link
+            href={`/offices/${officeId}/edit`}
+            className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-white/80 transition-colors"
+            title="Manage providers (opens office edit page)"
+          >
+            <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+            Add Provider
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

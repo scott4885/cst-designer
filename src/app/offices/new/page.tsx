@@ -73,7 +73,7 @@ const officeSchema = z.object({
   scheduleRules: z.object({
     npModel: z.enum(["doctor_only", "hygienist_only", "either"]),
     npBlocksPerDay: z.number().min(1).max(3),
-    srpBlocksPerDay: z.number().min(1).max(3),
+    srpBlocksPerDay: z.number().int().min(0).max(5),
     hpPlacement: z.enum(["morning", "afternoon", "any"]),
     doubleBooking: z.boolean(),
     matrixing: z.boolean(),
@@ -860,12 +860,13 @@ function NewOfficeForm() {
                     <Input
                       id="srpBlocksPerDay"
                       type="number"
-                      min={1}
-                      max={3}
+                      min={0}
+                      max={5}
+                      step={1}
                       {...register("scheduleRules.srpBlocksPerDay", { valueAsNumber: true })}
                       placeholder="2"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">How many SRP slots per day (1–3)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Hygienist SRP slots (0 = none, max 5). Doctor-only offices should set 0.</p>
                   </div>
                 </div>
 

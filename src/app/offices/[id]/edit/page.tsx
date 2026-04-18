@@ -62,7 +62,7 @@ const editOfficeSchema = z.object({
   scheduleRules: z.object({
     npModel: z.enum(["DOCTOR_ONLY", "HYGIENIST_ONLY", "EITHER"]),
     npBlocksPerDay: z.number().min(1).max(5),
-    srpBlocksPerDay: z.number().min(0).max(5),
+    srpBlocksPerDay: z.number().int().min(0).max(5),
     hpPlacement: z.enum(["MORNING", "AFTERNOON", "ANY"]),
     doubleBooking: z.boolean(),
     matrixing: z.boolean(),
@@ -1285,9 +1285,11 @@ export default function EditOfficePage() {
                   type="number"
                   min={0}
                   max={5}
+                  step={1}
                   {...register("scheduleRules.srpBlocksPerDay", { valueAsNumber: true })}
                   placeholder="2"
                 />
+                <p className="text-xs text-muted-foreground mt-1">Hygienist SRP slots (0 = none, max 5). Doctor-only offices should set 0.</p>
               </div>
             </div>
 
