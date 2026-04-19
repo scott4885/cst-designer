@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, Plus, Trash2, Save, HelpCircle, Calendar, CalendarOff, Copy, DollarSign } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, HelpCircle, Calendar, CalendarOff, Copy, DollarSign, Pencil } from "lucide-react";
 import ProviderTimeOffCalendar from "@/components/schedule/ProviderTimeOffCalendar";
 import ProviderFormDialog from "@/components/schedule/ProviderFormDialog";
 import BulkGoalsDialog from "@/components/schedule/BulkGoalsDialog";
@@ -105,8 +105,9 @@ export default function EditOfficePage() {
   const [timeOffProviderName, setTimeOffProviderName] = useState<string>("");
   /** Loop 8 — inline provider drawer state */
   const [providerDialogOpen, setProviderDialogOpen] = useState(false);
-  const [providerDialogMode, setProviderDialogMode] = useState<'add' | 'clone'>('add');
+  const [providerDialogMode, setProviderDialogMode] = useState<'add' | 'clone' | 'edit'>('add');
   const [providerDialogInitial, setProviderDialogInitial] = useState<Partial<ProviderFormEntry> | undefined>(undefined);
+  const [editingProviderIndex, setEditingProviderIndex] = useState<number | null>(null);
   const [bulkGoalsOpen, setBulkGoalsOpen] = useState(false);
   /** Carries procedure mixes from a cloned source provider → newly-appended entry. */
   const clonedMixesRef = useRef<{
@@ -283,6 +284,17 @@ export default function EditOfficePage() {
   const openAddProviderDialog = () => {
     setProviderDialogMode('add');
     setProviderDialogInitial(undefined);
+    setEditingProviderIndex(null);
+    setProviderDialogOpen(true);
+  };
+
+  /** Opens the drawer pre-filled with the provider at `index` for editing in place. */
+  const openEditProviderDialog = (index: number) => {
+    const source = watchProviders?.[index];
+    if (!source) return;
+    setProviderDialogMode('edit');
+    setProviderDialogInitial(source as unknown as ProviderFormEntry);
+    setEditingProviderIndex(index);
     setProviderDialogOpen(true);
   };
 
@@ -304,6 +316,7 @@ export default function EditOfficePage() {
     };
     setProviderDialogMode('clone');
     setProviderDialogInitial(clone);
+    setEditingProviderIndex(null);
     setProviderDialogOpen(true);
   };
 
@@ -322,7 +335,26 @@ export default function EditOfficePage() {
       provider.color ??
       PROVIDER_COLORS[newIndex % PROVIDER_COLORS.length];
 
-    // Append. Cast to form shape — the field array enforces it at the useFieldArray level.
+    // In 'edit' mode we update the existing field instead of appending.
+    if (providerDialogMode === 'edit' && editingProviderIndex !== null) {
+      const idx = editingProviderIndex;
+      setValue(`providers.${idx}.name`, provider.name, { shouldDirty: true });
+      setValue(`providers.${idx}.providerId`, provider.providerId ?? "", { shouldDirty: true });
+      setValue(`providers.${idx}.role`, provider.role, { shouldDirty: true });
+      setValue(`providers.${idx}.operatories`, provider.operatories, { shouldDirty: true });
+      setValue(`providers.${idx}.workingStart`, provider.workingStart, { shouldDirty: true });
+      setValue(`providers.${idx}.workingEnd`, provider.workingEnd, { shouldDirty: true });
+      setValue(`providers.${idx}.lunchEnabled`, provider.lunchEnabled, { shouldDirty: true });
+      setValue(`providers.${idx}.lunchStart`, provider.lunchStart ?? "12:00", { shouldDirty: true });
+      setValue(`providers.${idx}.lunchEnd`, provider.lunchEnd ?? "13:00", { shouldDirty: true });
+      setValue(`providers.${idx}.dailyGoal`, provider.dailyGoal, { shouldDirty: true });
+      setValue(`providers.${idx}.color`, suggestedColor, { shouldDirty: true });
+      setProviderDialogOpen(false);
+      setProviderDialogInitial(undefined);
+      setEditingProviderIndex(null);
+      return;
+    }
+
     appendProvider({
       name: provider.name,
       providerId: provider.providerId ?? "",
@@ -658,6 +690,16 @@ export default function EditOfficePage() {
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-foreground">Provider {index + 1}</h3>
                   <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditProviderDialog(index)}
+                      title="Edit this provider"
+                      data-testid={`edit-provider-${index}-btn`}
+                    >
+                      <Pencil className="w-4 h-4 text-muted-foreground" />
+                    </Button>
                     <Button
                       type="button"
                       variant="ghost"
@@ -1517,16 +1559,26 @@ export default function EditOfficePage() {
           setProviderDialogOpen(open);
           if (!open) {
             setProviderDialogInitial(undefined);
+            setEditingProviderIndex(null);
             clonedMixesRef.current = null;
           }
         }}
         onSubmit={handleProviderDialogSubmit}
         initial={providerDialogInitial}
-        title={providerDialogMode === 'clone' ? 'Clone Provider' : 'Add Provider'}
+        mode={providerDialogMode}
+        title={
+          providerDialogMode === 'edit'
+            ? 'Edit Provider'
+            : providerDialogMode === 'clone'
+              ? 'Clone Provider'
+              : 'Add Provider'
+        }
         description={
-          providerDialogMode === 'clone'
-            ? 'Review the cloned provider and adjust name/operatories before saving.'
-            : 'Fill in the essentials — fine-tune per-day hours and procedure mix on the main edit card.'
+          providerDialogMode === 'edit'
+            ? 'Update the essentials. Per-day hours and procedure mix stay on the main card.'
+            : providerDialogMode === 'clone'
+              ? 'Review the cloned provider and adjust name/operatories before saving.'
+              : 'Fill in the essentials — fine-tune per-day hours and procedure mix on the main edit card.'
         }
         suggestedColor={PROVIDER_COLORS[providerFields.length % PROVIDER_COLORS.length]}
       />

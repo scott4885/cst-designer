@@ -4,7 +4,15 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./data:/app/data
+      # Named volume — survives container recreation on every redeploy.
+      # A bind mount like ./data:/app/data only works when docker-compose
+      # runs from this directory; Coolify and other orchestrators may run
+      # the built image directly, in which case a named volume is what
+      # actually persists the SQLite file.
+      - cst_data:/app/data
     environment:
-      - DATABASE_URL=file:./data/schedules.db
+      - DATABASE_URL=file:/app/data/schedules.db
       - NODE_ENV=production
+
+volumes:
+  cst_data:

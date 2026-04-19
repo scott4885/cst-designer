@@ -246,6 +246,92 @@ describe('Sprint 6 — shared-pool multi-op production', () => {
       expect(op1).toBeGreaterThan(0);
     });
 
+    it('Loop C: doctor primary op starts the day with a production block (not filler/non-prod)', () => {
+      // Rock-Sand-Water principle: the day's first block on the doctor's
+      // primary operatory should be a production "rock" (minimumAmount > 0),
+      // not an empty non-prod filler. This is the UX difference between a
+      // doctor who "starts working at 07:00" vs one whose first visible
+      // activity is a chart-review block.
+      const { doc, result } = runTwoOp();
+      const hmToMin = (hm: string): number => {
+        const [h, m] = hm.split(':').map(Number);
+        return h * 60 + m;
+      };
+      const btMap = new Map(STANDARD_BLOCK_TYPES.map((bt) => [bt.id, bt.minimumAmount ?? 0]));
+      const primaryOp = doc.operatories![0];
+
+      const placed = result.slots
+        .filter(
+          (s) => s.providerId === 'dr1' && s.operatory === primaryOp && s.blockTypeId && !s.isBreak,
+        )
+        .sort((a, b) => hmToMin(a.time) - hmToMin(b.time));
+
+      expect(placed.length).toBeGreaterThan(0);
+      const firstBlockAmount = btMap.get(placed[0].blockTypeId!) ?? 0;
+      expect(
+        firstBlockAmount,
+        `first block (${placed[0].time}/${placed[0].blockTypeId}) on primary op must be a production block`,
+      ).toBeGreaterThan(0);
+    });
+
+    it('Loop B: doctor primary op has a placed block within 30min of workingStart', () => {
+      // User-facing regression guard for Bug 3: "Doctor is still not
+      // scheduled to go at the beginning of the day." The pull-to-day-start
+      // pass in the morning-load enforcer should anchor a production block
+      // at (or very near) the doctor's workingStart on their primary op.
+      const { doc, result } = runTwoOp();
+      const hmToMin = (hm: string): number => {
+        const [h, m] = hm.split(':').map(Number);
+        return h * 60 + m;
+      };
+      const workingStartMin = hmToMin(doc.workingStart);
+
+      const primaryOp = doc.operatories![0];
+      const placed = result.slots
+        .filter(
+          (s) => s.providerId === 'dr1' && s.operatory === primaryOp && s.blockTypeId && !s.isBreak,
+        )
+        .sort((a, b) => hmToMin(a.time) - hmToMin(b.time));
+
+      expect(placed.length, 'primary op should have placed blocks').toBeGreaterThan(0);
+      const firstBlockMin = hmToMin(placed[0].time);
+      const delayMin = firstBlockMin - workingStartMin;
+      expect(
+        delayMin,
+        `first block ${placed[0].time} on primary op ${primaryOp} must be within 30min of workingStart ${doc.workingStart}`,
+      ).toBeLessThanOrEqual(30);
+    });
+
+    it('Loop A: OP2 has both morning AND afternoon production blocks (visible fill)', () => {
+      // User-facing regression guard: OP2 was visibly empty in the UI even
+      // though tests passed with > 0 production. A single morning HP plus a
+      // late-day non-prod block looks sparse. Require OP2 to have at least
+      // one production block (minimumAmount > 0) in BOTH the morning and
+      // afternoon halves of the working day.
+      const { doc, result } = runTwoOp();
+      const hmToMin = (hm: string): number => {
+        const [h, m] = hm.split(':').map(Number);
+        return h * 60 + m;
+      };
+      const lunchMidMin = (hmToMin(doc.lunchStart!) + hmToMin(doc.lunchEnd!)) / 2;
+
+      const btMap = new Map(STANDARD_BLOCK_TYPES.map((bt) => [bt.id, bt.minimumAmount ?? 0]));
+      const op2 = result.slots.filter(
+        (s) =>
+          s.providerId === 'dr1' &&
+          s.operatory === 'OP2' &&
+          s.blockTypeId &&
+          !s.isBreak &&
+          (btMap.get(s.blockTypeId) ?? 0) > 0,
+      );
+
+      const amBlocks = op2.filter((s) => hmToMin(s.time) < lunchMidMin);
+      const pmBlocks = op2.filter((s) => hmToMin(s.time) >= lunchMidMin);
+
+      expect(amBlocks.length, `OP2 should have AM production blocks (goal $${doc.dailyGoal})`).toBeGreaterThan(0);
+      expect(pmBlocks.length, `OP2 should have PM production blocks (goal $${doc.dailyGoal})`).toBeGreaterThan(0);
+    });
+
     it('Iteration 2: cross-column A-D zigzag — D-phase overlaps substantially reduced', () => {
       // Per dental-scheduling-best-practices: when Col A is in D-phase, Col B
       // should be in A-phase (and vice versa). The methodology allows AT MOST
@@ -482,8 +568,13 @@ describe('Sprint 6 — shared-pool multi-op production', () => {
     });
   });
 
-  describe('single-op path (doubleBooking disabled)', () => {
-    it('doctor with 2 assigned ops but doubleBooking=false behaves as single-op', () => {
+  describe('multi-op always honored (doubleBooking rule no longer collapses ops)', () => {
+    it('doctor with 2 assigned ops uses BOTH ops regardless of doubleBooking setting', () => {
+      // doubleBooking now means "same provider sees two patients at the same
+      // moment in the same op" (provider floats). It does NOT control whether
+      // multi-op selections are honored — a doctor assigned to multiple ops
+      // should always have those ops staggered. An operatory the user picked
+      // should never sit empty.
       const doc = makeDoctor({ operatories: ['OP1', 'OP2'] });
       const input: GenerationInput = {
         providers: [doc],
@@ -494,20 +585,33 @@ describe('Sprint 6 — shared-pool multi-op production', () => {
       };
 
       const result = generateSchedule(input);
-      // With doubleBooking=false, only OP1 should have slots for this doctor
+
+      const op1Slots = result.slots.filter(
+        s => s.providerId === 'dr1' && s.operatory === 'OP1'
+      );
       const op2Slots = result.slots.filter(
         s => s.providerId === 'dr1' && s.operatory === 'OP2'
       );
-      expect(op2Slots).toHaveLength(0);
 
-      // Production should behave like single-op
+      // Both ops must have grid slots (the doctor is scheduled in both)
+      expect(op1Slots.length).toBeGreaterThan(0);
+      expect(op2Slots.length).toBeGreaterThan(0);
+
+      // Both ops must carry at least one production block (neither sits empty)
+      const btMap = new Map(STANDARD_BLOCK_TYPES.map(bt => [bt.id, bt.minimumAmount ?? 0]));
+      const hasProduction = (slots: typeof op1Slots) =>
+        slots.some(s => s.blockTypeId && !s.isBreak && (btMap.get(s.blockTypeId) ?? 0) > 0);
+      expect(hasProduction(op1Slots)).toBe(true);
+      expect(hasProduction(op2Slots)).toBe(true);
+
+      // Multi-op production should meet the ~75% target from the shared pool
       const combined = computeCombinedProduction(result, 'dr1');
       const target75 = doc.dailyGoal * 0.75;
       expect(combined).toBeGreaterThanOrEqual(target75 * 0.7);
 
-      // No opBreakdown for effective single-op
+      // opBreakdown reported because it IS actually multi-op now
       const summary = result.productionSummary.find(s => s.providerId === 'dr1');
-      expect(summary?.opBreakdown).toBeUndefined();
+      expect(summary?.opBreakdown).toBeDefined();
     });
   });
 });

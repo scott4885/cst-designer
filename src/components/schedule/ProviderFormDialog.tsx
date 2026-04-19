@@ -89,8 +89,10 @@ export interface ProviderFormDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Called when the form is submitted with a valid payload. */
   onSubmit: (data: ProviderFormEntry & { _saveAndAddAnother?: boolean }) => void;
-  /** Initial values (empty for add, pre-filled for clone). */
+  /** Initial values (empty for add, pre-filled for clone or edit). */
   initial?: Partial<ProviderFormEntry>;
+  /** Dialog mode — controls submit label + availability of "save & add another". */
+  mode?: 'add' | 'clone' | 'edit';
   /** Dialog title + description. */
   title?: string;
   description?: string;
@@ -103,6 +105,7 @@ export default function ProviderFormDialog({
   onOpenChange,
   onSubmit,
   initial,
+  mode = 'add',
   title = "Add Provider",
   description = "Fill in the essentials — fine-tune per-day hours and procedure mix on the main edit card.",
   suggestedColor,
@@ -397,16 +400,18 @@ export default function ProviderFormDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={isSubmitting}
-              onClick={() => setSaveAndAdd(true)}
-            >
-              Save &amp; add another
-            </Button>
+            {mode !== 'edit' && (
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={() => setSaveAndAdd(true)}
+              >
+                Save &amp; add another
+              </Button>
+            )}
             <Button type="submit" disabled={isSubmitting} onClick={() => setSaveAndAdd(false)}>
-              Save provider
+              {mode === 'edit' ? 'Save changes' : 'Save provider'}
             </Button>
           </div>
         </form>

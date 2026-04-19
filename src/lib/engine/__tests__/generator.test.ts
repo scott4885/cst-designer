@@ -287,8 +287,11 @@ describe('generator', () => {
 
     it('should return warnings when constraints cannot be met', () => {
       const input = createTestInput();
-      
-      // Set very short working hours to make it hard to fit blocks
+
+      // Tight single-op window — no room to hit the 75% target, no room for
+      // the 70-min HP block. Using a single op here isolates the "unmet
+      // target" warning; multi-op adds capacity and would mask it.
+      input.providers[0].operatories = ['OP1'];
       input.providers[0].workingStart = '07:00';
       input.providers[0].workingEnd = '08:00'; // Only 1 hour
 

@@ -565,16 +565,69 @@ export function enforceMorningLoad(
     if (opSlotsList.length === 0) continue;
     const morningBoundary = getLunchMidpoint(doc);
 
-    for (const ps of opSlotsList) {
+    for (let opIdx = 0; opIdx < opSlotsList.length; opIdx++) {
+      const ps = opSlotsList[opIdx];
       const key = `${doc.id}::${ps.operatory}`;
 
       let iterations = 0;
       let cells = buildCells(slots, ps, blockTypes);
       let currentRatio = computeRatio(cells, morningBoundary);
+
+      // Pull-to-day-start pre-pass: if the leading cells of the AM are empty,
+      // explicitly find a PM production block that fits and drop it at the
+      // very top of the schedule. Runs BEFORE the stagger-preserving swap
+      // loop so the doctor actually starts at day-open.
+      //
+      // Only applies to solo-op providers and the FIRST operatory of a
+      // multi-op provider. Secondary ops intentionally start later (stagger);
+      // pulling them to time 0 would collapse stagger.
+      const allowDayStartPull = opSlotsList.length === 1 || opIdx === 0;
+      if (allowDayStartPull) {
+        const pullChoice = findBestSwap(cells, morningBoundary, -Infinity, new Set());
+        if (pullChoice) {
+          const amStartCell = cells[pullChoice.amRangeStartCellIdx];
+          const firstBlockMin = firstBlockStartMinutes(cells);
+          // Only apply the pull if it actually targets a slot EARLIER than
+          // the current first block — otherwise the normal loop handles it.
+          if (amStartCell.startMinutes < firstBlockMin) {
+            const pre = snapshotSlots(slots, ps.indices);
+            const prodBefore = computeDoctorProduction(slots, doc.id, blockTypes);
+            const overlapBefore = opSlotsList.length > 1
+              ? countDPhaseOverlapMinutes(slots, doc.id)
+              : 0;
+            executeSwap(slots, cells, pullChoice);
+            const prodAfter = computeDoctorProduction(slots, doc.id, blockTypes);
+            const overlapAfter = opSlotsList.length > 1
+              ? countDPhaseOverlapMinutes(slots, doc.id)
+              : 0;
+            if (prodAfter !== prodBefore || overlapAfter > overlapBefore) {
+              writeSlots(slots, ps.indices, pre);
+            } else {
+              const pmCell = cells[pullChoice.pmCellIdx];
+              report.swaps.push({
+                providerId: doc.id,
+                operatory: ps.operatory,
+                amBlockLabel: pullChoice.displacedSegments.length === 0
+                  ? '(empty day-start)'
+                  : pullChoice.displacedSegments
+                      .map((seg) => slots[seg.masterIndices[0]].blockLabel ?? '')
+                      .join('+'),
+                amBlockTime: formatMinutes(amStartCell.startMinutes),
+                pmBlockLabel: pmCell.blockLabel ?? '',
+                pmBlockTime: formatMinutes(pmCell.startMinutes),
+                ratioBefore: roundRatio(currentRatio),
+                ratioAfter: roundRatio(computeRatio(buildCells(slots, ps, blockTypes), morningBoundary)),
+              });
+              cells = buildCells(slots, ps, blockTypes);
+              currentRatio = computeRatio(cells, morningBoundary);
+            }
+          }
+        }
+      }
+
       // Stagger preservation (only when provider has multiple ops): snapshot
-      // the op's first-block start time before any swaps. Solo-op providers
-      // (e.g., single-op specialists) have no stagger concern and can swap
-      // into earlier empty slots freely.
+      // the op's first-block start time AFTER the day-start pull. Solo-op
+      // providers have no stagger concern and can swap freely.
       const minAmStart =
         opSlotsList.length > 1 ? firstBlockStartMinutes(cells) : -Infinity;
 

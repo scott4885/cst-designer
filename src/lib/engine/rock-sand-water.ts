@@ -348,8 +348,11 @@ export function placeDoctorBlocks(
     }
   }
 
-  // HP BLOCKS — Fill morning with rocks
-  const morningHPMax = opIndex === 0 ? 3 : opIndex === 1 ? 1 : 0;
+  // HP BLOCKS — Fill morning with rocks. OP 2 (opIndex=1) previously got
+  // only 1 morning HP, which caused its afternoon to empty once isGoalMet
+  // triggered. Bumped to 2 so the chair has sustained morning production.
+  // OP 3+ (opIndex>=2) still gets 0 here but receives a forced anchor below.
+  const morningHPMax = opIndex === 0 ? 3 : opIndex === 1 ? 2 : 0;
   let morningHPPlaced = 0;
 
   // Iter 12a: Rock-Sand-Water quality floor — every operatory MUST have at
@@ -431,7 +434,7 @@ export function placeDoctorBlocks(
     }
   }
 
-  // Fill remaining morning with more HP if available (Op 0 and Op 1 only)
+  // Fill remaining morning with more HP if available (Op 0 and Op 1 only).
   if (opIndex <= 1 && morningHPPlaced < 4 && hpBlocks.length > 0 && !isGoalMet()) {
     const hp = hpBlocks[0];
     const fillHpAmount = hp.minimumAmount || hpMinPerBlock;
@@ -447,7 +450,7 @@ export function placeDoctorBlocks(
 
   // ──────── AFTERNOON: SAND & WATER ────────
 
-  // HP BLOCK — 1 block right after lunch (Op 0 and Op 1)
+  // HP BLOCK — 1 block right after lunch (Op 0 and Op 1 only).
   if (opIndex <= 1 && hpBlocks.length > 0 && !isGoalMet()) {
     const hp = hpBlocks[0];
     const pmHpAmount = hp.minimumAmount || hpMinPerBlock;

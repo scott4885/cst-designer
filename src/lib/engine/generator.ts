@@ -214,10 +214,13 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
 
     const timeSlots = generateTimeSlots(effectiveProvider.workingStart, effectiveProvider.workingEnd, timeIncrement);
 
-    const allOperatories = provider.operatories.length > 0 ? provider.operatories : ['OP1'];
-    const operatories = (!rules.doubleBooking && provider.role === 'DOCTOR')
-      ? [allOperatories[0]]
-      : allOperatories;
+    // Always honor every selected operatory. Doctors with multi-ops are
+    // auto-staggered (see Step 2 below) — they can only be in one chair at a
+    // time, so stagger is the correct behavior, not a rule toggle. The
+    // `doubleBooking` rule means "a provider may see two patients in the SAME
+    // chair at overlapping times" (provider floats), which is handled
+    // elsewhere and never collapses multi-op selections to a single op.
+    const operatories = provider.operatories.length > 0 ? provider.operatories : ['OP1'];
 
     const lunchActive = effectiveProvider.lunchEnabled !== false;
 
@@ -276,33 +279,17 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
       // Each subsequent op's placement avoids putting D-phase at minutes
       // where an earlier op already has D-phase (A-D cross-column zigzag).
       const avoidDMinutes = new Set<number>();
-      // Bug 2 fix: when a doctor works multiple operatories, every op must
-      // receive a per-op MINIMUM placement budget so the Rock-Sand-Water
-      // pipeline in placeDoctorBlocks runs through morning rocks, afternoon
-      // sand, and gap-fill for every op. Previously perOpTarget was derived
-      // solely from the REMAINING shared budget — if OP1 over-produced, OP2's
-      // target collapsed to ~0 and isGoalMet() short-circuited the afternoon
-      // placement, leaving OP2 with only a single forced HP (Iter 12a) and
-      // whatever fillRemainingDoctorSlots tacked on later (often resulting
-      // in an under-filled OP2 totalling ~$2,962 of a $5,000 goal).
-      //
-      // The floor is set to 60% of the per-op fair share — enough to drive
-      // placeDoctorBlocks past the morning-rock stage and keep afternoon
-      // placement active, while still allowing the shared-pool Iter 3
-      // redistribution to prevent combined production from ballooning to 2x
-      // when OP1 already covered the goal.
+      // Each op gets the full fair share as its target floor — not 0.6x. The
+      // 0.6 discount caused OP2 to end up visibly empty once OP1 consumed the
+      // shared pool. A full fair-share floor guarantees every operatory runs
+      // the complete Rock-Sand-Water pipeline to fill its chair, while the
+      // per-op ctx isolation keeps one op from stealing another's budget.
       const perOpFairShare = Math.ceil(sharedTarget / numOps);
-      const perOpFloor = Math.ceil(perOpFairShare * 0.6);
+      const perOpFloor = perOpFairShare;
       for (let oi = 0; oi < numOps; oi++) {
         const columnOffset = calculateStaggerOffset(di, oi, columnStaggerInterval);
         const totalStagger = baseStaggerMin + columnOffset;
         doctorColumnStagger.set(`${doc.id}::${opSlots[oi].operatory}`, totalStagger);
-        // Per-op fairness (Iter 3 + Bug 2): use the LARGER of the remaining
-        // shared budget share OR the per-op floor. This guarantees each op
-        // runs through Rock-Sand-Water placement even when earlier ops
-        // consumed the shared pool. The per-op context isolates isGoalMet()
-        // inside placeDoctorBlocks so OP2's placement won't bail just because
-        // OP1 already hit the combined target.
         const remainingOps = numOps - oi;
         const remainingTarget = Math.max(0, sharedTarget - sharedProductionCtx.produced);
         const remainingShare = Math.ceil(remainingTarget / remainingOps);

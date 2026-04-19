@@ -340,10 +340,10 @@ exports[`Golden schedule regression harness > KCC Clay Center (4) > matches gold
   "FRIDAY": {
     "blockCategoryDistribution": {
       "ER": 2,
-      "HP": 12,
-      "MP": 36,
-      "NON_PROD": 4,
-      "OTHER": 4,
+      "HP": 18,
+      "MP": 56,
+      "NON_PROD": 6,
+      "OTHER": 6,
       "PM": 20,
       "RECARE": 28,
       "SRP": 8,
@@ -352,266 +352,19 @@ exports[`Golden schedule regression harness > KCC Clay Center (4) > matches gold
     "clinicalWarnings": {
       "error": 0,
       "info": 0,
-      "warning": 4,
+      "warning": 7,
     },
     "conflictsBySeverity": {
-      "error": 0,
+      "error": 30,
       "warning": 2,
     },
-    "dTimeConflicts": 0,
-    "morningLoadRatio": 0.78,
+    "dTimeConflicts": 26,
+    "morningLoadRatio": 0.79,
     "productionByProviderOp": {
       "anderson-4::OP1": 21100,
+      "anderson-4::OP2": 20800,
       "miller-4::OP3": 19700,
       "peters-4::HYG1": 6500,
-      "weber-4::HYG2": 5000,
-    },
-    "qualityScore": {
-      "components": [
-        {
-          "label": "Production Goal Achievement",
-          "maxScore": 30,
-          "score": 27,
-        },
-        {
-          "label": "Procedure Mix Accuracy",
-          "maxScore": 25,
-          "score": 25,
-        },
-        {
-          "label": "Clinical Rules Compliance",
-          "maxScore": 20,
-          "score": 12,
-        },
-        {
-          "label": "Time Utilization",
-          "maxScore": 15,
-          "score": 7,
-        },
-        {
-          "label": "Provider Coverage",
-          "maxScore": 10,
-          "score": 10,
-        },
-      ],
-      "tier": "good",
-      "total": 81,
-    },
-    "staggerConflicts": 0,
-  },
-  "MONDAY": {
-    "blockCategoryDistribution": {
-      "ER": 2,
-      "HP": 12,
-      "MP": 36,
-      "NON_PROD": 4,
-      "OTHER": 4,
-      "PM": 12,
-      "RECARE": 32,
-      "SRP": 12,
-    },
-    "cleanSchedule": false,
-    "clinicalWarnings": {
-      "error": 0,
-      "info": 0,
-      "warning": 4,
-    },
-    "conflictsBySeverity": {
-      "error": 0,
-      "warning": 2,
-    },
-    "dTimeConflicts": 0,
-    "morningLoadRatio": 0.77,
-    "productionByProviderOp": {
-      "anderson-4::OP1": 21100,
-      "miller-4::OP3": 19700,
-      "peters-4::HYG1": 6200,
-      "weber-4::HYG2": 5400,
-    },
-    "qualityScore": {
-      "components": [
-        {
-          "label": "Production Goal Achievement",
-          "maxScore": 30,
-          "score": 27,
-        },
-        {
-          "label": "Procedure Mix Accuracy",
-          "maxScore": 25,
-          "score": 25,
-        },
-        {
-          "label": "Clinical Rules Compliance",
-          "maxScore": 20,
-          "score": 12,
-        },
-        {
-          "label": "Time Utilization",
-          "maxScore": 15,
-          "score": 7,
-        },
-        {
-          "label": "Provider Coverage",
-          "maxScore": 10,
-          "score": 10,
-        },
-      ],
-      "tier": "good",
-      "total": 81,
-    },
-    "staggerConflicts": 0,
-  },
-  "THURSDAY": {
-    "blockCategoryDistribution": {
-      "ER": 2,
-      "HP": 12,
-      "MP": 36,
-      "NON_PROD": 4,
-      "OTHER": 4,
-      "PM": 12,
-      "RECARE": 36,
-      "SRP": 8,
-    },
-    "cleanSchedule": false,
-    "clinicalWarnings": {
-      "error": 0,
-      "info": 0,
-      "warning": 4,
-    },
-    "conflictsBySeverity": {
-      "error": 0,
-      "warning": 2,
-    },
-    "dTimeConflicts": 0,
-    "morningLoadRatio": 0.78,
-    "productionByProviderOp": {
-      "anderson-4::OP1": 21100,
-      "miller-4::OP3": 19700,
-      "peters-4::HYG1": 6200,
-      "weber-4::HYG2": 4700,
-    },
-    "qualityScore": {
-      "components": [
-        {
-          "label": "Production Goal Achievement",
-          "maxScore": 30,
-          "score": 26,
-        },
-        {
-          "label": "Procedure Mix Accuracy",
-          "maxScore": 25,
-          "score": 25,
-        },
-        {
-          "label": "Clinical Rules Compliance",
-          "maxScore": 20,
-          "score": 12,
-        },
-        {
-          "label": "Time Utilization",
-          "maxScore": 15,
-          "score": 7,
-        },
-        {
-          "label": "Provider Coverage",
-          "maxScore": 10,
-          "score": 10,
-        },
-      ],
-      "tier": "good",
-      "total": 80,
-    },
-    "staggerConflicts": 0,
-  },
-  "TUESDAY": {
-    "blockCategoryDistribution": {
-      "ER": 2,
-      "HP": 12,
-      "MP": 36,
-      "NON_PROD": 4,
-      "OTHER": 4,
-      "PM": 16,
-      "RECARE": 28,
-      "SRP": 12,
-    },
-    "cleanSchedule": false,
-    "clinicalWarnings": {
-      "error": 0,
-      "info": 0,
-      "warning": 4,
-    },
-    "conflictsBySeverity": {
-      "error": 0,
-      "warning": 2,
-    },
-    "dTimeConflicts": 0,
-    "morningLoadRatio": 0.77,
-    "productionByProviderOp": {
-      "anderson-4::OP1": 21100,
-      "miller-4::OP3": 19700,
-      "peters-4::HYG1": 7100,
-      "weber-4::HYG2": 4700,
-    },
-    "qualityScore": {
-      "components": [
-        {
-          "label": "Production Goal Achievement",
-          "maxScore": 30,
-          "score": 27,
-        },
-        {
-          "label": "Procedure Mix Accuracy",
-          "maxScore": 25,
-          "score": 25,
-        },
-        {
-          "label": "Clinical Rules Compliance",
-          "maxScore": 20,
-          "score": 12,
-        },
-        {
-          "label": "Time Utilization",
-          "maxScore": 15,
-          "score": 7,
-        },
-        {
-          "label": "Provider Coverage",
-          "maxScore": 10,
-          "score": 10,
-        },
-      ],
-      "tier": "good",
-      "total": 81,
-    },
-    "staggerConflicts": 0,
-  },
-  "WEDNESDAY": {
-    "blockCategoryDistribution": {
-      "ER": 2,
-      "HP": 12,
-      "MP": 36,
-      "NON_PROD": 4,
-      "OTHER": 4,
-      "PM": 16,
-      "RECARE": 28,
-      "SRP": 12,
-    },
-    "cleanSchedule": false,
-    "clinicalWarnings": {
-      "error": 0,
-      "info": 0,
-      "warning": 4,
-    },
-    "conflictsBySeverity": {
-      "error": 0,
-      "warning": 2,
-    },
-    "dTimeConflicts": 0,
-    "morningLoadRatio": 0.77,
-    "productionByProviderOp": {
-      "anderson-4::OP1": 21100,
-      "miller-4::OP3": 19700,
-      "peters-4::HYG1": 6900,
       "weber-4::HYG2": 5000,
     },
     "qualityScore": {
@@ -629,7 +382,7 @@ exports[`Golden schedule regression harness > KCC Clay Center (4) > matches gold
         {
           "label": "Clinical Rules Compliance",
           "maxScore": 20,
-          "score": 12,
+          "score": 6,
         },
         {
           "label": "Time Utilization",
@@ -643,9 +396,261 @@ exports[`Golden schedule regression harness > KCC Clay Center (4) > matches gold
         },
       ],
       "tier": "good",
-      "total": 82,
+      "total": 76,
     },
-    "staggerConflicts": 0,
+    "staggerConflicts": 30,
+  },
+  "MONDAY": {
+    "blockCategoryDistribution": {
+      "ER": 2,
+      "HP": 18,
+      "MP": 56,
+      "NON_PROD": 6,
+      "OTHER": 6,
+      "PM": 12,
+      "RECARE": 32,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 7,
+    },
+    "conflictsBySeverity": {
+      "error": 30,
+      "warning": 2,
+    },
+    "dTimeConflicts": 26,
+    "morningLoadRatio": 0.78,
+    "productionByProviderOp": {
+      "anderson-4::OP1": 21100,
+      "anderson-4::OP2": 20800,
+      "miller-4::OP3": 19700,
+      "peters-4::HYG1": 6200,
+      "weber-4::HYG2": 5400,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 28,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 6,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 7,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 76,
+    },
+    "staggerConflicts": 30,
+  },
+  "THURSDAY": {
+    "blockCategoryDistribution": {
+      "ER": 2,
+      "HP": 18,
+      "MP": 56,
+      "NON_PROD": 6,
+      "OTHER": 6,
+      "PM": 12,
+      "RECARE": 36,
+      "SRP": 8,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 7,
+    },
+    "conflictsBySeverity": {
+      "error": 30,
+      "warning": 2,
+    },
+    "dTimeConflicts": 26,
+    "morningLoadRatio": 0.79,
+    "productionByProviderOp": {
+      "anderson-4::OP1": 21100,
+      "anderson-4::OP2": 20800,
+      "miller-4::OP3": 19700,
+      "peters-4::HYG1": 6200,
+      "weber-4::HYG2": 4700,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 27,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 6,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 7,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 75,
+    },
+    "staggerConflicts": 30,
+  },
+  "TUESDAY": {
+    "blockCategoryDistribution": {
+      "ER": 2,
+      "HP": 18,
+      "MP": 56,
+      "NON_PROD": 6,
+      "OTHER": 6,
+      "PM": 16,
+      "RECARE": 28,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 7,
+    },
+    "conflictsBySeverity": {
+      "error": 30,
+      "warning": 2,
+    },
+    "dTimeConflicts": 26,
+    "morningLoadRatio": 0.78,
+    "productionByProviderOp": {
+      "anderson-4::OP1": 21100,
+      "anderson-4::OP2": 20800,
+      "miller-4::OP3": 19700,
+      "peters-4::HYG1": 7100,
+      "weber-4::HYG2": 4700,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 28,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 6,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 7,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 76,
+    },
+    "staggerConflicts": 30,
+  },
+  "WEDNESDAY": {
+    "blockCategoryDistribution": {
+      "ER": 2,
+      "HP": 18,
+      "MP": 56,
+      "NON_PROD": 6,
+      "OTHER": 6,
+      "PM": 20,
+      "RECARE": 28,
+      "SRP": 8,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 7,
+    },
+    "conflictsBySeverity": {
+      "error": 30,
+      "warning": 2,
+    },
+    "dTimeConflicts": 26,
+    "morningLoadRatio": 0.79,
+    "productionByProviderOp": {
+      "anderson-4::OP1": 21100,
+      "anderson-4::OP2": 20800,
+      "miller-4::OP3": 19700,
+      "peters-4::HYG1": 6700,
+      "weber-4::HYG2": 4700,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 26,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 6,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 7,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "fair",
+      "total": 74,
+    },
+    "staggerConflicts": 30,
   },
 }
 `;
@@ -654,10 +659,10 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
 {
   "FRIDAY": {
     "blockCategoryDistribution": {
-      "HP": 22,
-      "MP": 18,
+      "HP": 31,
+      "MP": 30,
       "NP": 4,
-      "OTHER": 4,
+      "OTHER": 6,
       "PM": 9,
       "RECARE": 21,
       "SRP": 12,
@@ -669,15 +674,16 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
       "warning": 2,
     },
     "conflictsBySeverity": {
-      "error": 0,
-      "warning": 3,
+      "error": 21,
+      "warning": 2,
     },
-    "dTimeConflicts": 0,
+    "dTimeConflicts": 14,
     "morningLoadRatio": 0.8,
     "productionByProviderOp": {
       "jackson-3::OP3": 19700,
       "kim-3::HYG1": 1600,
       "nguyen-3::OP1": 17700,
+      "nguyen-3::OP2": 16900,
       "rodriguez-3::HYG2": 3600,
     },
     "qualityScore": {
@@ -685,68 +691,7 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
         {
           "label": "Production Goal Achievement",
           "maxScore": 30,
-          "score": 24,
-        },
-        {
-          "label": "Procedure Mix Accuracy",
-          "maxScore": 25,
-          "score": 25,
-        },
-        {
-          "label": "Clinical Rules Compliance",
-          "maxScore": 20,
-          "score": 16,
-        },
-        {
-          "label": "Time Utilization",
-          "maxScore": 15,
-          "score": 3,
-        },
-        {
-          "label": "Provider Coverage",
-          "maxScore": 10,
-          "score": 10,
-        },
-      ],
-      "tier": "good",
-      "total": 78,
-    },
-    "staggerConflicts": 0,
-  },
-  "MONDAY": {
-    "blockCategoryDistribution": {
-      "HP": 22,
-      "MP": 18,
-      "NP": 4,
-      "OTHER": 4,
-      "PM": 12,
-      "RECARE": 21,
-      "SRP": 8,
-    },
-    "cleanSchedule": false,
-    "clinicalWarnings": {
-      "error": 0,
-      "info": 0,
-      "warning": 2,
-    },
-    "conflictsBySeverity": {
-      "error": 0,
-      "warning": 3,
-    },
-    "dTimeConflicts": 0,
-    "morningLoadRatio": 0.8,
-    "productionByProviderOp": {
-      "jackson-3::OP3": 19700,
-      "kim-3::HYG1": 3000,
-      "nguyen-3::OP1": 17700,
-      "rodriguez-3::HYG2": 2200,
-    },
-    "qualityScore": {
-      "components": [
-        {
-          "label": "Production Goal Achievement",
-          "maxScore": 30,
-          "score": 23,
+          "score": 27,
         },
         {
           "label": "Procedure Mix Accuracy",
@@ -770,17 +715,17 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
         },
       ],
       "tier": "good",
-      "total": 75,
+      "total": 79,
     },
-    "staggerConflicts": 0,
+    "staggerConflicts": 21,
   },
-  "THURSDAY": {
+  "MONDAY": {
     "blockCategoryDistribution": {
-      "HP": 22,
-      "MP": 18,
-      "NP": 8,
-      "OTHER": 4,
-      "PM": 9,
+      "HP": 31,
+      "MP": 30,
+      "NP": 4,
+      "OTHER": 6,
+      "PM": 12,
       "RECARE": 21,
       "SRP": 8,
     },
@@ -791,75 +736,16 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
       "warning": 2,
     },
     "conflictsBySeverity": {
-      "error": 0,
-      "warning": 3,
+      "error": 21,
+      "warning": 2,
     },
-    "dTimeConflicts": 0,
-    "morningLoadRatio": 0.78,
+    "dTimeConflicts": 14,
+    "morningLoadRatio": 0.8,
     "productionByProviderOp": {
       "jackson-3::OP3": 19700,
       "kim-3::HYG1": 3000,
       "nguyen-3::OP1": 17700,
-      "rodriguez-3::HYG2": 3600,
-    },
-    "qualityScore": {
-      "components": [
-        {
-          "label": "Production Goal Achievement",
-          "maxScore": 30,
-          "score": 23,
-        },
-        {
-          "label": "Procedure Mix Accuracy",
-          "maxScore": 25,
-          "score": 25,
-        },
-        {
-          "label": "Clinical Rules Compliance",
-          "maxScore": 20,
-          "score": 16,
-        },
-        {
-          "label": "Time Utilization",
-          "maxScore": 15,
-          "score": 3,
-        },
-        {
-          "label": "Provider Coverage",
-          "maxScore": 10,
-          "score": 10,
-        },
-      ],
-      "tier": "good",
-      "total": 77,
-    },
-    "staggerConflicts": 0,
-  },
-  "TUESDAY": {
-    "blockCategoryDistribution": {
-      "HP": 22,
-      "MP": 18,
-      "OTHER": 4,
-      "PM": 12,
-      "RECARE": 24,
-      "SRP": 8,
-    },
-    "cleanSchedule": false,
-    "clinicalWarnings": {
-      "error": 0,
-      "info": 0,
-      "warning": 2,
-    },
-    "conflictsBySeverity": {
-      "error": 0,
-      "warning": 3,
-    },
-    "dTimeConflicts": 0,
-    "morningLoadRatio": 0.82,
-    "productionByProviderOp": {
-      "jackson-3::OP3": 19700,
-      "kim-3::HYG1": 2200,
-      "nguyen-3::OP1": 17700,
+      "nguyen-3::OP2": 16900,
       "rodriguez-3::HYG2": 2200,
     },
     "qualityScore": {
@@ -867,7 +753,7 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
         {
           "label": "Production Goal Achievement",
           "maxScore": 30,
-          "score": 22,
+          "score": 26,
         },
         {
           "label": "Procedure Mix Accuracy",
@@ -890,20 +776,20 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
           "score": 10,
         },
       ],
-      "tier": "fair",
-      "total": 73,
+      "tier": "good",
+      "total": 77,
     },
-    "staggerConflicts": 0,
+    "staggerConflicts": 21,
   },
-  "WEDNESDAY": {
+  "THURSDAY": {
     "blockCategoryDistribution": {
-      "HP": 22,
-      "MP": 18,
-      "NP": 4,
-      "OTHER": 4,
+      "HP": 31,
+      "MP": 30,
+      "NP": 8,
+      "OTHER": 6,
       "PM": 9,
       "RECARE": 21,
-      "SRP": 12,
+      "SRP": 8,
     },
     "cleanSchedule": false,
     "clinicalWarnings": {
@@ -912,23 +798,24 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
       "warning": 2,
     },
     "conflictsBySeverity": {
-      "error": 0,
-      "warning": 3,
+      "error": 21,
+      "warning": 2,
     },
-    "dTimeConflicts": 0,
-    "morningLoadRatio": 0.8,
+    "dTimeConflicts": 14,
+    "morningLoadRatio": 0.78,
     "productionByProviderOp": {
       "jackson-3::OP3": 19700,
-      "kim-3::HYG1": 2200,
+      "kim-3::HYG1": 3000,
       "nguyen-3::OP1": 17700,
-      "rodriguez-3::HYG2": 3000,
+      "nguyen-3::OP2": 16900,
+      "rodriguez-3::HYG2": 3600,
     },
     "qualityScore": {
       "components": [
         {
           "label": "Production Goal Achievement",
           "maxScore": 30,
-          "score": 24,
+          "score": 26,
         },
         {
           "label": "Procedure Mix Accuracy",
@@ -943,7 +830,7 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
         {
           "label": "Time Utilization",
           "maxScore": 15,
-          "score": 3,
+          "score": 1,
         },
         {
           "label": "Provider Coverage",
@@ -954,7 +841,130 @@ exports[`Golden schedule regression harness > Los Altos (3) > matches golden sna
       "tier": "good",
       "total": 78,
     },
-    "staggerConflicts": 0,
+    "staggerConflicts": 21,
+  },
+  "TUESDAY": {
+    "blockCategoryDistribution": {
+      "HP": 31,
+      "MP": 30,
+      "OTHER": 6,
+      "PM": 12,
+      "RECARE": 24,
+      "SRP": 8,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 2,
+    },
+    "conflictsBySeverity": {
+      "error": 21,
+      "warning": 2,
+    },
+    "dTimeConflicts": 14,
+    "morningLoadRatio": 0.81,
+    "productionByProviderOp": {
+      "jackson-3::OP3": 19700,
+      "kim-3::HYG1": 2200,
+      "nguyen-3::OP1": 17700,
+      "nguyen-3::OP2": 16900,
+      "rodriguez-3::HYG2": 2200,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 25,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 16,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 0,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 76,
+    },
+    "staggerConflicts": 21,
+  },
+  "WEDNESDAY": {
+    "blockCategoryDistribution": {
+      "HP": 31,
+      "MP": 30,
+      "NP": 4,
+      "OTHER": 6,
+      "PM": 9,
+      "RECARE": 21,
+      "SRP": 12,
+    },
+    "cleanSchedule": false,
+    "clinicalWarnings": {
+      "error": 0,
+      "info": 0,
+      "warning": 2,
+    },
+    "conflictsBySeverity": {
+      "error": 21,
+      "warning": 2,
+    },
+    "dTimeConflicts": 14,
+    "morningLoadRatio": 0.8,
+    "productionByProviderOp": {
+      "jackson-3::OP3": 19700,
+      "kim-3::HYG1": 2200,
+      "nguyen-3::OP1": 17700,
+      "nguyen-3::OP2": 16900,
+      "rodriguez-3::HYG2": 3000,
+    },
+    "qualityScore": {
+      "components": [
+        {
+          "label": "Production Goal Achievement",
+          "maxScore": 30,
+          "score": 27,
+        },
+        {
+          "label": "Procedure Mix Accuracy",
+          "maxScore": 25,
+          "score": 25,
+        },
+        {
+          "label": "Clinical Rules Compliance",
+          "maxScore": 20,
+          "score": 16,
+        },
+        {
+          "label": "Time Utilization",
+          "maxScore": 15,
+          "score": 1,
+        },
+        {
+          "label": "Provider Coverage",
+          "maxScore": 10,
+          "score": 10,
+        },
+      ],
+      "tier": "good",
+      "total": 79,
+    },
+    "staggerConflicts": 21,
   },
 }
 `;
@@ -1278,9 +1288,9 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
 {
   "FRIDAY": {
     "blockCategoryDistribution": {
-      "ER": 12,
+      "ER": 10,
       "HP": 24,
-      "MP": 69,
+      "MP": 72,
       "NON_PROD": 4,
       "NP": 30,
       "PM": 36,
@@ -1291,18 +1301,18 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
     "clinicalWarnings": {
       "error": 0,
       "info": 0,
-      "warning": 10,
+      "warning": 9,
     },
     "conflictsBySeverity": {
-      "error": 55,
+      "error": 56,
       "warning": 2,
     },
     "dTimeConflicts": 9,
-    "morningLoadRatio": 0.69,
+    "morningLoadRatio": 0.7,
     "productionByProviderOp": {
       "cheryl-1::HYG2": 12100,
       "fitz-1::OP1": 27000,
-      "fitz-1::OP2": 24700,
+      "fitz-1::OP2": 25400,
       "jamal-1::HYG3": 12900,
       "luke-1::HYG4": 10400,
     },
@@ -1321,12 +1331,12 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         {
           "label": "Clinical Rules Compliance",
           "maxScore": 20,
-          "score": 0,
+          "score": 2,
         },
         {
           "label": "Time Utilization",
           "maxScore": 15,
-          "score": 5,
+          "score": 6,
         },
         {
           "label": "Provider Coverage",
@@ -1335,15 +1345,15 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         },
       ],
       "tier": "fair",
-      "total": 62,
+      "total": 65,
     },
-    "staggerConflicts": 55,
+    "staggerConflicts": 56,
   },
   "MONDAY": {
     "blockCategoryDistribution": {
-      "ER": 12,
+      "ER": 10,
       "HP": 24,
-      "MP": 69,
+      "MP": 72,
       "NON_PROD": 4,
       "NP": 36,
       "PM": 36,
@@ -1354,18 +1364,18 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
     "clinicalWarnings": {
       "error": 0,
       "info": 0,
-      "warning": 10,
+      "warning": 9,
     },
     "conflictsBySeverity": {
-      "error": 55,
+      "error": 56,
       "warning": 3,
     },
     "dTimeConflicts": 9,
-    "morningLoadRatio": 0.68,
+    "morningLoadRatio": 0.69,
     "productionByProviderOp": {
       "cheryl-1::HYG2": 12500,
       "fitz-1::OP1": 27000,
-      "fitz-1::OP2": 24700,
+      "fitz-1::OP2": 25400,
       "jamal-1::HYG3": 11400,
       "luke-1::HYG4": 10400,
     },
@@ -1384,7 +1394,7 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         {
           "label": "Clinical Rules Compliance",
           "maxScore": 20,
-          "score": 0,
+          "score": 2,
         },
         {
           "label": "Time Utilization",
@@ -1398,15 +1408,15 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         },
       ],
       "tier": "fair",
-      "total": 60,
+      "total": 62,
     },
-    "staggerConflicts": 55,
+    "staggerConflicts": 56,
   },
   "THURSDAY": {
     "blockCategoryDistribution": {
-      "ER": 12,
+      "ER": 10,
       "HP": 24,
-      "MP": 69,
+      "MP": 72,
       "NON_PROD": 4,
       "NP": 18,
       "PM": 30,
@@ -1417,18 +1427,18 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
     "clinicalWarnings": {
       "error": 0,
       "info": 0,
-      "warning": 10,
+      "warning": 9,
     },
     "conflictsBySeverity": {
-      "error": 55,
+      "error": 56,
       "warning": 3,
     },
     "dTimeConflicts": 9,
-    "morningLoadRatio": 0.7,
+    "morningLoadRatio": 0.71,
     "productionByProviderOp": {
       "cheryl-1::HYG2": 12500,
       "fitz-1::OP1": 27000,
-      "fitz-1::OP2": 24700,
+      "fitz-1::OP2": 25400,
       "jamal-1::HYG3": 10400,
       "luke-1::HYG4": 11000,
     },
@@ -1447,7 +1457,7 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         {
           "label": "Clinical Rules Compliance",
           "maxScore": 20,
-          "score": 0,
+          "score": 2,
         },
         {
           "label": "Time Utilization",
@@ -1461,15 +1471,15 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         },
       ],
       "tier": "fair",
-      "total": 61,
+      "total": 63,
     },
-    "staggerConflicts": 55,
+    "staggerConflicts": 56,
   },
   "TUESDAY": {
     "blockCategoryDistribution": {
-      "ER": 12,
+      "ER": 10,
       "HP": 24,
-      "MP": 69,
+      "MP": 72,
       "NON_PROD": 4,
       "NP": 18,
       "PM": 36,
@@ -1480,10 +1490,10 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
     "clinicalWarnings": {
       "error": 0,
       "info": 0,
-      "warning": 10,
+      "warning": 9,
     },
     "conflictsBySeverity": {
-      "error": 55,
+      "error": 56,
       "warning": 3,
     },
     "dTimeConflicts": 9,
@@ -1491,7 +1501,7 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
     "productionByProviderOp": {
       "cheryl-1::HYG2": 12900,
       "fitz-1::OP1": 27000,
-      "fitz-1::OP2": 24700,
+      "fitz-1::OP2": 25400,
       "jamal-1::HYG3": 11000,
       "luke-1::HYG4": 10400,
     },
@@ -1510,7 +1520,7 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         {
           "label": "Clinical Rules Compliance",
           "maxScore": 20,
-          "score": 0,
+          "score": 2,
         },
         {
           "label": "Time Utilization",
@@ -1524,15 +1534,15 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         },
       ],
       "tier": "fair",
-      "total": 60,
+      "total": 62,
     },
-    "staggerConflicts": 55,
+    "staggerConflicts": 56,
   },
   "WEDNESDAY": {
     "blockCategoryDistribution": {
-      "ER": 12,
+      "ER": 10,
       "HP": 24,
-      "MP": 69,
+      "MP": 72,
       "NON_PROD": 4,
       "NP": 36,
       "PM": 30,
@@ -1543,18 +1553,18 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
     "clinicalWarnings": {
       "error": 0,
       "info": 0,
-      "warning": 10,
+      "warning": 9,
     },
     "conflictsBySeverity": {
-      "error": 55,
+      "error": 56,
       "warning": 2,
     },
     "dTimeConflicts": 9,
-    "morningLoadRatio": 0.7,
+    "morningLoadRatio": 0.71,
     "productionByProviderOp": {
       "cheryl-1::HYG2": 11400,
       "fitz-1::OP1": 27000,
-      "fitz-1::OP2": 24700,
+      "fitz-1::OP2": 25400,
       "jamal-1::HYG3": 9300,
       "luke-1::HYG4": 13100,
     },
@@ -1573,7 +1583,7 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         {
           "label": "Clinical Rules Compliance",
           "maxScore": 20,
-          "score": 0,
+          "score": 2,
         },
         {
           "label": "Time Utilization",
@@ -1587,9 +1597,9 @@ exports[`Golden schedule regression harness > Smile Cascade (1) > matches golden
         },
       ],
       "tier": "fair",
-      "total": 62,
+      "total": 64,
     },
-    "staggerConflicts": 55,
+    "staggerConflicts": 56,
   },
 }
 `;
@@ -1632,7 +1642,7 @@ exports[`Golden schedule regression harness > multi-op stagger conflict map (Loo
     "07:50/fitz-1",
     "08:00/fitz-1",
   ],
-  "hardConflictCount": 55,
+  "hardConflictCount": 56,
 }
 `;
 

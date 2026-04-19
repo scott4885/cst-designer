@@ -163,6 +163,7 @@ function NewOfficeForm() {
     resolver: zodResolver(officeSchema),
     mode: "onBlur",
     defaultValues: {
+      dpms: "Open Dental",
       workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
       timeIncrement: 10,
       staggerMinutes: 0,
@@ -318,16 +319,53 @@ function NewOfficeForm() {
     }
   };
 
+  // Surface Zod validation errors when submit is attempted. Required fields
+  // live on different tabs (Practice / Providers / Timing / Rules), so without
+  // this the user clicks "Create Office" on the Rules tab and nothing happens.
+  const onInvalid = (errs: typeof errors) => {
+    const flatten = (obj: unknown, prefix = ''): string[] => {
+      if (!obj || typeof obj !== 'object') return [];
+      const out: string[] = [];
+      for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+        if (v && typeof v === 'object') {
+          if ('message' in v && typeof (v as { message: unknown }).message === 'string') {
+            out.push(`${prefix}${k}: ${(v as { message: string }).message}`);
+          } else {
+            out.push(...flatten(v, `${prefix}${k}.`));
+          }
+        }
+      }
+      return out;
+    };
+    const messages = flatten(errs);
+    const firstFieldPath = Object.keys(errs || {})[0] ?? '';
+    const tabForField: Record<string, string> = {
+      name: 'practice', dpms: 'practice', workingDays: 'practice',
+      providers: 'providers',
+      timeIncrement: 'timing', staggerMinutes: 'timing',
+      scheduleRules: 'rules', schedulingRules: 'rules', procedures: 'rules',
+    };
+    if (firstFieldPath && tabForField[firstFieldPath]) {
+      handleTabChange(tabForField[firstFieldPath]);
+    }
+    toast.error(
+      messages.length > 0
+        ? `Fix these before creating: ${messages.slice(0, 3).join(' • ')}`
+        : 'Please fill out all required fields.'
+    );
+  };
+
   // Keyboard shortcut: Cmd/Ctrl+S to submit (placed here so handleSubmit/onSubmit are in scope)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        handleSubmit(onSubmit)();
+        handleSubmit(onSubmit, onInvalid)();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleSubmit]);
 
   // localStorage draft: check for saved draft on mount
@@ -441,7 +479,7 @@ function NewOfficeForm() {
       )}
 
       {/* Tabbed Form */}
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="practice" className="text-xs sm:text-sm">1. Practice</TabsTrigger>
@@ -474,7 +512,10 @@ function NewOfficeForm() {
 
                 <div>
                   <Label htmlFor="dpms">DPMS System</Label>
-                  <Select onValueChange={(value) => setValue("dpms", value as OfficeFormData["dpms"])}>
+                  <Select
+                    defaultValue="Open Dental"
+                    onValueChange={(value) => setValue("dpms", value as OfficeFormData["dpms"])}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select DPMS" />
                     </SelectTrigger>
@@ -889,10 +930,11 @@ function NewOfficeForm() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="cursor-pointer font-medium">Enable Double Booking</Label>
+                    <Label className="cursor-pointer font-medium">Allow Double Booking</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      When enabled, doctors are scheduled across multiple operatories simultaneously.
-                      When disabled, a single-column schedule is generated per doctor.
+                      A provider (typically a hygienist) sees two patients at the same time, floating
+                      between chairs. Doctors assigned to multiple operatories are always staggered —
+                      this toggle does not control multi-op scheduling.
                     </p>
                   </div>
                   <Switch
