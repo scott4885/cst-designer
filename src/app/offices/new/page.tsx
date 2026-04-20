@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -138,6 +138,7 @@ function NewOfficeForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const submittedRef = useRef(false);
 
   const DRAFT_KEY = 'schedule-designer-draft-new';
 
@@ -309,6 +310,8 @@ function NewOfficeForm() {
       const newOffice = await res.json();
 
       try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+      submittedRef.current = true;
+      reset(data, { keepValues: true });
       toast.success("Office created successfully!");
       router.push(`/offices/${newOffice.id}`);
     } catch (error) {
@@ -400,6 +403,7 @@ function NewOfficeForm() {
   // Warn on browser navigation away with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (submittedRef.current) return;
       if (isDirty) {
         e.preventDefault();
       }

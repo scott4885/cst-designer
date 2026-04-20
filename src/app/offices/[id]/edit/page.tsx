@@ -85,6 +85,7 @@ export default function EditOfficePage() {
   const officeId = params.id as string;
   const { currentOffice, fetchOffice, isLoading } = useOfficeStore();
   const [isSaving, setIsSaving] = useState(false);
+  const submittedRef = useRef(false);
   const [providerToDelete, setProviderToDelete] = useState<number | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
@@ -156,6 +157,7 @@ export default function EditOfficePage() {
   // Warn on browser navigation away with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (submittedRef.current) return;
       if (isDirty) {
         e.preventDefault();
       }
@@ -489,6 +491,7 @@ export default function EditOfficePage() {
       }
 
       try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+      submittedRef.current = true;
       toast.success("Office updated successfully!");
       // Refetch to update the store before navigating
       await fetchOffice(officeId);
