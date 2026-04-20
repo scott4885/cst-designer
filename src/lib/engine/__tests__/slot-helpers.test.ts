@@ -158,28 +158,24 @@ describe('findAvailableRanges', () => {
 
 // ─── placeBlockInSlots ─────────────────────────────────────────────────────
 describe('placeBlockInSlots', () => {
-  it('applies A/D staffing pattern for 3+ slot doctor blocks', () => {
-    const slots: TimeSlotOutput[] = [
-      makeSlot('07:00'),
-      makeSlot('07:10'),
-      makeSlot('07:20'),
-    ];
-    placeBlockInSlots(slots, [0, 1, 2], makeBlockType(), makeProvider(), 'HP>$1500');
-
-    expect(slots[0].staffingCode).toBe('A');
-    expect(slots[1].staffingCode).toBe('D');
-    expect(slots[2].staffingCode).toBe('A');
+  it('applies the canonical HP pattern (A-A-D-D-D-D-A-A) for an 8-slot HP block', () => {
+    const slots: TimeSlotOutput[] = Array.from({ length: 8 }, (_, i) =>
+      makeSlot(`07:${String(i * 10).padStart(2, '0')}`)
+    );
+    placeBlockInSlots(slots, [0, 1, 2, 3, 4, 5, 6, 7], makeBlockType(), makeProvider(), 'HP>$1800');
+    expect(slots.map((s) => s.staffingCode)).toEqual(['A', 'A', 'D', 'D', 'D', 'D', 'A', 'A']);
     for (const s of slots) {
       expect(s.blockTypeId).toBe('bt-hp');
-      expect(s.blockLabel).toBe('HP>$1500');
+      expect(s.blockLabel).toBe('HP>$1800');
     }
   });
 
-  it('uses plain D staffing for 2-slot doctor blocks', () => {
-    const slots: TimeSlotOutput[] = [makeSlot('07:00'), makeSlot('07:10')];
-    placeBlockInSlots(slots, [0, 1], makeBlockType(), makeProvider());
-    expect(slots[0].staffingCode).toBe('D');
+  it('applies derived A-D-A pattern for 3-slot doctor blocks with no catalog match', () => {
+    const slots: TimeSlotOutput[] = [makeSlot('07:00'), makeSlot('07:10'), makeSlot('07:20')];
+    placeBlockInSlots(slots, [0, 1, 2], makeBlockType({ id: 'bt-x', label: 'CUSTOM' }), makeProvider());
+    expect(slots[0].staffingCode).toBe('A');
     expect(slots[1].staffingCode).toBe('D');
+    expect(slots[2].staffingCode).toBe('A');
   });
 
   it('uses H staffing for hygienist regardless of length', () => {
@@ -189,7 +185,7 @@ describe('placeBlockInSlots', () => {
       makeSlot('07:20'),
     ];
     const hyg = makeProvider({ id: 'h1', role: 'HYGIENIST' });
-    const bt = makeBlockType({ appliesToRole: 'HYGIENIST' });
+    const bt = makeBlockType({ id: 'bt-h', label: 'CUSTOM', appliesToRole: 'HYGIENIST' });
     placeBlockInSlots(slots, [0, 1, 2], bt, hyg);
     for (const s of slots) expect(s.staffingCode).toBe('H');
   });

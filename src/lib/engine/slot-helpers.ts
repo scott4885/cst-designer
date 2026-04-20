@@ -9,6 +9,7 @@
  */
 
 import type { TimeSlotOutput, ProviderInput, BlockTypeInput, StaffingCode } from './types';
+import { resolvePattern, derivePattern } from './pattern-catalog';
 
 // ---------------------------------------------------------------------------
 // Time conversion helpers
@@ -142,11 +143,64 @@ export function getStaffingCode(role: 'DOCTOR' | 'HYGIENIST' | 'OTHER'): Staffin
 // ---------------------------------------------------------------------------
 
 /**
+ * Resolve the staffing pattern for a block. Priority:
+ *   1. blockType.pattern (explicit per-slot codes)
+ *   2. PATTERN_CATALOG lookup via label/aliases
+ *   3. derivePattern(role, length) — role-aware fallback
+ *
+ * Pattern length is stretched/trimmed to match the actual range length so
+ * variable-length placements (dynamic HP expansion, Rock truncation, etc.)
+ * never desync from the canonical A/D/H shape.
+ */
+function resolveBlockPattern(
+  blockType: BlockTypeInput,
+  provider: ProviderInput,
+  len: number
+): StaffingCode[] {
+  let base: StaffingCode[] | null = null;
+
+  if (blockType.pattern && blockType.pattern.length > 0) {
+    base = blockType.pattern;
+  } else {
+    const catalog = resolvePattern(blockType.label);
+    if (catalog) base = catalog.pattern;
+  }
+
+  if (!base) {
+    return derivePattern(provider.role, len);
+  }
+
+  if (base.length === len) return base.slice();
+
+  // Pattern length mismatch: proportionally sample the middle, then force
+  // bookend slots to the canonical pattern's ends so A-A/A bookends and
+  // trailing A's are always preserved. This handles variable-length
+  // placements (dynamic HP expansion, Rock truncation) without regressing
+  // to the old hardcoded A-at-ends behavior.
+  const out: StaffingCode[] = [];
+  for (let i = 0; i < len; i++) {
+    const srcIdx = Math.min(base.length - 1, Math.floor((i / len) * base.length));
+    out.push(base[srcIdx]);
+  }
+
+  // Hard-preserve bookends (first and last).
+  out[0] = base[0];
+  out[len - 1] = base[base.length - 1];
+
+  // For patterns of length >= 4 where both ends are 2+ of the same code
+  // (e.g. HP's A-A...A-A), preserve the second slot from each end too.
+  if (len >= 4 && base.length >= 4) {
+    if (base[0] === base[1]) out[1] = base[1];
+    if (base[base.length - 1] === base[base.length - 2]) out[len - 2] = base[base.length - 2];
+  }
+
+  return out;
+}
+
+/**
  * Place a block type into the slots array at the given range of indices.
- * Applies A/D staffing code pattern for doctor blocks >= 3 slots:
- *   first slot: A (assistant seats patient)
- *   middle slots: D (doctor hands-on)
- *   last slot: A (assistant cleanup)
+ * Applies the block's canonical staffing pattern (from BlockTypeInput.pattern,
+ * PATTERN_CATALOG, or a role-derived fallback).
  *
  * @param slots - The master slots array (mutated in place)
  * @param range - Array of indices to fill
@@ -164,6 +218,8 @@ export function placeBlockInSlots(
   rationale?: string
 ): void {
   const len = range.length;
+  const pattern = resolveBlockPattern(blockType, provider, len);
+
   for (let i = 0; i < len; i++) {
     const idx = range[i];
     slots[idx].blockTypeId = blockType.id;
@@ -171,13 +227,7 @@ export function placeBlockInSlots(
     if (rationale !== undefined) {
       slots[idx].rationale = rationale;
     }
-
-    // For doctor blocks >= 3 slots: mark first and last as 'A' (assistant-only time)
-    if (provider.role === 'DOCTOR' && len >= 3 && (i === 0 || i === len - 1)) {
-      slots[idx].staffingCode = 'A';
-    } else {
-      slots[idx].staffingCode = getStaffingCode(provider.role);
-    }
+    slots[idx].staffingCode = pattern[i] ?? getStaffingCode(provider.role);
   }
 }
 
@@ -292,16 +342,31 @@ export function getDPhaseMinutes(
 
 /**
  * Predict which minutes of a candidate range would be D-phase if a doctor
- * block were placed there. Mirrors the A/D pattern in placeBlockInSlots:
- * for ranges >= 3 slots, the first and last slots are 'A' (assistant),
- * the middle slots are 'D'. For shorter ranges, all slots are 'D'.
+ * block were placed there.
+ *
+ * When `blockType` and `provider` are provided, uses the block's canonical
+ * staffing pattern (real-template-derived). Otherwise falls back to a
+ * general heuristic (first/last A, middle D for len >= 3; all D for <3)
+ * — preserved for backwards compatibility and for placement-phase callers
+ * that haven't chosen a block yet.
  */
 export function predictRangeDMinutes(
   slots: TimeSlotOutput[],
-  range: number[]
+  range: number[],
+  blockType?: BlockTypeInput,
+  provider?: ProviderInput
 ): number[] {
   const len = range.length;
   const result: number[] = [];
+
+  if (blockType && provider) {
+    const pattern = resolveBlockPattern(blockType, provider, len);
+    for (let i = 0; i < len; i++) {
+      if (pattern[i] === 'D') result.push(toMinutes(slots[range[i]].time));
+    }
+    return result;
+  }
+
   for (let i = 0; i < len; i++) {
     const isDPhase = len >= 3 ? i > 0 && i < len - 1 : true;
     if (isDPhase) result.push(toMinutes(slots[range[i]].time));
@@ -327,12 +392,14 @@ export function predictRangeDMinutes(
 export function rangesAvoidingDMinutes(
   ranges: number[][],
   slots: TimeSlotOutput[],
-  avoid: Set<number> | undefined
+  avoid: Set<number> | undefined,
+  blockType?: BlockTypeInput,
+  provider?: ProviderInput
 ): number[][] {
   if (!avoid || avoid.size === 0 || ranges.length === 0) return ranges;
 
   const scored = ranges.map((r, i) => {
-    const dMins = predictRangeDMinutes(slots, r);
+    const dMins = predictRangeDMinutes(slots, r, blockType, provider);
     let overlap = 0;
     for (const m of dMins) if (avoid.has(m)) overlap++;
     return { range: r, overlap, originalIdx: i };

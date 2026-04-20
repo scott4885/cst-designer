@@ -167,7 +167,7 @@ export function placeDoctorBlocksByMix(
       if (ranges.length === 0) break;
 
       const afterStagger = rangesAfter(ranges, slots, staggeredStartMin);
-      const availableRanges = rangesAvoidingDMinutes(afterStagger, slots, avoidDPhaseMinutes);
+      const availableRanges = rangesAvoidingDMinutes(afterStagger, slots, avoidDPhaseMinutes, bt, doc);
       const targetRange = availableRanges[0] ?? afterStagger[0] ?? ranges[0];
 
       const amount = bt.minimumAmount ?? 0;
@@ -199,7 +199,7 @@ export function placeDoctorBlocksByMix(
       const slotsNeeded = Math.ceil(bt.durationMin / timeIncrement);
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) continue;
-      const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes)[0] ?? ranges[0];
+      const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes, bt, doc)[0] ?? ranges[0];
       const amount = bt.minimumAmount ?? 0;
       placeBlockInSlots(slots, chosen, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label, 'mix gap fill');
       recordProd(amount);
@@ -226,7 +226,7 @@ export function placeDoctorBlocksByMix(
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) continue;
       if (wouldExceedVarietyCap(slots, ps, bt.id, slotsNeeded)) continue;
-      const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes)[0] ?? ranges[0];
+      const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes, bt, doc)[0] ?? ranges[0];
       const amount = bt.minimumAmount ?? 0;
       placeBlockInSlots(slots, chosen, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label, 'buffer / gap');
       recordProd(amount);
@@ -288,9 +288,9 @@ export function placeDoctorBlocks(
   // whose predicted D-phase minutes do not collide with the other column's
   // D-phase (A-D cross-column zigzag). Falls back to `ranges[0]` if the
   // avoid filter is empty or no clean candidate exists.
-  const pickAvoiding = (ranges: number[][]): number[] | undefined => {
+  const pickAvoiding = (ranges: number[][], bt?: BlockTypeInput): number[] | undefined => {
     if (ranges.length === 0) return undefined;
-    const filtered = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes);
+    const filtered = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes, bt, doc);
     return filtered[0] ?? ranges[0];
   };
   const staggeredStartMin = toMinutes(doc.workingStart) + staggerOffsetMin;
@@ -490,8 +490,8 @@ export function placeDoctorBlocks(
     const pmRanges = afternoonRanges(ranges, slots, doc);
     const lateRanges = rangesAfter(pmRanges, slots, 16 * 60);
     // Prefer late ranges that avoid cross-column D-phase; fall back to any late range.
-    const lateAvoid = rangesAvoidingDMinutes(lateRanges, slots, avoidDPhaseMinutes);
-    const pmAvoid = rangesAvoidingDMinutes(pmRanges, slots, avoidDPhaseMinutes);
+    const lateAvoid = rangesAvoidingDMinutes(lateRanges, slots, avoidDPhaseMinutes, nonProdBlock, doc);
+    const pmAvoid = rangesAvoidingDMinutes(pmRanges, slots, avoidDPhaseMinutes, nonProdBlock, doc);
     const targetRange = lastRange(lateAvoid) || lastRange(lateRanges) || lastRange(pmAvoid) || lastRange(pmRanges);
 
     if (targetRange) {
@@ -877,7 +877,9 @@ function fillDocOpSlots(
     const avoidFiltered = rangesAvoidingDMinutes(
       sameCatFiltered.length > 0 ? sameCatFiltered : ranges,
       slots,
-      avoidDPhaseMinutes
+      avoidDPhaseMinutes,
+      selectedBlock,
+      doc
     );
     if (avoidFiltered.length > 0) targetRange = avoidFiltered[0];
 

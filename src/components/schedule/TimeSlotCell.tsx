@@ -336,20 +336,20 @@ export default function TimeSlotCell({
       )}
       {blockLabel && isBlockFirst && (
         <div
-          className="text-[11px] font-medium tracking-tight text-neutral-800 leading-tight truncate max-w-[140px] flex items-center gap-0.5"
+          className="text-[11px] font-medium tracking-tight text-neutral-800 leading-tight break-words flex items-start gap-0.5 flex-wrap"
           title={blockLabel}
         >
-          {isAssistedHyg && isBlockFirst && (
+          {isAssistedHyg && (
             <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-violet-100 text-violet-700 border border-violet-300 shrink-0">
               AH
             </span>
           )}
-          {isHighProduction && isBlockFirst && (
+          {isHighProduction && (
             <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold leading-tight bg-amber-100 text-amber-700 border border-amber-300 shrink-0" title="High Production">
               HP
             </span>
           )}
-          {blockLabel}
+          <span className="min-w-0 break-words">{blockLabel}</span>
         </div>
       )}
 

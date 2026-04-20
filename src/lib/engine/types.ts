@@ -177,6 +177,13 @@ export interface BlockTypeInput {
    * One of the 8 ProcedureCategory values. Auto-assigned from label keywords if not set.
    */
   procedureCategory?: ProcedureCategory;
+  /**
+   * Per-slot staffing pattern extracted from real practice templates.
+   * Length must equal durationMin / timeIncrement. When present, placeBlockInSlots uses
+   * this array directly instead of hardcoded A/D/H generation.
+   * Example HP > $1800 (80min @ 10min): ['A','A','D','D','D','D','A','A']
+   */
+  pattern?: StaffingCode[];
 }
 
 export interface ScheduleRules {

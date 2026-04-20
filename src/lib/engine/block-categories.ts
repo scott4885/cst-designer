@@ -174,17 +174,98 @@ export function blockAppliesToProvider(bt: BlockTypeInput, provider: ProviderInp
 // Default block type factories
 // ---------------------------------------------------------------------------
 
-/** Default block definitions used when office doesn't configure a category */
+/**
+ * Default block definitions — durations and staffing patterns extracted from
+ * 6 real practice multi-column templates (see .rebuild-research/extracted-patterns.md).
+ * Patterns are 10-min-slot arrays; durations match pattern.length * 10.
+ */
 export const DEFAULT_BLOCKS: Record<string, Omit<BlockTypeInput, 'id'>> = {
-  HP: { label: 'HP', description: 'High Production', minimumAmount: 1200, appliesToRole: 'DOCTOR', durationMin: 90 },
-  NP: { label: 'NP CONS', description: 'New Patient Consult', minimumAmount: 300, appliesToRole: 'DOCTOR', durationMin: 40 },
-  MP: { label: 'MP', description: 'Medium Production', minimumAmount: 375, appliesToRole: 'DOCTOR', durationMin: 40 },
-  ER: { label: 'ER', description: 'Emergency Access', minimumAmount: 187, appliesToRole: 'DOCTOR', durationMin: 30 },
-  NON_PROD: { label: 'NON-PROD', description: 'Non-Productive', minimumAmount: 0, appliesToRole: 'DOCTOR', durationMin: 30 },
-  SRP: { label: 'SRP', description: 'Scaling & Root Planing', minimumAmount: 300, appliesToRole: 'HYGIENIST', durationMin: 80 },
-  PM: { label: 'PM', description: 'Perio Maintenance', minimumAmount: 190, appliesToRole: 'HYGIENIST', durationMin: 60 },
-  RECARE: { label: 'Recare', description: 'Recall/Prophy', minimumAmount: 150, appliesToRole: 'HYGIENIST', durationMin: 60 },
-  ASSISTED_HYG: { label: 'Assisted Hyg', description: 'Assisted Hygiene (2-3 chair rotation)', minimumAmount: 150, appliesToRole: 'HYGIENIST', durationMin: 60, color: '#8b5cf6', isHygieneType: true },
+  HP: {
+    label: 'HP',
+    description: 'High Production (> $1800)',
+    minimumAmount: 1800,
+    appliesToRole: 'DOCTOR',
+    durationMin: 80,
+    pattern: ['A', 'A', 'D', 'D', 'D', 'D', 'A', 'A'],
+  },
+  NP: {
+    label: 'NP CONS',
+    description: 'New Patient Consult (doctor)',
+    minimumAmount: 300,
+    appliesToRole: 'DOCTOR',
+    durationMin: 40,
+    pattern: ['A', 'D', 'D', 'A'],
+  },
+  NP_HYG: {
+    label: 'NP',
+    description: 'New Patient (hygiene, with doctor exam)',
+    minimumAmount: 300,
+    appliesToRole: 'HYGIENIST',
+    durationMin: 90,
+    pattern: ['H', 'H', 'H', 'H', 'H', 'D', 'D', 'D', 'H'],
+    isHygieneType: true,
+  },
+  MP: {
+    label: 'MP',
+    description: 'Medium Production',
+    minimumAmount: 375,
+    appliesToRole: 'DOCTOR',
+    durationMin: 40,
+    pattern: ['A', 'D', 'D', 'A'],
+  },
+  ER: {
+    label: 'ER',
+    description: 'Emergency Access',
+    minimumAmount: 187,
+    appliesToRole: 'DOCTOR',
+    durationMin: 30,
+    pattern: ['A', 'D', 'A'],
+  },
+  NON_PROD: {
+    label: 'NON-PROD',
+    description: 'Non-Productive',
+    minimumAmount: 0,
+    appliesToRole: 'DOCTOR',
+    durationMin: 30,
+    pattern: ['A', 'A', 'A'],
+  },
+  SRP: {
+    label: 'SRP',
+    description: 'Scaling & Root Planing',
+    minimumAmount: 400,
+    appliesToRole: 'HYGIENIST',
+    durationMin: 60,
+    pattern: ['H', 'H', 'H', 'H', 'H', 'H'],
+    isHygieneType: true,
+  },
+  PM: {
+    label: 'PM/GING',
+    description: 'Perio Maintenance / Gingivitis',
+    minimumAmount: 150,
+    appliesToRole: 'HYGIENIST',
+    durationMin: 60,
+    pattern: ['H', 'H', 'H', 'H', 'H', 'H'],
+    isHygieneType: true,
+  },
+  RECARE: {
+    label: 'RC/PM',
+    description: 'Recall / Perio Maintenance',
+    minimumAmount: 130,
+    appliesToRole: 'HYGIENIST',
+    durationMin: 60,
+    pattern: ['H', 'D', 'H', 'H', 'H', 'H'],
+    isHygieneType: true,
+  },
+  ASSISTED_HYG: {
+    label: 'Assisted Hyg',
+    description: 'Assisted Hygiene (2-3 chair rotation)',
+    minimumAmount: 150,
+    appliesToRole: 'HYGIENIST',
+    durationMin: 60,
+    color: '#8b5cf6',
+    isHygieneType: true,
+    pattern: ['H', 'H', 'H', 'H', 'H', 'H'],
+  },
 };
 
 /**
@@ -194,6 +275,7 @@ export const DEFAULT_BLOCKS: Record<string, Omit<BlockTypeInput, 'id'>> = {
 export const FALLBACK_IDS: Record<string, string> = {
   HP:           'hp-default',
   NP:           'np-cons-default',
+  NP_HYG:       'np-hyg-default',
   MP:           'mp-default',
   ER:           'er-default',
   NON_PROD:     'non-prod-default',
@@ -221,9 +303,13 @@ export function getBlockForCategory(
   const applicable = blocks.filter(b => blockAppliesToProvider(b, provider));
   if (applicable.length > 0) return applicable[0];
 
-  const def = DEFAULT_BLOCKS[category];
+  // Hygienist + NP → route to NP_HYG (90min H-H-H-H-H-D-D-D-H).
+  // Doctor + NP stays on the NP CONS pattern (40min A-D-D-A).
+  const defKey: string =
+    category === 'NP' && provider.role === 'HYGIENIST' ? 'NP_HYG' : category;
+  const def = DEFAULT_BLOCKS[defKey];
   if (def && (def.appliesToRole === 'BOTH' || def.appliesToRole === provider.role)) {
-    return { id: FALLBACK_IDS[category], ...def };
+    return { id: FALLBACK_IDS[defKey], ...def };
   }
   return null;
 }
@@ -246,9 +332,11 @@ export function getAllBlocksForCategory(
   const applicable = blocks.filter(b => blockAppliesToProvider(b, provider));
   if (applicable.length > 0) return applicable;
 
-  const def = DEFAULT_BLOCKS[category];
+  const defKey: string =
+    category === 'NP' && provider.role === 'HYGIENIST' ? 'NP_HYG' : category;
+  const def = DEFAULT_BLOCKS[defKey];
   if (def && (def.appliesToRole === 'BOTH' || def.appliesToRole === provider.role)) {
-    return [{ id: FALLBACK_IDS[category], ...def }];
+    return [{ id: FALLBACK_IDS[defKey], ...def }];
   }
   return [];
 }
