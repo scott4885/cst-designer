@@ -6,6 +6,14 @@ Three P1 regressions found by the Sprint 5 live smoke, fixed in-place
 without rollback. Vitest **1282/1282** pass (+8 new determinism tests).
 ESLint `--max-warnings=0` green. `tsc --noEmit` clean. `next build` clean.
 
+**LIVE-GREEN** on `http://cst.142.93.182.236.sslip.io/` (ETag rotated
+`"nnyyfloggaoii"` → `"nlygwotknyoiz"`, Coolify deploy `r8wkgw8oc0scgc4c4s08wcg0`).
+Phase 7 live smoke spec passes 9/9 against the deployed build — axe-core
+is back to 0 violations on `/offices/new` and `/offices/:id/advisory`,
+three back-to-back advisory POSTs are byte-identical, exec-summary
+narrative is stable, variant `productionTotal` is stable. Fix report:
+`.cst-rebuild-v3/logs/phase-7-fix-report.md`.
+
 ### Fixed
 
 - **P1-A: Advisory determinism** — `POST /api/offices/:id/advisory` is
