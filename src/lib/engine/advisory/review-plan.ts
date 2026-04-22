@@ -10,7 +10,13 @@
  */
 
 import type { TemplateScore } from './types';
-import type { IntakeGoals, IntakeConstraints, ReviewMilestone, ReviewPlan } from './types';
+import type {
+  IntakeGoals,
+  IntakeConstraints,
+  ReviewMilestone,
+  ReviewPlan,
+  VariantProfile,
+} from './types';
 
 interface KpiSpec {
   metric: string;
@@ -181,28 +187,50 @@ export function composeReviewPlan(
   score: TemplateScore,
   intakeGoals: IntakeGoals,
   intakeConstraints: IntakeConstraints = {},
-  opts: { generatedAt?: string } = {},
+  opts: { generatedAt?: string; chosenVariantProfile?: VariantProfile } = {},
 ): ReviewPlan {
   const inp: SelectInput = { score, intakeGoals, intakeConstraints };
+
+  const day30 = selectDay30(inp);
+  const day60 = selectDay60(inp);
+  const day90 = selectDay90(inp);
+
+  // Sprint 6 Epic R — if a variant has been committed, rescale KPI targets
+  // by that variant's weights. Baseline weights are Balanced
+  // (productionPct 60 / npAccessPct 17 / emergencyAccessPct 10).
+  const maybeScale = (
+    list: ReturnType<typeof selectDay30>,
+  ) => (opts.chosenVariantProfile ? applyVariantScaling(list, opts.chosenVariantProfile) : list);
+
+  const variantLabel = opts.chosenVariantProfile?.label;
+  const baseDay30Summary =
+    'Day-30 checkpoint focuses on whether the template is hitting its basic operating targets and catches week-over-week drift early.';
+  const baseDay60Summary =
+    'Day-60 reviews team fatigue, operatory utilisation, and hygiene cadence — the signals that tell you whether the template is sustainable.';
+  const baseDay90Summary =
+    'Day-90 is a full strategic review: production outcomes, access outcomes, cancellation patterns, and any residual stability concerns are evaluated before committing to the template for the next quarter.';
 
   const milestones: ReviewMilestone[] = [
     {
       day: 30,
-      kpis: selectDay30(inp),
-      summary:
-        'Day-30 checkpoint focuses on whether the template is hitting its basic operating targets and catches week-over-week drift early.',
+      kpis: maybeScale(day30),
+      summary: variantLabel
+        ? `Day-30 checkpoint, with ${variantLabel} committed: verify protected-production adherence and the leading KPIs below are hitting the ${variantLabel}-tuned targets.`
+        : baseDay30Summary,
     },
     {
       day: 60,
-      kpis: selectDay60(inp),
-      summary:
-        'Day-60 reviews team fatigue, operatory utilisation, and hygiene cadence — the signals that tell you whether the template is sustainable.',
+      kpis: maybeScale(day60),
+      summary: variantLabel
+        ? `Day-60 review under ${variantLabel}: team fatigue, utilisation, and hygiene cadence — expect ${variantLabel}-weighted targets.`
+        : baseDay60Summary,
     },
     {
       day: 90,
-      kpis: selectDay90(inp),
-      summary:
-        'Day-90 is a full strategic review: production outcomes, access outcomes, cancellation patterns, and any residual stability concerns are evaluated before committing to the template for the next quarter.',
+      kpis: maybeScale(day90),
+      summary: variantLabel
+        ? `Day-90 strategic review with ${variantLabel} committed: re-evaluate outcomes against the ${variantLabel} rescoped KPIs before renewing the commitment for the next quarter.`
+        : baseDay90Summary,
     },
   ];
 
@@ -210,4 +238,38 @@ export function composeReviewPlan(
     milestones,
     generatedAt: opts.generatedAt ?? new Date(0).toISOString(),
   };
+}
+
+/**
+ * Sprint 6 Epic R — apply per-variant weights to the KPI target strings.
+ * Baseline is Balanced (production 60 / NP 17 / ER 10). Growth's 75% will
+ * uplift the production target text; Access's 25 NP pct will uplift the NP
+ * target. We scale numeric targets found in the target string by the ratio.
+ */
+function applyVariantScaling(
+  kpis: ReturnType<typeof selectDay30>,
+  profile: VariantProfile,
+): ReturnType<typeof selectDay30> {
+  const prodRatio = profile.weights.productionPct / 60;
+  const npRatio = profile.weights.npAccessPct / 17;
+  const erRatio = profile.weights.emergencyAccessPct / 10;
+
+  return kpis.map((kpi) => {
+    let ratio = 1;
+    const m = kpi.metric.toLowerCase();
+    if (/production/.test(m)) ratio = prodRatio;
+    else if (/new\s*patient|np|days-to-first-available np/.test(m)) ratio = npRatio;
+    else if (/emergency|er slot|emerg/.test(m)) ratio = erRatio;
+    // Only rewrite numeric percentages in the target string; leave other text alone.
+    if (ratio === 1) return kpi;
+    const rescaled = kpi.target.replace(/(\d+(?:\.\d+)?)\s*%/g, (_all, num) => {
+      const n = Number(num);
+      const scaled = Math.round(n * ratio);
+      return `${scaled}%`;
+    });
+    return {
+      ...kpi,
+      target: rescaled === kpi.target ? kpi.target : `${rescaled} (${profile.label}-scaled)`,
+    };
+  });
 }

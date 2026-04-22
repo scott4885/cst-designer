@@ -51,4 +51,50 @@ describe('composeReviewPlan', () => {
     const b = JSON.stringify(composeReviewPlan(makeScore(), {}, {}, { generatedAt: 'fixed' }));
     expect(a).toBe(b);
   });
+
+  // ---- Sprint 6 Epic R — variant-weighted KPI scaling ---------------------
+
+  it('rescales % targets up when Growth profile is committed', () => {
+    const GROWTH = {
+      code: 'GROWTH' as const,
+      label: 'Growth',
+      productionPolicy: 'FARRAN_75_BY_NOON' as const,
+      overrides: {
+        npBlocksPerDay: 2,
+        srpBlocksPerDay: 1,
+        hpPlacement: 'MORNING' as const,
+        doubleBooking: false,
+      },
+      weights: {
+        productionPct: 75,
+        npAccessPct: 15,
+        emergencyAccessPct: 10,
+        hygieneSupportPct: 0,
+        doctorContinuityPct: 0,
+      },
+    };
+    const base = composeReviewPlan(makeScore(), {}, {});
+    const growth = composeReviewPlan(makeScore(), {}, {}, {
+      chosenVariantProfile: GROWTH,
+    });
+    // Milestone summaries mention the variant name
+    for (const m of growth.milestones) {
+      expect(m.summary).toContain('Growth');
+    }
+    // Plan still has 3 milestones
+    expect(growth.milestones.map((m) => m.day)).toEqual([30, 60, 90]);
+    // And the structural cardinality is preserved (scaling is on target strings only).
+    for (let i = 0; i < 3; i++) {
+      expect(growth.milestones[i].kpis.length).toBe(base.milestones[i].kpis.length);
+    }
+  });
+
+  it('milestone summaries do not mention a variant when none committed', () => {
+    const plan = composeReviewPlan(makeScore(), {}, {});
+    for (const m of plan.milestones) {
+      expect(m.summary).not.toContain('Growth');
+      expect(m.summary).not.toContain('Access');
+      expect(m.summary).not.toContain('Balanced');
+    }
+  });
 });

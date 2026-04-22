@@ -79,4 +79,3 @@ playwright.phase7.config.ts
 # Playwright run artifacts + scratch screenshots
 /playwright-report/
 smoke-passed.png
-/test-results/

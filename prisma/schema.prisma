@@ -38,6 +38,7 @@ model Office {
   templates            ScheduleTemplate[]
   scheduleVersions     ScheduleVersion[]
   advisories           TemplateAdvisory[]
+  priorTemplates       PriorTemplate[]
 }
 
 model Provider {
@@ -173,6 +174,14 @@ model TreatmentSequence {
 // JSON blobs are the output of the advisory composer (see
 // src/lib/engine/advisory/compose.ts). No FK to ScheduleTemplate so that the
 // advisory survives template rebuilds; the UI joins by (templateId, officeId).
+//
+// Sprint 6 — Epic Q + Epic R additions:
+//   documentRewriteJson      — optional Claude Opus rewrite (additive, original kept)
+//   rewriteState             — "NONE" | "PENDING" | "ACCEPTED" | "REJECTED"
+//   rewriteGeneratedAt       — when rewrite was produced
+//   chosenVariant            — "GROWTH" | "ACCESS" | "BALANCED" | null
+//   chosenVariantAt          — when variant was committed
+//   chosenVariantHistoryJson — audit array of previous variant choices
 model TemplateAdvisory {
   id              String   @id @default(cuid())
   templateId      String
@@ -182,10 +191,56 @@ model TemplateAdvisory {
   scoreJson       String   @default("{}")
   variantsJson    String   @default("{}")
   reviewPlanJson  String   @default("{}")
+  // Sprint 6 Epic Q — LLM rewrite (additive to documentJson)
+  documentRewriteJson  String?
+  rewriteState         String   @default("NONE")
+  rewriteGeneratedAt   DateTime?
+  // Sprint 6 Epic R — chosen variant (advisory metadata only; never
+  // promoted to ScheduleTemplate.isActive in Sprint 6)
+  chosenVariant            String?
+  chosenVariantAt          DateTime?
+  chosenVariantHistoryJson String   @default("[]")
   office          Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
 
   @@index([templateId])
   @@index([officeId])
+  @@index([chosenVariant])
+}
+
+// Sprint 6 Epic P — Prior template upload + parse reference.
+// Read-only — NEVER consumed by the generator. Exists solely to be re-scored
+// by scoreTemplate() via the synthesize shim and to drive the delta view.
+// See SPRINT-6-PLAN §4.2.
+model PriorTemplate {
+  id           String   @id @default(cuid())
+  officeId     String
+  uploadedAt   DateTime @default(now())
+  filename     String
+  fileHash     String
+  sourceFormat String
+  parseStatus  String   @default("OK")
+  blockCount   Int      @default(0)
+  matchedCount Int      @default(0)
+  blocksJson   String   @default("[]")
+  rawText      String?
+  supersededBy String?
+  office       Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@index([officeId])
+  @@index([officeId, uploadedAt])
+}
+
+// Sprint 6 Epic Q — LLM rewrite cache. Hash of (originalMarkdown + systemPromptVersion)
+// dedupes repeat refinements. 30-day TTL (enforced at read time).
+model AdvisoryRewriteCache {
+  id           String   @id @default(cuid())
+  hash         String   @unique
+  rewrite      String
+  createdAt    DateTime @default(now())
+  systemPromptVersion String @default("1")
+
+  @@index([hash])
+  @@index([createdAt])
 }
 
 // Sprint 3 — Per-practice procedure length overrides (PRD-V4 FR-6).

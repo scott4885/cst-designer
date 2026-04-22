@@ -29,6 +29,10 @@ import type {
   IntakeGoals,
   IntakeConstraints,
   AdvisoryArtifact,
+  DocumentRewritePayload,
+  RewriteState,
+  VariantCode,
+  ChosenVariantHistoryEntry,
 } from '@/lib/engine/advisory/types';
 
 function intakeNarrativeFrom(c: IntakeConstraints): string {
@@ -231,6 +235,13 @@ export async function GET(
       derivedHaveCountFor(office),
     );
 
+    const documentRewrite = latest.documentRewriteJson
+      ? (JSON.parse(latest.documentRewriteJson) as DocumentRewritePayload)
+      : null;
+    const chosenVariantHistory: ChosenVariantHistoryEntry[] = JSON.parse(
+      latest.chosenVariantHistoryJson || '[]',
+    );
+
     const artifact: AdvisoryArtifact = {
       id: latest.id,
       templateId: latest.templateId,
@@ -240,6 +251,12 @@ export async function GET(
       score: JSON.parse(latest.scoreJson),
       variants: latest.variantsJson ? JSON.parse(latest.variantsJson) : undefined,
       reviewPlan: JSON.parse(latest.reviewPlanJson),
+      documentRewrite,
+      rewriteState: (latest.rewriteState ?? 'NONE') as RewriteState,
+      rewriteGeneratedAt: latest.rewriteGeneratedAt ? latest.rewriteGeneratedAt.toISOString() : null,
+      chosenVariant: (latest.chosenVariant ?? null) as VariantCode | null,
+      chosenVariantAt: latest.chosenVariantAt ? latest.chosenVariantAt.toISOString() : null,
+      chosenVariantHistory,
     };
 
     return NextResponse.json({ advisory: artifact, completeness });

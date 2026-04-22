@@ -273,4 +273,145 @@ export interface AdvisoryArtifact {
   score: TemplateScore;
   variants?: VariantSet;                  // present when "Generate 3 Variants" ran
   reviewPlan: ReviewPlan;
+  // Sprint 6 Epic Q — AI rewrite (additive; original `document` is never mutated)
+  documentRewrite?: DocumentRewritePayload | null;
+  rewriteState?: RewriteState;
+  rewriteGeneratedAt?: string | null;
+  // Sprint 6 Epic R — committed variant metadata (NEVER promoted to ScheduleTemplate)
+  chosenVariant?: VariantCode | null;
+  chosenVariantAt?: string | null;
+  chosenVariantHistory?: ChosenVariantHistoryEntry[];
+}
+
+// ---------------------------------------------------------------------------
+// §Sprint 6 Epic P — Prior template upload
+// ---------------------------------------------------------------------------
+
+export type PriorTemplateSourceFormat = 'CSV' | 'XLSX' | 'DOCX' | 'FREETEXT';
+export type PriorTemplateParseStatus = 'OK' | 'PARTIAL' | 'FAILED';
+
+export interface PriorTemplateBlock {
+  day: string;                            // "MON" | "TUE" | ...
+  start: string;                          // "HH:MM" 24-hour
+  end: string;
+  durationMin: number;
+  label: string;                          // raw label from upload
+  matchedBlockType: string | null;        // canonical code (HP / MP / NPE / etc.) or null
+  matchConfidence: number;                // 0-1
+  provider?: string;
+  notes?: string;
+}
+
+export interface PriorTemplateParseResult {
+  sourceFormat: PriorTemplateSourceFormat;
+  parseStatus: PriorTemplateParseStatus;
+  blocks: PriorTemplateBlock[];
+  failingRows?: number[];
+  rawText?: string;                       // populated when sourceFormat === 'FREETEXT'
+  errorMessage?: string;
+}
+
+export interface PriorTemplate {
+  id: string;
+  officeId: string;
+  uploadedAt: string;
+  filename: string;
+  fileHash: string;
+  sourceFormat: PriorTemplateSourceFormat;
+  parseStatus: PriorTemplateParseStatus;
+  blockCount: number;
+  matchedCount: number;
+  blocks: PriorTemplateBlock[];
+  rawText: string | null;
+  supersededBy: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// §Sprint 6 Epic P — Delta output
+// ---------------------------------------------------------------------------
+
+export type DeltaDirection = 'UP' | 'DOWN' | 'EQUAL' | 'N_A';
+
+export interface DeltaKpi {
+  metric: string;
+  current: number | null;                 // null → N/A
+  recommended: number;
+  delta: number | null;                   // null → N/A
+  unit: 'USD_WEEK' | 'COUNT' | 'PCT' | 'SCORE' | 'RAW';
+  direction: DeltaDirection;
+}
+
+export interface DeltaAxis {
+  axis: ScoreAxisCode;
+  label: string;
+  current: number | null;
+  recommended: number;
+  delta: number | null;
+  direction: DeltaDirection;
+  note?: string;                          // e.g. "N/A for uploads"
+}
+
+export interface TemplateDelta {
+  computedAt: string;
+  confidence: 'HIGH' | 'MEDIUM' | 'LOW';  // based on matched/total ratio
+  matchedRatio: number;                   // 0-1
+  kpis: DeltaKpi[];
+  axes: DeltaAxis[];
+  unmatchedBlocks: PriorTemplateBlock[];  // rows flagged as unmatched
+  summary: string;                        // "+$1,240 weekly production · +2 NP slots/week"
+}
+
+// ---------------------------------------------------------------------------
+// §Sprint 6 Epic Q — LLM rewrite fact-check
+// ---------------------------------------------------------------------------
+
+export type RewriteState = 'NONE' | 'PENDING' | 'ACCEPTED' | 'REJECTED';
+
+export type FactCheckViolationCode =
+  | 'SCORE_MUTATED'
+  | 'AXIS_MISSING'
+  | 'AXIS_INVENTED'
+  | 'RISK_DROPPED'
+  | 'RISK_INVENTED'
+  | 'KPI_WHOLESALE_REMOVAL'
+  | 'STRUCTURE_BROKEN';
+
+export type FactCheckViolation =
+  | { code: 'SCORE_MUTATED'; axis: string; original: number; rewrite: number | null }
+  | { code: 'AXIS_MISSING'; axis: string }
+  | { code: 'AXIS_INVENTED'; axis: string }
+  | { code: 'RISK_DROPPED'; ruleCode?: string; plainEnglish?: string }
+  | { code: 'RISK_INVENTED'; plainEnglish: string }
+  | { code: 'KPI_WHOLESALE_REMOVAL'; originalCount: number; rewriteCount: number }
+  | { code: 'STRUCTURE_BROKEN'; missingSection: string };
+
+export interface FactCheckResult {
+  passed: boolean;
+  violations: FactCheckViolation[];
+  warnings: string[];                     // non-blocking
+}
+
+/**
+ * Persisted rewrite blob stored in TemplateAdvisory.documentRewriteJson. The
+ * `rewrite` field is the raw Claude Markdown. Everything else is audit metadata
+ * (tokens, cost, cache-hit, fact-check outcome).
+ */
+export interface DocumentRewritePayload {
+  rewrite: string;
+  factCheck: FactCheckResult;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCostUsd: number;
+  model: string;
+  cached: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// §Sprint 6 Epic R — Chosen variant audit trail
+// ---------------------------------------------------------------------------
+
+export interface ChosenVariantHistoryEntry {
+  variant: VariantCode | null;
+  at: string;                             // ISO timestamp
+  by?: string;                            // optional actor id (future use)
 }
