@@ -1,5 +1,51 @@
 # Changelog
 
+## Sprint 6 — Prior template + LLM rewrite + variant commit — 2026-04-22
+
+**LIVE-GREEN** on `http://cst.142.93.182.236.sslip.io/`
+(ETag rotated `"nlygwotknyoiz"` → `"7zap90nlkcoiz"`, Coolify deploy `l84ckww0k0o40c00s4s8o8gs`).
+Vitest **1319/1319** pass (+37 new tests). ESLint `--max-warnings=0`, `tsc --noEmit`, `next build` all clean.
+Ship report: `.cst-rebuild-v3/logs/sprint-6-ship-report.md`.
+
+### Added
+
+- **Epic P — Prior template upload + delta engine** (`094f235`)
+  - Schema: `PriorTemplate` + `AdvisoryRewriteCache` tables; 6 columns on `TemplateAdvisory`.
+  - Parser supports CSV (inline, quoted), XLSX (`exceljs`), DOCX (FREETEXT passthrough).
+  - 4-stage fuzzy matcher: direct → synonym → Jaccard ≥ 0.5 → Levenshtein ≤ 3.
+  - Delta engine computes KPI rows, 6 axis deltas (STABILITY `N/A`), summary string, confidence band.
+  - 2MB upload cap, idempotency via `fileHash`, soft-supersede via `supersededBy` FK.
+
+- **Epic Q — Claude Opus rewrite + fact-check** (`9ac8fc2`)
+  - `src/lib/engine/advisory/rewrite.ts` — live Opus 4.7 via `@anthropic-ai/sdk` + deterministic stub for CI.
+  - `src/lib/engine/advisory/fact-check.ts` — parse-and-assert Markdown structure.
+    Violation codes: `SCORE_MUTATED`, `AXIS_MISSING`, `AXIS_INVENTED`, `RISK_DROPPED`, `STRUCTURE_BROKEN`, `TOKEN_BUDGET`.
+  - `POST /api/offices/:id/advisory/rewrite` — always additive, never overwrites `documentJson`.
+  - `scripts/sprint-6-ab-rewrite.ts` — 6-fixture A/B runner (stub-safe, ~$0.90 per live pass).
+
+- **Epic R — Variant commit + 30/60/90 KPI rescaling** (`83aada6`)
+  - `POST /api/offices/:id/advisory/commit-variant` — advisory-only, never sets `ScheduleTemplate.isActive`.
+  - `composeReviewPlan` accepts `chosenVariantProfile`, rescales % targets using `profile.weights`.
+  - `chosenVariantHistory` JSON trail (variantCode + who + when + rationale), append-only.
+
+- **Epic S — UI wiring + workflow banner + first-run walkthrough** (`b3848b8`)
+  - `POST`/`DELETE /api/offices/:id/prior-template`.
+  - 6 components: `PriorTemplateUpload`, `DeltaView`, `RefineWithAiPanel`, `VariantCommitControls`, `WorkflowBanner`, `FirstRunWalkthrough`.
+  - Advisory detail page now fetches 4 endpoints in parallel; Refine panel gated behind `NEXT_PUBLIC_ADVISORY_REWRITE_ENABLED`.
+  - First-run tour dismissal persists in `localStorage` (4-step dialog).
+
+- **Epic T — Test coverage expansion** (inline across P/Q/R commits)
+  - Fact-check: 8-case matrix covering pass + all 6 violation codes + forgiving `8/10` format.
+  - Delta: 5 scenarios (LOW / HIGH confidence, KPI rows, 6 axes, summary string).
+  - Prior-template parser: 22 cases (normalize day/time, diff, 4-stage matcher, CSV quoted/failing, FREETEXT, dispatcher).
+  - Review plan: 2 new variant-scaling cases (Growth rescales up, no variant = no variant label).
+
+### Deferred to Sprint 7
+
+- Epic Q A/B gate run (~$0.90 Opus spend, requires explicit go-ahead).
+- Playwright specs: upload-csv-delta, refine-with-ai-happy, fact-check-rejection, commit-variant-undo.
+- Coverage lift: office-store (33%), keyboard-shortcuts (1.6%), operatory-utils (27%).
+
 ## Phase 7 — Post-Sprint-5 fix loop — 2026-04-21
 
 Three P1 regressions found by the Sprint 5 live smoke, fixed in-place
