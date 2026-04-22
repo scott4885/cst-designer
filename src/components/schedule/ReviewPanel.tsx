@@ -263,7 +263,7 @@ export default function ReviewPanel({
             >
               <span className="text-sm leading-none">{qualityScore.emoji}</span>
               <span className="tabular-nums">{qualityScore.total}/100</span>
-              <span className="opacity-75 font-normal">{qualityScore.tierLabel}</span>
+              <span className="font-semibold">{qualityScore.tierLabel}</span>
             </div>
           )}
         </div>

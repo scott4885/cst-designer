@@ -185,22 +185,10 @@ const ScheduleGrid = memo(function ScheduleGrid({
   // ─── Keyboard handling (UX-L6, UX-L9) ─────────────────────────────
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      // Ctrl+/- zoom
-      if (e.ctrlKey && (e.key === '+' || e.key === '=')) {
-        e.preventDefault();
-        zoomIn();
-        return;
-      }
-      if (e.ctrlKey && (e.key === '-' || e.key === '_')) {
-        e.preventDefault();
-        zoomOut();
-        return;
-      }
-      if (e.ctrlKey && e.key === '0') {
-        e.preventDefault();
-        setZoom('default');
-        return;
-      }
+      // Ctrl+/- zoom is handled by the document-level listener below so the
+      // shortcut works regardless of whether the grid root has focus. Skip it
+      // here to avoid a double-fire that would zoom twice per keystroke.
+      if (e.ctrlKey || e.metaKey) return;
       if (e.key === 'Escape') {
         setSelectedBlockId(null);
         return;
@@ -251,9 +239,6 @@ const ScheduleGrid = memo(function ScheduleGrid({
       moveCursor,
       rowCount,
       columns,
-      zoomIn,
-      zoomOut,
-      setZoom,
       setSelectedBlockId,
       blocksByColumn,
       workingStartMin,
@@ -268,6 +253,115 @@ const ScheduleGrid = memo(function ScheduleGrid({
       setCursor({ rowIndex: 0, colIndex: 0 });
     }
   }, [cursor, columns.length, rowCount, setCursor]);
+
+  // Cell click handler — sets cursor AND focuses the grid root so keyboard
+  // navigation works immediately after a mouse click. Without this, ArrowDown
+  // after a click does nothing because focus sits on the clicked cell (which
+  // is not the onKeyDown target) or drops to body.
+  const handleCellClick = useCallback(
+    (rowIndex: number, colIndex: number) => {
+      setCursor({ rowIndex, colIndex });
+      // Re-focus the grid root so subsequent keyboard events are delivered
+      // to the onKeyDown listener.
+      rootRef.current?.focus({ preventScroll: true });
+    },
+    [setCursor],
+  );
+
+  // Document-level zoom shortcuts. Ctrl+= / Ctrl+- / Ctrl+0 should work any
+  // time the V2 grid is on screen, without requiring the grid root to have
+  // focus (browsers by default steal these combos for page zoom; we
+  // preventDefault so our zoom applies instead). Skip when focus is inside
+  // a text input so native undo/redo/find behaviour in inputs still works.
+  useEffect(() => {
+    const isEditable = (el: EventTarget | null): boolean => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      return (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        el.isContentEditable
+      );
+    };
+    const onDocKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (isEditable(e.target)) return;
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        zoomIn();
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        zoomOut();
+      } else if (e.key === '0') {
+        e.preventDefault();
+        setZoom('default');
+      }
+    };
+    document.addEventListener('keydown', onDocKeyDown);
+    return () => document.removeEventListener('keydown', onDocKeyDown);
+  }, [zoomIn, zoomOut, setZoom]);
+
+  // Document-level arrow navigation + Escape, also scoped to the grid being
+  // mounted. Same editable-target gate. If no cursor is set yet, seed (0,0)
+  // on first arrow press so the cursor is visible.
+  useEffect(() => {
+    const isEditable = (el: EventTarget | null): boolean => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      return (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        el.isContentEditable
+      );
+    };
+    const onDocKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isEditable(e.target)) return;
+
+      // Only intercept arrow keys when focus is not already on a grid root
+      // (the grid's own onKeyDown handles focused case). We detect focus by
+      // checking if `document.activeElement` is inside rootRef — if so, the
+      // onKeyDown above will fire first and preventDefault.
+      const root = rootRef.current;
+      const active = document.activeElement;
+      const focusInsideGrid = !!(root && active && root.contains(active));
+      if (focusInsideGrid) return;
+
+      // Only trigger if the schedule grid is visible in viewport — otherwise
+      // arrow keys still do their normal thing on the rest of the page.
+      if (!root) return;
+      const rect = root.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      const visible =
+        rect.bottom > 0 && rect.right > 0 && rect.top < vh && rect.left < vw;
+      if (!visible) return;
+
+      const colBound = Math.max(1, columns.length);
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          moveCursor(-1, 0, rowCount, colBound);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          moveCursor(1, 0, rowCount, colBound);
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          moveCursor(0, -1, rowCount, colBound);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          moveCursor(0, 1, rowCount, colBound);
+          break;
+      }
+    };
+    document.addEventListener('keydown', onDocKeyDown);
+    return () => document.removeEventListener('keydown', onDocKeyDown);
+  }, [columns.length, rowCount, moveCursor]);
 
   // ─── Scroll-shadow state (polish-brief item) ──────────────────────
   // Show a 2-px gradient at the top/bottom/left/right of the scroll area
@@ -341,16 +435,18 @@ const ScheduleGrid = memo(function ScheduleGrid({
   }
 
   // ─── Render ────────────────────────────────────────────────────────
+  // Root container is a region; the actual `role="grid"` is applied to the
+  // inner grid body so that the only children of the grid role are rows
+  // (aria-required-children). The toolbar, scroll-shadow overlays, and
+  // live region remain outside the grid's ARIA tree.
   return (
     <div
       ref={rootRef}
       data-testid="sg-schedule-grid"
       data-sg-zoom={zoom}
       tabIndex={0}
-      role="grid"
+      role="region"
       aria-label={`Schedule for ${schedule.dayOfWeek}`}
-      aria-rowcount={rowCount + 1}
-      aria-colcount={columns.length + 1}
       onKeyDown={onKeyDown}
       className="relative outline-none focus:outline-none"
       style={
@@ -455,10 +551,16 @@ const ScheduleGrid = memo(function ScheduleGrid({
         />
       )}
 
-      {/* Grid body */}
+      {/* Grid body — carries `role="grid"` so that gridcells and rows
+          descend directly from the grid role with no non-row children
+          (satisfies aria-required-children / aria-required-parent). */}
       <div
         ref={bodyRef}
         data-testid="sg-grid-body"
+        role="grid"
+        aria-label={`Schedule for ${schedule.dayOfWeek}`}
+        aria-rowcount={rowCount + 1}
+        aria-colcount={columns.length + 1}
         onScroll={onScroll}
         className="relative overflow-auto"
         style={{
@@ -466,53 +568,61 @@ const ScheduleGrid = memo(function ScheduleGrid({
           gridTemplateColumns: `var(--sg-time-col-w) repeat(${Math.max(1, columns.length)}, minmax(var(--sg-col-min-w), 1fr))`,
         }}
       >
-        {/* Sticky corner */}
+        {/* Sticky provider header row — wrapped in role="row" per ARIA grid pattern
+            (aria-required-parent). Uses `display: contents` so CSS grid layout is
+            unaffected — the wrapper contributes semantics only. */}
         <div
-          className="sticky top-0 left-0 bg-white border-b border-r border-neutral-200"
-          style={{
-            zIndex: 'var(--z-sticky-corner)' as unknown as number,
-            height: slotHeightPx,
-          }}
-          aria-hidden="true"
-        />
-
-        {/* Sticky provider header row */}
-        {columns.map((col, colIdx) => (
+          role="row"
+          aria-rowindex={1}
+          style={{ display: 'contents' }}
+        >
+          {/* Sticky corner */}
           <div
-            key={`hdr-${col.id}`}
-            data-testid="sg-col-header"
-            data-col-id={col.id}
-            data-col-index={colIdx}
-            role="columnheader"
-            aria-colindex={colIdx + 2}
-            className="sticky top-0 flex flex-col justify-center px-2 bg-white border-b border-r border-neutral-200"
+            className="sticky top-0 left-0 bg-white border-b border-r border-neutral-200"
             style={{
-              zIndex: 'var(--z-sticky-provider-row)' as unknown as number,
+              zIndex: 'var(--z-sticky-corner)' as unknown as number,
               height: slotHeightPx,
-              borderLeft: col.providerColorIndex
-                ? `3px solid var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))})`
-                : undefined,
             }}
-          >
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[var(--font-sm)] font-semibold text-neutral-900 truncate">
-                {col.label}
-              </span>
-              {col.providerRole && (
-                <ProviderRoleBadge
-                  role={col.providerRole}
-                  providerColorIndex={col.providerColorIndex}
-                  compact
-                />
+            aria-hidden="true"
+          />
+
+          {columns.map((col, colIdx) => (
+            <div
+              key={`hdr-${col.id}`}
+              data-testid="sg-col-header"
+              data-col-id={col.id}
+              data-col-index={colIdx}
+              role="columnheader"
+              aria-colindex={colIdx + 2}
+              className="sticky top-0 flex flex-col justify-center px-2 bg-white border-b border-r border-neutral-200"
+              style={{
+                zIndex: 'var(--z-sticky-provider-row)' as unknown as number,
+                height: slotHeightPx,
+                borderLeft: col.providerColorIndex
+                  ? `3px solid var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))})`
+                  : undefined,
+              }}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[var(--font-sm)] font-semibold text-neutral-900 truncate">
+                  {col.label}
+                </span>
+                {col.providerRole && (
+                  <ProviderRoleBadge
+                    role={col.providerRole}
+                    providerColorIndex={col.providerColorIndex}
+                    compact
+                  />
+                )}
+              </div>
+              {col.sublabel && (
+                <span className="text-[var(--font-xs)] text-neutral-700 truncate">
+                  {col.sublabel}
+                </span>
               )}
             </div>
-            {col.sublabel && (
-              <span className="text-[var(--font-xs)] text-neutral-500 truncate">
-                {col.sublabel}
-              </span>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
 
         {/* Row grid — time axis + per-column cells (absolute-positioned blocks overlaid) */}
         {rows.map((rowStartMin, rowIdx) => (
@@ -525,79 +635,104 @@ const ScheduleGrid = memo(function ScheduleGrid({
             columns={columns}
             cursor={cursor}
             setCursor={setCursor}
+            onCellClick={handleCellClick}
             enableContentVisibility={enableContentVisibility}
           />
         ))}
 
-        {/* Absolute-positioned blocks per column */}
+        {/* Absolute-positioned blocks per column. Wrapped in role="row"
+            so that aria-required-children (grid → row) is satisfied and
+            the interactive BlockInstance buttons sit inside a gridcell,
+            not directly under role="grid". `display: contents` keeps the
+            wrappers semantic-only (CSS grid layout unaffected). */}
         {columns.map((col, colIdx) => {
           const colBlocks = blocksByColumn[col.id] ?? [];
+          if (colBlocks.length === 0) return null;
           return (
             <div
-              key={`blocks-${col.id}`}
-              data-testid="sg-col-blocks"
-              data-col-id={col.id}
-              className="relative"
-              style={{
-                gridColumn: colIdx + 2,
-                gridRow: `2 / span ${rowCount}`,
-              }}
+              key={`blocks-row-${col.id}`}
+              role="row"
+              aria-rowindex={rowCount + 2 + colIdx}
+              style={{ display: 'contents' }}
             >
-              {colBlocks.map((block) => {
-                const offsetSlots = Math.max(
-                  0,
-                  Math.round((block.startMinute - workingStartMin) / slotMinutes),
-                );
-                const topPx = offsetSlots * slotHeightPx;
-                return (
-                  <div
-                    key={block.blockInstanceId}
-                    className="absolute left-1 right-1"
-                    style={{ top: topPx }}
-                  >
-                    <BlockInstance
-                      block={block}
-                      slotHeightPx={slotHeightPx}
-                      providerColor={
-                        col.providerColorIndex
-                          ? `var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))})`
-                          : undefined
-                      }
-                      isHovered={hoveredBlockId === block.blockInstanceId}
-                      isSelected={selectedBlockId === block.blockInstanceId}
-                      violations={violationsByBlock[block.blockInstanceId]}
-                      isHygieneBlock={hygieneBlockIds?.has(block.blockInstanceId)}
-                      procedureCategory={blockCategories?.get(block.blockInstanceId)}
-                      onActivate={(id) => {
-                        setSelectedBlockId(id);
-                        onBlockActivate?.(block);
-                      }}
-                      onHoverChange={setHoveredBlockId}
-                    />
-                  </div>
-                );
-              })}
+              <div
+                data-testid="sg-col-blocks"
+                data-col-id={col.id}
+                role="gridcell"
+                aria-colindex={colIdx + 2}
+                className="relative"
+                style={{
+                  gridColumn: colIdx + 2,
+                  gridRow: `2 / span ${rowCount}`,
+                }}
+              >
+                {colBlocks.map((block) => {
+                  const offsetSlots = Math.max(
+                    0,
+                    Math.round((block.startMinute - workingStartMin) / slotMinutes),
+                  );
+                  const topPx = offsetSlots * slotHeightPx;
+                  return (
+                    <div
+                      key={block.blockInstanceId}
+                      className="absolute left-1 right-1"
+                      style={{ top: topPx }}
+                    >
+                      <BlockInstance
+                        block={block}
+                        slotHeightPx={slotHeightPx}
+                        providerColor={
+                          col.providerColorIndex
+                            ? `var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))})`
+                            : undefined
+                        }
+                        isHovered={hoveredBlockId === block.blockInstanceId}
+                        isSelected={selectedBlockId === block.blockInstanceId}
+                        violations={violationsByBlock[block.blockInstanceId]}
+                        isHygieneBlock={hygieneBlockIds?.has(block.blockInstanceId)}
+                        procedureCategory={blockCategories?.get(block.blockInstanceId)}
+                        onActivate={(id) => {
+                          setSelectedBlockId(id);
+                          onBlockActivate?.(block);
+                        }}
+                        onHoverChange={setHoveredBlockId}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
 
-        {/* Doctor-flow cross-column connectors (below blocks in stacking so not obscured). */}
+        {/* Doctor-flow cross-column connectors (below blocks in stacking).
+            Wrapped in role="row" + role="gridcell" so the SVG lives inside
+            a valid grid descendant chain. aria-hidden keeps the SVG paths
+            themselves out of the accessibility tree. */}
         {showDoctorFlow && !hideDoctorFlow && (
           <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              zIndex: 'var(--z-doctor-flow-overlay)' as unknown as number,
-              gridColumn: `2 / span ${Math.max(1, columns.length)}`,
-              gridRow: `2 / span ${rowCount}`,
-            }}
+            role="row"
+            aria-rowindex={rowCount + 2 + columns.length}
+            style={{ display: 'contents' }}
           >
-            <DoctorFlowOverlay
-              trace={schedule.doctorTrace}
-              columns={columns}
-              workingStartMin={workingStartMin}
-              slotHeightPx={slotHeightPx}
-              slotMinutes={slotMinutes}
-            />
+            <div
+              role="gridcell"
+              aria-hidden="true"
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                zIndex: 'var(--z-doctor-flow-overlay)' as unknown as number,
+                gridColumn: `2 / span ${Math.max(1, columns.length)}`,
+                gridRow: `2 / span ${rowCount}`,
+              }}
+            >
+              <DoctorFlowOverlay
+                trace={schedule.doctorTrace}
+                columns={columns}
+                workingStartMin={workingStartMin}
+                slotHeightPx={slotHeightPx}
+                slotMinutes={slotMinutes}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -625,6 +760,8 @@ interface GridRowProps {
   columns: ScheduleGridColumn[];
   cursor: { rowIndex: number; colIndex: number } | null;
   setCursor: (c: { rowIndex: number; colIndex: number }) => void;
+  /** Called when a cell is clicked — allows parent to refocus grid root. */
+  onCellClick?: (rowIndex: number, colIndex: number) => void;
   enableContentVisibility: boolean;
 }
 
@@ -636,6 +773,7 @@ const GridRow = memo(function GridRow({
   columns,
   cursor,
   setCursor,
+  onCellClick,
   enableContentVisibility,
 }: GridRowProps) {
   const label = minuteLabel(rowStartMin);
@@ -658,7 +796,11 @@ const GridRow = memo(function GridRow({
   };
 
   return (
-    <>
+    // Wrap each row in role="row" so rowheader + gridcells have a parent row
+    // per WCAG aria-required-parent. `display: contents` keeps the wrapper
+    // layout-inert — the inner cells continue to participate in the parent
+    // CSS grid as direct-placement children.
+    <div role="row" aria-rowindex={rowIdx + 2} style={{ display: 'contents' }}>
       {/* Sticky time rail cell */}
       <div
         data-testid="sg-time-cell"
@@ -673,7 +815,7 @@ const GridRow = memo(function GridRow({
         }}
       >
         {label && (
-          <span className="text-[var(--font-xs)] text-neutral-500 tabular-nums">
+          <span className="text-[var(--font-xs)] text-neutral-700 tabular-nums">
             {label}
           </span>
         )}
@@ -690,10 +832,19 @@ const GridRow = memo(function GridRow({
             data-row-index={rowIdx}
             data-col-id={col.id}
             data-col-index={colIdx}
+            data-cursor={isCursorHere ? 'true' : undefined}
             role="gridcell"
             aria-rowindex={rowIdx + 2}
             aria-colindex={colIdx + 2}
-            onClick={() => setCursor({ rowIndex: rowIdx, colIndex: colIdx })}
+            aria-current={isCursorHere ? 'true' : undefined}
+            tabIndex={isCursorHere ? 0 : -1}
+            onClick={() => {
+              if (onCellClick) {
+                onCellClick(rowIdx, colIdx);
+              } else {
+                setCursor({ rowIndex: rowIdx, colIndex: colIdx });
+              }
+            }}
             className={`border-r border-neutral-100 ${
               isCursorHere ? 'ring-1 ring-inset ring-neutral-900' : ''
             }`}
@@ -701,7 +852,7 @@ const GridRow = memo(function GridRow({
           />
         );
       })}
-    </>
+    </div>
   );
 });
 

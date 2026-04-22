@@ -157,7 +157,7 @@ export default function BulkGoalsDialog({
               >
                 <div>
                   <p className="text-sm font-medium text-slate-800">
-                    {p.name || <em className="text-slate-400">(unnamed)</em>}
+                    {p.name || <em className="text-slate-600">(unnamed)</em>}
                   </p>
                   <p className="text-[11px] text-slate-500 uppercase">
                     {p.role}

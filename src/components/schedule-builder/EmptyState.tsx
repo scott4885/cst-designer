@@ -27,7 +27,7 @@ export default function EmptyState({
         <h2 className="text-lg font-semibold text-slate-800 mb-2">
           Start building your schedule
         </h2>
-        <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+        <p className="text-sm text-slate-700 mb-6 leading-relaxed">
           Generate an optimized schedule template for {officeName}, or start from a preset template.
         </p>
 
@@ -44,14 +44,14 @@ export default function EmptyState({
           <Button
             variant="outline"
             onClick={onSelectTemplate}
-            className="w-full h-10 gap-2 text-slate-500 hover:text-slate-700 border-border/60"
+            className="w-full h-10 gap-2 text-slate-700 hover:text-slate-900 border-border/60"
           >
             <LayoutTemplate className="w-4 h-4" />
             Choose a Starter Template
           </Button>
         </div>
 
-        <p className="text-[11px] text-slate-300 mt-4">
+        <p className="text-[11px] text-slate-600 mt-4">
           The schedule engine uses your office&apos;s providers, goals, and block types to build an optimal template.
         </p>
       </div>

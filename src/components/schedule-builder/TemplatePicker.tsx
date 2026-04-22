@@ -41,10 +41,10 @@ interface TemplatePickerProps {
 export default function TemplatePicker({ onSelect }: TemplatePickerProps) {
   return (
     <div className="space-y-3">
-      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+      <p className="text-[10px] text-slate-600 font-medium uppercase tracking-wider">
         Starter Templates
       </p>
-      <p className="text-[11px] text-slate-500 leading-relaxed">
+      <p className="text-[11px] text-slate-700 leading-relaxed">
         Choose a template that matches your office size. You can customize everything after.
       </p>
 
@@ -67,10 +67,10 @@ export default function TemplatePicker({ onSelect }: TemplatePickerProps) {
                   <p className="text-xs font-semibold text-slate-700 group-hover:text-blue-600 transition-colors">
                     {template.label}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-slate-600 mt-0.5">
                     {template.description}
                   </p>
-                  <span className="inline-block mt-1 text-[9px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                  <span className="inline-block mt-1 text-[10px] font-semibold text-slate-700 bg-slate-200 px-1.5 py-0.5 rounded-full">
                     {template.providers}
                   </span>
                 </div>

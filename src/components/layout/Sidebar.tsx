@@ -70,9 +70,13 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
       {/* Logo/Brand */}
       <div className={cn("flex items-center border-b border-border", collapsed && !mobileOpen ? "justify-center p-3" : "justify-between p-4")}>
         {collapsed && !mobileOpen ? (
-          <Link href="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
+          <Link
+            href="/"
+            aria-label="CST Home"
+            className="flex items-center justify-center hover:opacity-80 transition-opacity"
+          >
             <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-accent font-bold text-lg">S</span>
+              <span className="text-accent font-bold text-lg" aria-hidden="true">S</span>
             </div>
           </Link>
         ) : (
@@ -114,6 +118,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
               key={item.href}
               href={item.href}
               onClick={onMobileClose}
+              aria-label={item.label}
               className={cn(
                 "flex items-center rounded-lg text-sm font-medium transition-colors",
                 collapsed && !mobileOpen
@@ -124,7 +129,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               )}
             >
-              <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+              <Icon className="w-[18px] h-[18px] flex-shrink-0" aria-hidden="true" />
               {(!collapsed || mobileOpen) && <span>{item.label}</span>}
             </Link>
           );

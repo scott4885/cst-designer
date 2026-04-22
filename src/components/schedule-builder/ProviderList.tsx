@@ -84,7 +84,7 @@ export default function ProviderList({
                     {displayName}
                   </p>
                   {ops && (
-                    <p className="text-[10px] text-slate-400 truncate">
+                    <p className="text-[10px] text-slate-600 truncate">
                       {ops}
                     </p>
                   )}
@@ -98,15 +98,15 @@ export default function ProviderList({
                     title={isHidden ? "Show column" : "Hide column"}
                   >
                     {isHidden ? (
-                      <EyeOff className="w-3 h-3 text-slate-300" />
+                      <EyeOff className="w-3 h-3 text-slate-600" aria-hidden="true" />
                     ) : (
-                      <Eye className="w-3 h-3 text-slate-400" />
+                      <Eye className="w-3 h-3 text-slate-700" aria-hidden="true" />
                     )}
                   </button>
                 )}
                 {/* OFF badge */}
                 {p.disabled && (
-                  <span className="text-[9px] font-medium text-slate-300 bg-slate-100 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-semibold text-slate-700 bg-slate-200 px-1.5 py-0.5 rounded">
                     OFF
                   </span>
                 )}
@@ -120,7 +120,7 @@ export default function ProviderList({
 
   return (
     <div>
-      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-3">
+      <p className="text-[10px] text-slate-600 font-medium uppercase tracking-wider mb-3">
         {providers.length} provider{providers.length !== 1 ? "s" : ""} today
       </p>
       {renderGroup("Doctors", doctors)}

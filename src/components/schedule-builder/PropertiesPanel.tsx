@@ -128,7 +128,7 @@ export default function PropertiesPanel({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-slate-400 hover:text-slate-500"
+          className="h-7 w-7 text-slate-600 hover:text-slate-800"
           onClick={onClose}
           aria-label="Close properties panel"
         >
@@ -145,7 +145,7 @@ export default function PropertiesPanel({
               <h3 className="text-sm font-semibold text-slate-800">
                 {selectedBlock.blockLabel}
               </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-600 mt-0.5">
                 {selectedBlock.providerName} at {selectedBlock.time}
               </p>
             </div>
@@ -172,7 +172,7 @@ export default function PropertiesPanel({
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-slate-500">Duration</Label>
               <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <Clock className="w-3.5 h-3.5 text-slate-600" aria-hidden="true" />
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
@@ -206,7 +206,7 @@ export default function PropertiesPanel({
               {editingProduction ? (
                 <div className="flex items-center gap-1.5">
                   <div className="relative flex-1">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-600 text-xs">$</span>
                     <Input
                       type="number"
                       value={productionValue}
@@ -239,7 +239,7 @@ export default function PropertiesPanel({
                   {formatCurrency(
                     selectedBlock.customProductionAmount ?? currentBlockType.minimumAmount ?? 0
                   )}
-                  <span className="text-[10px] text-slate-300">(click to edit)</span>
+                  <span className="text-[11px] text-slate-600">(click to edit)</span>
                 </button>
               )}
             </div>
@@ -250,13 +250,13 @@ export default function PropertiesPanel({
                 <Label className="text-[11px] font-medium text-slate-500">Time Breakdown</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-white rounded-md px-2.5 py-1.5 border border-border/30">
-                    <p className="text-[10px] text-slate-400">D-time</p>
+                    <p className="text-[11px] font-medium text-slate-600">D-time</p>
                     <p className="text-xs font-semibold text-slate-700">
                       {currentBlockType.dTimeMin}min
                     </p>
                   </div>
                   <div className="bg-white rounded-md px-2.5 py-1.5 border border-border/30">
-                    <p className="text-[10px] text-slate-400">A-time</p>
+                    <p className="text-[11px] font-medium text-slate-600">A-time</p>
                     <p className="text-xs font-semibold text-slate-700">
                       {currentBlockType.aTimeMin}min
                     </p>
@@ -278,7 +278,7 @@ export default function PropertiesPanel({
           </div>
         ) : (
           <div className="px-4 py-6 text-center">
-            <p className="text-xs text-slate-400">Click a block on the grid to view its properties.</p>
+            <p className="text-xs text-slate-600">Click a block on the grid to view its properties.</p>
           </div>
         )}
 
@@ -339,10 +339,10 @@ export default function PropertiesPanel({
                       />
                     </div>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[11px] font-medium text-slate-700">
                         {formatCurrency(ps.actualScheduled)}
                       </span>
-                      <span className="text-[10px] text-slate-300">
+                      <span className="text-[11px] text-slate-600">
                         Goal: {formatCurrency(ps.dailyGoal)}
                       </span>
                     </div>
@@ -351,7 +351,7 @@ export default function PropertiesPanel({
               })}
             </div>
           ) : (
-            <p className="text-[11px] text-slate-300">Generate a schedule to see production data.</p>
+            <p className="text-[11px] text-slate-600">Generate a schedule to see production data.</p>
           )}
         </div>
 
@@ -377,7 +377,7 @@ export default function PropertiesPanel({
                 </div>
               ))}
               {warnings.length > 5 && (
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[11px] text-slate-600">
                   +{warnings.length - 5} more warnings
                 </p>
               )}

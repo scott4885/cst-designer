@@ -123,7 +123,7 @@ export default function LeftSidebar({
                 className={`px-2 py-1 text-[11px] font-medium rounded transition-all ${
                   activeTab === tab
                     ? "bg-white text-slate-800 shadow-sm"
-                    : "text-slate-400 hover:text-slate-500"
+                    : "text-slate-600 hover:text-slate-800"
                 }`}
               >
                 {tab === "blocks" ? "Blocks" : tab === "providers" ? "Providers" : "Templates"}
@@ -134,7 +134,7 @@ export default function LeftSidebar({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-slate-400 hover:text-slate-500"
+          className="h-7 w-7 text-slate-600 hover:text-slate-800"
           onClick={() => setCollapsed(true)}
           aria-label="Collapse sidebar"
         >

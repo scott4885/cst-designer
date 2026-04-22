@@ -107,14 +107,19 @@ describe('ScheduleGrid — structure & a11y', () => {
     });
   });
 
-  it('renders the root grid with role="grid" and aria-rowcount/aria-colcount', () => {
+  it('renders the grid body with role="grid" and aria-rowcount/aria-colcount', () => {
     renderGrid();
-    const grid = screen.getByTestId('sg-schedule-grid');
-    expect(grid.getAttribute('role')).toBe('grid');
+    // Phase 6 fix: root is now role="region" (so toolbar/live-region aren't
+    // grid children); role="grid" lives on the inner body so all grid
+    // descendants are rows/rowheaders/cells per aria-required-children.
+    const root = screen.getByTestId('sg-schedule-grid');
+    expect(root.getAttribute('role')).toBe('region');
+    const body = screen.getByTestId('sg-grid-body');
+    expect(body.getAttribute('role')).toBe('grid');
     // 60min / 10min = 6 rows + 1 header = 7
-    expect(grid.getAttribute('aria-rowcount')).toBe('7');
+    expect(body.getAttribute('aria-rowcount')).toBe('7');
     // 3 cols + 1 time rail = 4
-    expect(grid.getAttribute('aria-colcount')).toBe('4');
+    expect(body.getAttribute('aria-colcount')).toBe('4');
   });
 
   it('renders one column header per column', () => {

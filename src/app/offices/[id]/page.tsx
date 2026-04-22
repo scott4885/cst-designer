@@ -834,20 +834,20 @@ export default function ScheduleBuilderPage() {
                             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ps.providerColor }} />
                             <span className="text-[11px] font-medium text-slate-700 truncate max-w-[120px]">{ps.providerName}</span>
                           </div>
-                          <span className={`text-[11px] font-bold ${isAtGoal ? "text-emerald-600" : isNear ? "text-amber-600" : "text-red-500"}`}>{pct}%</span>
+                          <span className={`text-[11px] font-bold ${isAtGoal ? "text-emerald-800" : isNear ? "text-amber-800" : "text-red-700"}`}>{pct}%</span>
                         </div>
                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div className={`h-full rounded-full transition-all ${isAtGoal ? "bg-emerald-500" : isNear ? "bg-amber-400" : "bg-red-400"}`} style={{ width: `${Math.min(pct, 100)}%` }} />
                         </div>
                         <div className="flex items-center justify-between mt-1">
-                          <span className="text-[10px] text-slate-400">{formatCurrency(ps.actualScheduled)}</span>
-                          <span className="text-[10px] text-slate-300">Goal: {formatCurrency(ps.dailyGoal)}</span>
+                          <span className="text-[11px] font-medium text-slate-700">{formatCurrency(ps.actualScheduled)}</span>
+                          <span className="text-[11px] text-slate-600">Goal: {formatCurrency(ps.dailyGoal)}</span>
                         </div>
                       </div>
                     );
                   })
                 ) : (
-                  <p className="text-[11px] text-slate-300">Generate a schedule to see production data.</p>
+                  <p className="text-[11px] text-slate-600">Generate a schedule to see production data.</p>
                 )}
               </div>
             </div>

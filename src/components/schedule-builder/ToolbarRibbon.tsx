@@ -193,7 +193,10 @@ export default function ToolbarRibbon({
                   <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 )}
                 {conflicts > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-[8px] text-white font-bold flex items-center justify-center">
+                  <span
+                    className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-red-700 text-[10px] text-white font-bold flex items-center justify-center"
+                    aria-label={`${conflicts} conflict${conflicts === 1 ? "" : "s"}`}
+                  >
                     {conflicts}
                   </span>
                 )}
@@ -215,7 +218,7 @@ export default function ToolbarRibbon({
                   className={`px-2 py-1 text-[11px] font-semibold rounded transition-all ${
                     activeWeek === w
                       ? "bg-white text-slate-800 shadow-sm"
-                      : "text-slate-400 hover:text-slate-500"
+                      : "text-slate-600 hover:text-slate-800"
                   }`}
                   title={WEEK_DESCRIPTIONS[w]}
                 >
@@ -314,7 +317,7 @@ export default function ToolbarRibbon({
                   className={`h-8 px-3 text-xs gap-1.5 ${
                     isDirty
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                      : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                      : "text-emerald-800 border-emerald-300 hover:bg-emerald-50"
                   }`}
                 >
                   {isDirty ? (
@@ -384,7 +387,7 @@ export default function ToolbarRibbon({
                 Copy {DAY_LABELS[activeDay] ?? "day"} to…
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <div className="px-2 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="px-2 py-1 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                 Variant ({DAY_LABELS[activeDay] ?? activeDay})
               </div>
               {VARIANT_PRESETS.map((v) => (
@@ -395,7 +398,7 @@ export default function ToolbarRibbon({
                 >
                   <span
                     className={`w-4 h-4 mr-2 inline-flex items-center justify-center text-[10px] font-bold rounded ${
-                      activeVariantLabel === v ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-400"
+                      activeVariantLabel === v ? "bg-amber-600 text-white" : "bg-slate-200 text-slate-700"
                     }`}
                   >
                     {activeVariantLabel === v ? "✓" : ""}

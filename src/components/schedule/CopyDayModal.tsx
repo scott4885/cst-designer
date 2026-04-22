@@ -143,7 +143,7 @@ export default function CopyDayModal({
                   <button
                     type="button"
                     disabled
-                    className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-slate-100 text-slate-600 border-slate-300 cursor-not-allowed"
                     title="Source day"
                   >
                     {shortLabel(sourceDay)} (source)
@@ -164,7 +164,7 @@ export default function CopyDayModal({
                             ? "bg-blue-600 text-white border-blue-600"
                             : hasSchedule
                               ? "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                              : "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
+                              : "bg-slate-50 text-slate-500 border-slate-200 cursor-not-allowed"
                         }`}
                       >
                         {shortLabel(day)}
@@ -212,7 +212,7 @@ export default function CopyDayModal({
                       onCheckedChange={setIncludeLunch}
                     />
                     <span>Lunch positions</span>
-                    <span className="text-xs text-slate-400">(preserves existing breaks)</span>
+                    <span className="text-xs text-slate-600">(preserves existing breaks)</span>
                   </label>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox
@@ -220,7 +220,7 @@ export default function CopyDayModal({
                       onCheckedChange={setIncludeVariant}
                     />
                     <span>Variant markers</span>
-                    <span className="text-xs text-slate-400">(EOF / Opt1 / Opt2 tag)</span>
+                    <span className="text-xs text-slate-600">(EOF / Opt1 / Opt2 tag)</span>
                   </label>
                 </div>
               </div>

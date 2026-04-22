@@ -47,15 +47,15 @@ export default function BlockPalettePanel({ blockTypes }: BlockPalettePanelProps
   if (blockTypes.length === 0) {
     return (
       <div className="text-center py-6">
-        <p className="text-xs text-slate-400">No block types configured.</p>
-        <p className="text-[11px] text-slate-300 mt-1">Edit the office to add appointment types.</p>
+        <p className="text-xs text-slate-600">No block types configured.</p>
+        <p className="text-[11px] text-slate-500 mt-1">Edit the office to add appointment types.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+      <p className="text-[10px] text-slate-600 font-medium uppercase tracking-wider">
         Drag blocks onto the grid
       </p>
 
@@ -85,25 +85,25 @@ export default function BlockPalettePanel({ blockTypes }: BlockPalettePanelProps
                   }}
                   title={`Drag "${bt.label}" onto an empty time slot`}
                 >
-                  <GripVertical className="w-3 h-3 text-slate-300 group-hover:text-slate-400 flex-shrink-0 transition-colors" />
+                  <GripVertical className="w-3 h-3 text-slate-500 group-hover:text-slate-700 flex-shrink-0 transition-colors" aria-hidden="true" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-semibold text-slate-700 truncate">
+                      <span className="text-xs font-semibold text-slate-800 truncate">
                         {bt.label}
                       </span>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {bt.minimumAmount ? (
-                          <span className="text-[10px] text-emerald-600 font-medium">
+                          <span className="text-[11px] text-emerald-800 font-semibold">
                             ${bt.minimumAmount}
                           </span>
                         ) : null}
-                        <span className="text-[9px] bg-white/80 text-slate-400 px-1.5 py-0.5 rounded-full font-medium">
+                        <span className="text-[10px] bg-white text-slate-700 px-1.5 py-0.5 rounded-full font-semibold border border-slate-200">
                           {bt.durationMin}m
                         </span>
                       </div>
                     </div>
                     {bt.description && (
-                      <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                      <p className="text-[11px] text-slate-600 truncate mt-0.5">
                         {bt.description}
                       </p>
                     )}
