@@ -46,12 +46,14 @@ export function WorkflowBanner({ steps }: WorkflowBannerProps) {
           ) : (
             <Circle className="h-4 w-4 text-slate-300" aria-hidden="true" />
           );
+        // WCAG AA contrast on white bg requires ≥ 4.5:1 for normal text.
+        // text-slate-400 is ~2.8:1 on white — use slate-600 (~4.7:1) for inactive steps.
         const textColour =
           s.state === "done"
             ? "text-slate-700"
             : s.state === "current"
               ? "text-indigo-700 font-semibold"
-              : "text-slate-400";
+              : "text-slate-600";
         return (
           <div
             key={s.id}
@@ -63,7 +65,7 @@ export function WorkflowBanner({ steps }: WorkflowBannerProps) {
             <span className={`text-sm ${textColour}`}>
               {ix + 1}. {s.label}
               {s.state === "optional" && (
-                <span className="ml-1 text-[10px] uppercase text-slate-400">
+                <span className="ml-1 text-[10px] uppercase text-slate-600">
                   optional
                 </span>
               )}

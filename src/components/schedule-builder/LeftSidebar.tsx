@@ -143,7 +143,12 @@ export default function LeftSidebar({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto px-3 py-2"
+        tabIndex={0}
+        role="region"
+        aria-label="Schedule builder sidebar panel"
+      >
         {activeTab === "blocks" && (
           <BlockPalettePanel blockTypes={blockTypes} />
         )}
