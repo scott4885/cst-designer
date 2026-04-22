@@ -71,6 +71,12 @@ data/
 e2e/qa-phase6-live-smoke.spec.ts
 playwright.phase6.config.ts
 
+# Phase 7 live post-deploy QA screenshots + scratch spec + scratch config (not tracked)
+.cst-rebuild-v3/logs/phase-7-screenshots/
+e2e/qa-phase7-live-smoke.spec.ts
+playwright.phase7.config.ts
+
 # Playwright run artifacts + scratch screenshots
 /playwright-report/
 smoke-passed.png
+/test-results/

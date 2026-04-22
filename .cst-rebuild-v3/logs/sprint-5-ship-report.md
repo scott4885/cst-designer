@@ -3,6 +3,11 @@
 _Date: 2026-04-21_
 _Target: http://cst.142.93.182.236.sslip.io/_
 _Coolify UUID: ks00wk80goggko4wwckgokso_
+_Deployment UUID: bcw4wokgks8gkkwg4ocww0k4_
+_ETag before: `12bjgf5fbk4oii` → after: `nnyyfloggaoii` (rotated at 22:49 CT)_
+_Live verdict: **LIVE-GREEN** — `/api/offices/:id/advisory` returns 404
+"Office not found" (Sprint 5 ApiError), `/offices/:id/advisory` returns
+HTTP 200, `/offices/new` returns HTTP 200._
 
 ## Scope shipped (all 5 Epics)
 

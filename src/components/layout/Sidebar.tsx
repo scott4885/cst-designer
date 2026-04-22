@@ -124,8 +124,13 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
                 collapsed && !mobileOpen
                   ? "justify-center p-2"
                   : "gap-3 px-3 py-2 min-h-[40px]",
+                // Phase 7 a11y fix: active nav text bumped from --accent
+                // (oklch 52% = #0070a6, 4.21:1 on the tinted bg) to a darker
+                // shade that clears WCAG AA 4.5:1. Uses an explicit oklch
+                // literal so we don't churn the global --accent token,
+                // which is used elsewhere for buttons and brand marks.
                 isActive
-                  ? "bg-accent/10 text-accent border border-accent/20"
+                  ? "bg-accent/10 border border-accent/20 font-semibold text-[oklch(38%_0.13_240)]"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               )}
             >

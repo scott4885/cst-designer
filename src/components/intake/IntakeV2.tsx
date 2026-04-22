@@ -11,9 +11,14 @@
  *
  * Completeness badge is self-computing. The Generate-gate is enforced
  * downstream in the AdvisoryPanel, not here.
+ *
+ * Phase 7 a11y fix — every form control now has an explicit aria-label so
+ * axe-core passes the `label` and `button-name` rules. The visual <Label>
+ * text is still rendered for sighted users; the aria-label mirrors it for
+ * assistive tech.
  */
 
-import { useMemo } from "react";
+import { useMemo, useId } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +47,37 @@ export function IntakeV2({
     () => computeIntakeCompleteness(intakeGoals, intakeConstraints, derivedHaveCount),
     [intakeGoals, intakeConstraints, derivedHaveCount],
   );
+
+  // Per-field ids so every <Label htmlFor={id}> programmatically points at
+  // its control. These are stable per component instance via useId().
+  const idPracticeType = useId();
+  const idGrowthPriority = useId();
+  const idMonthlyProductionGoal = useId();
+  const idDailyProductionGoal = useId();
+  const idMonthlyNewPatientGoal = useId();
+  const idSameDayTreatmentGoalPct = useId();
+  const idHygieneReappointmentDemand = useId();
+  const idEmergencyAccessGoal = useId();
+  const idMainSchedulingProblems = useId();
+  const idHygieneDemandLevel = useId();
+  const idDoctorExamFrequencyNeeded = useId();
+  const idPerioDemand = useId();
+  const idNpHygieneFlow = useId();
+  const idHygieneBottlenecks = useId();
+  const idHighValueProcedures = useId();
+  const idFlexibleProcedures = useId();
+  const idLimitedExamDurationMin = useId();
+  const idExistingCommitments = useId();
+  const idProviderPreferences = useId();
+  const idTeamLimitations = useId();
+  const idRoomEquipmentLimitations = useId();
+  const idMustStayOpenBlocks = useId();
+  const idNeverUseForBlocks = useId();
+  const idProductionLeakage = useId();
+  const idPoorAccess = useId();
+  const idOverbookedSlots = useId();
+  const idUnderutilizedSlots = useId();
+  const idNoShowCancellationPatterns = useId();
 
   const bandColor =
     completeness.completenessPct >= 80
@@ -85,8 +121,10 @@ export function IntakeV2({
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Practice type</Label>
+            <Label htmlFor={idPracticeType}>Practice type</Label>
             <Input
+              id={idPracticeType}
+              aria-label="Practice type"
               data-testid="intake-practiceType"
               value={intakeGoals.practiceType ?? ""}
               onChange={(e) => setGoal("practiceType", e.target.value)}
@@ -94,12 +132,12 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Growth priority</Label>
+            <Label htmlFor={idGrowthPriority}>Growth priority</Label>
             <Select
               value={intakeGoals.growthPriority ?? ""}
               onValueChange={(v) => setGoal("growthPriority", v as IntakeGoals["growthPriority"])}
             >
-              <SelectTrigger data-testid="intake-growthPriority"><SelectValue placeholder="Choose..." /></SelectTrigger>
+              <SelectTrigger id={idGrowthPriority} aria-label="Growth priority" data-testid="intake-growthPriority"><SelectValue placeholder="Choose..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="MORE_PRODUCTION">More production</SelectItem>
                 <SelectItem value="MORE_NP">More new patients</SelectItem>
@@ -110,8 +148,10 @@ export function IntakeV2({
             </Select>
           </div>
           <div>
-            <Label>Monthly production goal ($)</Label>
+            <Label htmlFor={idMonthlyProductionGoal}>Monthly production goal ($)</Label>
             <Input
+              id={idMonthlyProductionGoal}
+              aria-label="Monthly production goal in dollars"
               type="number"
               data-testid="intake-monthlyProductionGoal"
               value={intakeGoals.monthlyProductionGoal ?? ""}
@@ -119,8 +159,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Daily production goal ($)</Label>
+            <Label htmlFor={idDailyProductionGoal}>Daily production goal ($)</Label>
             <Input
+              id={idDailyProductionGoal}
+              aria-label="Daily production goal in dollars"
               type="number"
               data-testid="intake-dailyProductionGoal"
               value={intakeGoals.dailyProductionGoal ?? ""}
@@ -128,8 +170,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Monthly NP goal</Label>
+            <Label htmlFor={idMonthlyNewPatientGoal}>Monthly NP goal</Label>
             <Input
+              id={idMonthlyNewPatientGoal}
+              aria-label="Monthly new patient goal"
               type="number"
               data-testid="intake-monthlyNewPatientGoal"
               value={intakeGoals.monthlyNewPatientGoal ?? ""}
@@ -137,8 +181,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Same-day treatment goal (%)</Label>
+            <Label htmlFor={idSameDayTreatmentGoalPct}>Same-day treatment goal (%)</Label>
             <Input
+              id={idSameDayTreatmentGoalPct}
+              aria-label="Same-day treatment goal percent"
               type="number"
               min={0}
               max={100}
@@ -148,12 +194,12 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Hygiene reappointment demand</Label>
+            <Label htmlFor={idHygieneReappointmentDemand}>Hygiene reappointment demand</Label>
             <Select
               value={intakeGoals.hygieneReappointmentDemand ?? ""}
               onValueChange={(v) => setGoal("hygieneReappointmentDemand", v as IntakeGoals["hygieneReappointmentDemand"])}
             >
-              <SelectTrigger data-testid="intake-hygieneReappointmentDemand"><SelectValue placeholder="Choose..." /></SelectTrigger>
+              <SelectTrigger id={idHygieneReappointmentDemand} aria-label="Hygiene reappointment demand" data-testid="intake-hygieneReappointmentDemand"><SelectValue placeholder="Choose..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="LOW">Low</SelectItem>
                 <SelectItem value="MEDIUM">Medium</SelectItem>
@@ -162,12 +208,12 @@ export function IntakeV2({
             </Select>
           </div>
           <div>
-            <Label>Emergency access goal</Label>
+            <Label htmlFor={idEmergencyAccessGoal}>Emergency access goal</Label>
             <Select
               value={intakeGoals.emergencyAccessGoal ?? ""}
               onValueChange={(v) => setGoal("emergencyAccessGoal", v as IntakeGoals["emergencyAccessGoal"])}
             >
-              <SelectTrigger data-testid="intake-emergencyAccessGoal"><SelectValue placeholder="Choose..." /></SelectTrigger>
+              <SelectTrigger id={idEmergencyAccessGoal} aria-label="Emergency access goal" data-testid="intake-emergencyAccessGoal"><SelectValue placeholder="Choose..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="SAME_DAY">Same day whenever possible</SelectItem>
                 <SelectItem value="NEXT_DAY">Next day</SelectItem>
@@ -177,8 +223,10 @@ export function IntakeV2({
             </Select>
           </div>
           <div className="md:col-span-2">
-            <Label>Main scheduling problems to solve</Label>
+            <Label htmlFor={idMainSchedulingProblems}>Main scheduling problems to solve</Label>
             <Textarea
+              id={idMainSchedulingProblems}
+              aria-label="Main scheduling problems to solve"
               rows={3}
               data-testid="intake-mainSchedulingProblems"
               value={intakeGoals.mainSchedulingProblems ?? ""}
@@ -196,12 +244,12 @@ export function IntakeV2({
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Hygiene demand level</Label>
+            <Label htmlFor={idHygieneDemandLevel}>Hygiene demand level</Label>
             <Select
               value={intakeGoals.hygieneDemandLevel ?? ""}
               onValueChange={(v) => setGoal("hygieneDemandLevel", v as IntakeGoals["hygieneDemandLevel"])}
             >
-              <SelectTrigger data-testid="intake-hygieneDemandLevel"><SelectValue placeholder="Choose..." /></SelectTrigger>
+              <SelectTrigger id={idHygieneDemandLevel} aria-label="Hygiene demand level" data-testid="intake-hygieneDemandLevel"><SelectValue placeholder="Choose..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="LOW">Low</SelectItem>
                 <SelectItem value="MEDIUM">Medium</SelectItem>
@@ -210,12 +258,12 @@ export function IntakeV2({
             </Select>
           </div>
           <div>
-            <Label>Doctor exam frequency needed</Label>
+            <Label htmlFor={idDoctorExamFrequencyNeeded}>Doctor exam frequency needed</Label>
             <Select
               value={intakeGoals.doctorExamFrequencyNeeded ?? ""}
               onValueChange={(v) => setGoal("doctorExamFrequencyNeeded", v as IntakeGoals["doctorExamFrequencyNeeded"])}
             >
-              <SelectTrigger data-testid="intake-doctorExamFrequencyNeeded"><SelectValue placeholder="Choose..." /></SelectTrigger>
+              <SelectTrigger id={idDoctorExamFrequencyNeeded} aria-label="Doctor exam frequency needed" data-testid="intake-doctorExamFrequencyNeeded"><SelectValue placeholder="Choose..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="EVERY_VISIT">Every hygiene visit</SelectItem>
                 <SelectItem value="RECARE_ONLY">Recare visits only</SelectItem>
@@ -224,12 +272,12 @@ export function IntakeV2({
             </Select>
           </div>
           <div>
-            <Label>Perio demand</Label>
+            <Label htmlFor={idPerioDemand}>Perio demand</Label>
             <Select
               value={intakeGoals.perioDemand ?? ""}
               onValueChange={(v) => setGoal("perioDemand", v as IntakeGoals["perioDemand"])}
             >
-              <SelectTrigger data-testid="intake-perioDemand"><SelectValue placeholder="Choose..." /></SelectTrigger>
+              <SelectTrigger id={idPerioDemand} aria-label="Perio demand" data-testid="intake-perioDemand"><SelectValue placeholder="Choose..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="LOW">Low</SelectItem>
                 <SelectItem value="MEDIUM">Medium</SelectItem>
@@ -238,12 +286,12 @@ export function IntakeV2({
             </Select>
           </div>
           <div>
-            <Label>NP hygiene flow</Label>
+            <Label htmlFor={idNpHygieneFlow}>NP hygiene flow</Label>
             <Select
               value={intakeGoals.npHygieneFlow ?? ""}
               onValueChange={(v) => setGoal("npHygieneFlow", v as IntakeGoals["npHygieneFlow"])}
             >
-              <SelectTrigger data-testid="intake-npHygieneFlow"><SelectValue placeholder="Choose..." /></SelectTrigger>
+              <SelectTrigger id={idNpHygieneFlow} aria-label="New patient hygiene flow" data-testid="intake-npHygieneFlow"><SelectValue placeholder="Choose..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="DOCTOR_ONLY">Doctor only</SelectItem>
                 <SelectItem value="HYGIENIST_ONLY">Hygienist only</SelectItem>
@@ -252,8 +300,10 @@ export function IntakeV2({
             </Select>
           </div>
           <div className="md:col-span-2">
-            <Label>Hygiene bottlenecks (free text)</Label>
+            <Label htmlFor={idHygieneBottlenecks}>Hygiene bottlenecks (free text)</Label>
             <Textarea
+              id={idHygieneBottlenecks}
+              aria-label="Hygiene bottlenecks"
               rows={2}
               data-testid="intake-hygieneBottlenecks"
               value={intakeGoals.hygieneBottlenecks ?? ""}
@@ -271,8 +321,10 @@ export function IntakeV2({
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>High-value procedures to protect</Label>
+            <Label htmlFor={idHighValueProcedures}>High-value procedures to protect</Label>
             <Input
+              id={idHighValueProcedures}
+              aria-label="High-value procedures to protect"
               data-testid="intake-highValueProcedures"
               value={intakeConstraints.highValueProcedures ?? ""}
               onChange={(e) => setConstraint("highValueProcedures", e.target.value)}
@@ -280,8 +332,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Flexible procedures (can reschedule)</Label>
+            <Label htmlFor={idFlexibleProcedures}>Flexible procedures (can reschedule)</Label>
             <Input
+              id={idFlexibleProcedures}
+              aria-label="Flexible procedures that can reschedule"
               data-testid="intake-flexibleProcedures"
               value={intakeConstraints.flexibleProcedures ?? ""}
               onChange={(e) => setConstraint("flexibleProcedures", e.target.value)}
@@ -289,8 +343,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Limited exam duration (min)</Label>
+            <Label htmlFor={idLimitedExamDurationMin}>Limited exam duration (min)</Label>
             <Input
+              id={idLimitedExamDurationMin}
+              aria-label="Limited exam duration in minutes"
               type="number"
               data-testid="intake-limitedExamDurationMin"
               value={intakeConstraints.limitedExamDurationMin ?? ""}
@@ -308,8 +364,10 @@ export function IntakeV2({
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <Label>Existing commitments (e.g. Wed 8am huddle)</Label>
+            <Label htmlFor={idExistingCommitments}>Existing commitments (e.g. Wed 8am huddle)</Label>
             <Textarea
+              id={idExistingCommitments}
+              aria-label="Existing commitments"
               rows={2}
               data-testid="intake-existingCommitments"
               value={intakeConstraints.existingCommitments ?? ""}
@@ -317,8 +375,10 @@ export function IntakeV2({
             />
           </div>
           <div className="md:col-span-2">
-            <Label>Provider preferences</Label>
+            <Label htmlFor={idProviderPreferences}>Provider preferences</Label>
             <Textarea
+              id={idProviderPreferences}
+              aria-label="Provider preferences"
               rows={2}
               data-testid="intake-providerPreferences"
               value={intakeConstraints.providerPreferences ?? ""}
@@ -326,8 +386,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Team limitations</Label>
+            <Label htmlFor={idTeamLimitations}>Team limitations</Label>
             <Textarea
+              id={idTeamLimitations}
+              aria-label="Team limitations"
               rows={2}
               data-testid="intake-teamLimitations"
               value={intakeConstraints.teamLimitations ?? ""}
@@ -335,8 +397,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Room / equipment limitations</Label>
+            <Label htmlFor={idRoomEquipmentLimitations}>Room / equipment limitations</Label>
             <Textarea
+              id={idRoomEquipmentLimitations}
+              aria-label="Room and equipment limitations"
               rows={2}
               data-testid="intake-roomEquipmentLimitations"
               value={intakeConstraints.roomEquipmentLimitations ?? ""}
@@ -344,8 +408,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Time blocks that must stay open</Label>
+            <Label htmlFor={idMustStayOpenBlocks}>Time blocks that must stay open</Label>
             <Textarea
+              id={idMustStayOpenBlocks}
+              aria-label="Time blocks that must stay open"
               rows={2}
               data-testid="intake-mustStayOpenBlocks"
               value={intakeConstraints.mustStayOpenBlocks ?? ""}
@@ -353,8 +419,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Never-use-for-certain-visits blocks</Label>
+            <Label htmlFor={idNeverUseForBlocks}>Never-use-for-certain-visits blocks</Label>
             <Textarea
+              id={idNeverUseForBlocks}
+              aria-label="Never-use-for-certain-visits blocks"
               rows={2}
               data-testid="intake-neverUseForBlocks"
               value={intakeConstraints.neverUseForBlocks ?? ""}
@@ -371,8 +439,10 @@ export function IntakeV2({
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Where production is leaking</Label>
+            <Label htmlFor={idProductionLeakage}>Where production is leaking</Label>
             <Textarea
+              id={idProductionLeakage}
+              aria-label="Where production is leaking"
               rows={2}
               data-testid="intake-productionLeakage"
               value={intakeConstraints.productionLeakage ?? ""}
@@ -380,8 +450,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>Where access is poor</Label>
+            <Label htmlFor={idPoorAccess}>Where access is poor</Label>
             <Textarea
+              id={idPoorAccess}
+              aria-label="Where access is poor"
               rows={2}
               data-testid="intake-poorAccess"
               value={intakeConstraints.poorAccess ?? ""}
@@ -389,8 +461,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>What gets overbooked</Label>
+            <Label htmlFor={idOverbookedSlots}>What gets overbooked</Label>
             <Textarea
+              id={idOverbookedSlots}
+              aria-label="What gets overbooked"
               rows={2}
               data-testid="intake-overbookedSlots"
               value={intakeConstraints.overbookedSlots ?? ""}
@@ -398,8 +472,10 @@ export function IntakeV2({
             />
           </div>
           <div>
-            <Label>What gets underutilized</Label>
+            <Label htmlFor={idUnderutilizedSlots}>What gets underutilized</Label>
             <Textarea
+              id={idUnderutilizedSlots}
+              aria-label="What gets underutilized"
               rows={2}
               data-testid="intake-underutilizedSlots"
               value={intakeConstraints.underutilizedSlots ?? ""}
@@ -407,8 +483,10 @@ export function IntakeV2({
             />
           </div>
           <div className="md:col-span-2">
-            <Label>No-show / cancellation patterns</Label>
+            <Label htmlFor={idNoShowCancellationPatterns}>No-show / cancellation patterns</Label>
             <Textarea
+              id={idNoShowCancellationPatterns}
+              aria-label="No-show and cancellation patterns"
               rows={2}
               data-testid="intake-noShowCancellationPatterns"
               value={intakeConstraints.noShowCancellationPatterns ?? ""}

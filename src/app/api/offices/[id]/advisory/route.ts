@@ -24,6 +24,7 @@ import { composeAdvisory } from '@/lib/engine/advisory/compose';
 import { composeReviewPlan } from '@/lib/engine/advisory/review-plan';
 import { generateThreeVariants } from '@/lib/engine/advisory/variants';
 import { computeIntakeCompleteness } from '@/lib/engine/advisory/completeness';
+import { advisorySeed } from '@/lib/engine/advisory/seed';
 import type {
   IntakeGoals,
   IntakeConstraints,
@@ -91,6 +92,10 @@ export async function POST(
     const days = dayNames.map((d) => dayCodeMap[String(d).toUpperCase()] ?? String(d).slice(0, 3).toUpperCase());
 
     // Generate the template across the week using the current office config.
+    // Seed every generator call with a stable `(officeId, 'MAIN', day)` hash
+    // so that repeat POSTs on the same office produce byte-identical
+    // production summaries. Before Phase 7 this path used Math.random and
+    // caused `weeklyProductionRatio` to drift 1-2 percentage points per run.
     const weekResults: GenerationResult[] = [];
     for (const day of days) {
       const input: GenerationInput = {
@@ -99,6 +104,7 @@ export async function POST(
         rules: office.rules,
         timeIncrement: office.timeIncrement,
         dayOfWeek: day,
+        seed: advisorySeed(office.id, 'MAIN', day),
       };
       try {
         weekResults.push(generateSchedule(input));
@@ -113,11 +119,15 @@ export async function POST(
       }
     }
 
+    // Use a fixed computedAt for the score so that repeat POSTs produce
+    // byte-identical score payloads. The Prisma row's own `generatedAt` is
+    // still wall-clock time (Prisma default) — that's stripped by the
+    // determinism comparator.
     const score = scoreTemplate(
       weekResults,
       intakeGoals,
       intakeNarrativeFrom(intakeConstraints),
-      { computedAt: new Date().toISOString() },
+      { computedAt: new Date(0).toISOString() },
     );
 
     const variants = body.includeVariants
@@ -139,6 +149,9 @@ export async function POST(
     const productionPolicy = ((office as unknown as { productionPolicy?: string }).productionPolicy) ?? 'LEVIN_60';
     const practiceModel = ((office as unknown as { practiceModel?: string }).practiceModel) ?? '1D2O';
 
+    // `document.generatedAt` and `reviewPlan.generatedAt` use a stable epoch
+    // so the response body is byte-identical across repeat POSTs; the
+    // persisted row's wall-clock timestamp lives on the artifact wrapper.
     const document = composeAdvisory({
       officeName: office.name,
       practiceModel,
@@ -150,11 +163,11 @@ export async function POST(
       intakeGoals,
       intakeConstraints,
       winningVariantLabel: variants?.recommendation.winner,
-      generatedAt: new Date().toISOString(),
+      generatedAt: new Date(0).toISOString(),
     });
 
     const reviewPlan = composeReviewPlan(score, intakeGoals, intakeConstraints, {
-      generatedAt: new Date().toISOString(),
+      generatedAt: new Date(0).toISOString(),
     });
 
     const templateId = body.templateId ?? `live-${office.id}`;

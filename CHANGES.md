@@ -1,5 +1,58 @@
 # Changelog
 
+## Phase 7 — Post-Sprint-5 fix loop — 2026-04-21
+
+Three P1 regressions found by the Sprint 5 live smoke, fixed in-place
+without rollback. Vitest **1282/1282** pass (+8 new determinism tests).
+ESLint `--max-warnings=0` green. `tsc --noEmit` clean. `next build` clean.
+
+### Fixed
+
+- **P1-A: Advisory determinism** — `POST /api/offices/:id/advisory` is
+  now byte-stable across repeat calls with identical payloads.
+  - Root cause: the route's main-path `generateSchedule()` call did
+    not pass a `seed`, falling back to `Math.random`. That cascaded
+    into `productionSummary.actualScheduled`,
+    `weeklyProductionRatio` (1.92 / 1.95 / 2.01 / 2.10 drift),
+    executive-summary narrative, and variant
+    `headlineKpis.productionTotal` (~9% drift).
+  - Fix: new `src/lib/engine/advisory/seed.ts` exports `advisorySeed`
+    derived from `hash(officeId + variantCode + dayOfWeek)`. The
+    advisory route now seeds every generator invocation on the main
+    path with `advisorySeed(office.id, 'MAIN', day)`. Variants were
+    already seeded but now share the same helper. `document.generatedAt`
+    and `reviewPlan.generatedAt` also switched from `new Date()` to
+    a stable epoch so the response body is byte-identical — the
+    persisted row's own wall-clock timestamp is on the artifact
+    wrapper and stripped by the determinism comparator.
+  - Coverage: new `src/lib/engine/advisory/__tests__/determinism.test.ts`
+    asserts byte-identical document / score / variants / reviewPlan
+    JSON across two back-to-back pipeline runs. Would fail without
+    the seed fix.
+
+- **P1-B: a11y regressions (0 → 17 violations on Sprint 5 routes)** —
+  Returns to the Phase 6 baseline of 0 axe-core violations.
+  - `label` (14 nodes on `/advisory`): every `<Input>` / `<Textarea>`
+    in `IntakeV2.tsx` now has an explicit `id` paired with a
+    `<Label htmlFor={id}>` via `useId()`, plus an `aria-label`
+    mirror for redundancy.
+  - `button-name` (9 nodes across `/offices/new` + `/advisory`):
+    every Radix `<SelectTrigger>` in `IntakeV2.tsx` and `offices/new`
+    now has an `aria-label`. The icon-only ghost back button on
+    `/offices/new` gets `aria-label="Go back"` + `aria-hidden` on
+    the inner `<ArrowLeft>`.
+  - `color-contrast` (1 node, shared sidebar): active nav text
+    bumped from `--accent` (`oklch 52%` = 4.21:1 on the tinted
+    background) to an explicit `oklch(38% 0.13 240)` + `font-semibold`
+    in `Sidebar.tsx`, clearing WCAG AA 4.5:1 without churning the
+    global `--accent` token.
+
+### Deferred
+
+- **P2: perf budget misses on `/offices/new` and `/advisory`** — held
+  for Sprint 6 Epic T. Networkidle timing targets may need rebasing
+  against FCP/LCP marks rather than "all inflight settled".
+
 ## Sprint 5 — Advisory Output Layer — 2026-04-21
 
 Ships the full "advisory on top of generator" layer per SPRINT-5-PLAN.md

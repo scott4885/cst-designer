@@ -434,8 +434,8 @@ function NewOfficeForm() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={handleBack} className="min-h-[44px] min-w-[44px]">
-          <ArrowLeft className="w-5 h-5" />
+        <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Go back" className="min-h-[44px] min-w-[44px]">
+          <ArrowLeft className="w-5 h-5" aria-hidden="true" />
         </Button>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground">Create New Office</h1>
@@ -527,7 +527,7 @@ function NewOfficeForm() {
                     defaultValue="Open Dental"
                     onValueChange={(value) => setValue("dpms", value as OfficeFormData["dpms"])}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="dpms" aria-label="DPMS System">
                       <SelectValue placeholder="Select DPMS" />
                     </SelectTrigger>
                     <SelectContent>
@@ -574,7 +574,7 @@ function NewOfficeForm() {
                     defaultValue="10"
                     onValueChange={(value) => setValue("timeIncrement", parseInt(value) as 10 | 15)}
                   >
-                    <SelectTrigger id="timeIncrement">
+                    <SelectTrigger id="timeIncrement" aria-label="Time Increment">
                       <SelectValue placeholder="Select increment" />
                     </SelectTrigger>
                     <SelectContent>
@@ -656,7 +656,7 @@ function NewOfficeForm() {
                         <Input {...register(`providers.${index}.name`)} placeholder="Dr. John Doe" />
                       </div>
                       <div>
-                        <Label>Role</Label>
+                        <Label htmlFor={`providers.${index}.role`}>Role</Label>
                         <Select
                           onValueChange={(value) => {
                             setValue(`providers.${index}.role`, value as "Doctor" | "Hygienist");
@@ -670,7 +670,7 @@ function NewOfficeForm() {
                           }}
                           defaultValue={field.role}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger id={`providers.${index}.role`} aria-label={`Provider ${index + 1} role`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -878,12 +878,12 @@ function NewOfficeForm() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label>NP Model</Label>
+                  <Label htmlFor="npModel">NP Model</Label>
                   <Select
                     onValueChange={(value) => setValue("scheduleRules.npModel", value as "doctor_only" | "hygienist_only" | "either")}
                     defaultValue="either"
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="npModel" aria-label="New patient scheduling model">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -923,12 +923,12 @@ function NewOfficeForm() {
                 </div>
 
                 <div>
-                  <Label>HP Block Placement</Label>
+                  <Label htmlFor="hpPlacement">HP Block Placement</Label>
                   <Select
                     onValueChange={(value) => setValue("scheduleRules.hpPlacement", value as "morning" | "afternoon" | "any")}
                     defaultValue="any"
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="hpPlacement" aria-label="High production block placement">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

@@ -27,6 +27,7 @@ import type {
   VariantRecommendation,
 } from './types';
 import { scoreTemplate } from './scoring';
+import { advisorySeed } from './seed';
 
 // ---------------------------------------------------------------------------
 // §4.2 — Three variant profiles
@@ -93,16 +94,13 @@ export const VARIANT_PROFILES: Record<VariantCode, VariantProfile> = {
 };
 
 // ---------------------------------------------------------------------------
-// Seed derivation — stable across runs
+// Seed derivation — stable across runs. Uses the shared advisorySeed helper
+// so that the main advisory path and the variant path are on the same
+// seeding contract. See src/lib/engine/advisory/seed.ts.
 // ---------------------------------------------------------------------------
 
-function stableSeed(officeId: string, variant: VariantCode): number {
-  let h = 5381;
-  const s = `${officeId}:${variant}`;
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h) % 2147483647;
+function stableSeed(officeId: string, variant: VariantCode, dayOfWeek: string): number {
+  return advisorySeed(officeId, variant, dayOfWeek);
 }
 
 // ---------------------------------------------------------------------------
@@ -194,9 +192,11 @@ export function generateThreeVariants(input: VariantRunInput): VariantSet {
   for (const code of ['GROWTH', 'ACCESS', 'BALANCED'] as VariantCode[]) {
     const profile = VARIANT_PROFILES[code];
     const rules = overlayRules(input.rules, profile, input.intakeGoals);
-    const seed = stableSeed(input.officeId, code);
     const weekResults: GenerationResult[] = [];
     for (const day of input.days) {
+      // Per-day seed so the production aggregator is byte-stable across
+      // identical runs. Keyed on (officeId, variantCode, day).
+      const seed = stableSeed(input.officeId, code, day);
       const genInput: GenerationInput = {
         providers: input.providers,
         blockTypes: input.blockTypes,
