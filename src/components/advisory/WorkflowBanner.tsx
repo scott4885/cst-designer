@@ -71,7 +71,7 @@ export function WorkflowBanner({ steps }: WorkflowBannerProps) {
               )}
             </span>
             {s.hint && s.state === "current" && (
-              <span className="hidden sm:inline text-xs text-slate-500">
+              <span className="hidden sm:inline text-xs text-slate-600">
                 — {s.hint}
               </span>
             )}

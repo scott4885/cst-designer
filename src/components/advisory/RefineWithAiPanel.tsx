@@ -190,7 +190,7 @@ export function RefineWithAiPanel({
             <p className="text-xs font-semibold text-slate-700">
               Rewrite (Markdown preview)
               {costUsd > 0 && (
-                <span className="ml-2 text-slate-500 font-normal">
+                <span className="ml-2 text-slate-600 font-normal">
                   ≈ ${costUsd.toFixed(3)}
                 </span>
               )}

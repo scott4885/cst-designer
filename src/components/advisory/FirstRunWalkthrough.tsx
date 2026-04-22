@@ -100,7 +100,7 @@ export function FirstRunWalkthrough() {
             <DialogTitle>{current.title}</DialogTitle>
             <DialogDescription>{current.body}</DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+          <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
             <span>
               Step {step + 1} of {STEPS.length}
             </span>

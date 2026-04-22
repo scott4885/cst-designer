@@ -23,8 +23,8 @@ const DIRECTION_ICON: Record<DeltaDirection, React.ReactNode> = {
 const DIRECTION_COLOUR: Record<DeltaDirection, string> = {
   UP: "text-green-700",
   DOWN: "text-red-700",
-  EQUAL: "text-slate-500",
-  N_A: "text-slate-400",
+  EQUAL: "text-slate-600",
+  N_A: "text-slate-600",
 };
 
 function formatValue(v: number | null, unit: string): string {
@@ -114,7 +114,7 @@ export function DeltaView({
         <CardContent>
           <table className="w-full text-xs" data-testid="delta-kpi-table">
             <thead>
-              <tr className="text-left text-slate-500 border-b">
+              <tr className="text-left text-slate-600 border-b">
                 <th className="py-1.5">Metric</th>
                 <th className="py-1.5 text-right">Current</th>
                 <th className="py-1.5 text-right">Recommended</th>
@@ -155,7 +155,7 @@ export function DeltaView({
         <CardContent>
           <table className="w-full text-xs" data-testid="delta-axis-table">
             <thead>
-              <tr className="text-left text-slate-500 border-b">
+              <tr className="text-left text-slate-600 border-b">
                 <th className="py-1.5">Axis</th>
                 <th className="py-1.5 text-right">Current</th>
                 <th className="py-1.5 text-right">Recommended</th>
