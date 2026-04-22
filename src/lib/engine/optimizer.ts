@@ -145,7 +145,8 @@ function utilizationSuggestions(
 
     // Group into contiguous blocks
     const firstGap = emptySlots[0];
-    const lastGap = emptySlots[emptySlots.length - 1];
+    const _lastGap = emptySlots[emptySlots.length - 1];
+    void _lastGap;
 
     // Suggest an easy-to-add block type
     const fillBlock = blockTypes.find(bt =>

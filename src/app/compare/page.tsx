@@ -217,7 +217,7 @@ function OfficeSelector({
 
 function StatsPanel({
   stats,
-  officeName,
+  officeName: _officeName,
 }: {
   stats: ReturnType<typeof computeStats>;
   officeName: string;

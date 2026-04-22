@@ -69,7 +69,10 @@ export default function PrintSchedulePage() {
 
   const activeDay = queryDay || currentOffice?.workingDays?.[0] || '';
   const schedule = generatedSchedules[activeDay];
-  const providers = currentOffice?.providers || [];
+  const providers = useMemo(
+    () => currentOffice?.providers || [],
+    [currentOffice?.providers],
+  );
   const blockTypes = currentOffice?.blockTypes || [];
 
   // Build display slots
@@ -185,7 +188,7 @@ export default function PrintSchedulePage() {
         <div className="flex gap-4 justify-center mb-6 print:mb-3 flex-wrap">
           {schedule.productionSummary.map((s) => {
             const prov = providers.find(p => p.id === s.providerId);
-            const bt = blockTypes.find(() => true); // used below
+            const _bt = blockTypes.find(() => true); // used below
             const isMet = s.status === 'MET' || s.status === 'OVER';
             return (
               <div

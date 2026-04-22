@@ -49,7 +49,11 @@ export class ErrorBoundary extends React.Component<
       if (this.props.fallback !== undefined) return this.props.fallback;
       const scopeLabel = this.props.scope ? ` in ${this.props.scope}` : "";
       return (
-        <div className="flex items-center justify-center min-h-[400px] p-6">
+        <div
+          data-testid="error-boundary"
+          data-error-boundary="true"
+          className="flex items-center justify-center min-h-[400px] p-6"
+        >
           <div className="max-w-md space-y-4 text-center">
             <div className="flex justify-center">
               <AlertTriangle

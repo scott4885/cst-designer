@@ -26,6 +26,17 @@ export interface ExportTimeSlot {
   staffingCode: string | null;
   blockLabel: string | null;
   isBreak: boolean;
+  /**
+   * Sprint 2 Stream B — optional X-segment role per Bible §2.1.
+   * Marks which part of the block this 10-min slot belongs to.
+   *   'A_PRE'  → assistant-only pre-band
+   *   'D'      → doctor hands-on band
+   *   'A_POST' → assistant-only post-band
+   * When present, exports annotate the "S" column accordingly.
+   */
+  xsegmentRole?: 'A_PRE' | 'D' | 'A_POST';
+  /** Optional: true if this is the first slot of the block (for header row). */
+  isFirstSlotOfBlock?: boolean;
 }
 
 export interface ExportDaySchedule {
@@ -614,10 +625,25 @@ function addDayScheduleSheet(
         const tintArgb = hexToArgbTint(provider.color, 0.12);
         const colorFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: tintArgb } };
 
-        // Staffing code cell
-        staffCell.value = provSlot.staffingCode || '';
+        // Staffing code cell — append X-segment glyph when metadata provided.
+        // Sprint 2 Stream B: backward-compatible extension. When xsegmentRole
+        // is set on the slot, the cell renders e.g. "A·" / "D" / "·A" so the
+        // exported workbook carries the X-segment data through to Excel.
+        const xMarker = provSlot.xsegmentRole === 'D'
+          ? ''
+          : provSlot.xsegmentRole === 'A_PRE'
+            ? '↓'
+            : provSlot.xsegmentRole === 'A_POST'
+              ? '↑'
+              : '';
+        staffCell.value = `${provSlot.staffingCode || ''}${xMarker}`.trim();
         staffCell.font = { bold: true, size: 9, color: { argb: 'FF374151' } };
         staffCell.fill = colorFill;
+        if (provSlot.xsegmentRole) {
+          // Store the role on the cell as a hidden note for downstream tooling
+          // (e.g. Python/BI pipelines that parse workbook notes).
+          staffCell.note = `xsegment:${provSlot.xsegmentRole}`;
+        }
         staffCell.border = {
           ...THIN_BORDER,
           left: { style: 'medium', color: { argb: hexToArgb(provider.color) } },

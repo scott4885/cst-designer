@@ -87,7 +87,8 @@ export default function BlockEditor({
     };
   }, [onClose]);
 
-  const resolvedAmount = customAmount !== "" ? Number(customAmount) : (selectedBlock?.minimumAmount ?? null);
+  const _resolvedAmount = customAmount !== "" ? Number(customAmount) : (selectedBlock?.minimumAmount ?? null);
+  void _resolvedAmount;
 
   const handleApply = () => {
     const bt = blockTypes.find((b) => b.id === selectedBlockTypeId);

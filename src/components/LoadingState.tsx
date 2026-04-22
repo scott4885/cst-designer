@@ -3,7 +3,7 @@
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface LoadingStateProps {
+interface _LoadingStateProps {
   message?: string;
   variant?: "spinner" | "skeleton";
 }

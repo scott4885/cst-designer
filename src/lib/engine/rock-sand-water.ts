@@ -54,6 +54,11 @@ import {
   getDPhaseMinutes,
 } from './slot-helpers';
 import { calculateProductionTargets } from './production-calculator';
+// Sprint 3 — import used both as a type for coordinator parameters and as a
+// value for the factory helpers below. Duplicate import at the bottom of the
+// file was removed during the Sprint 3 consolidation.
+import { MultiColumnCoordinator } from './multi-column-coordinator';
+import type { CoordinatorConfig, PlacementResult } from './multi-column-coordinator';
 
 // ---------------------------------------------------------------------------
 // Procedure Mix Intelligence (Sprint 9)
@@ -120,7 +125,15 @@ export function placeDoctorBlocksByMix(
   warnings: string[],
   staggerOffsetMin: number,
   sharedProductionCtx?: { target: number; produced: number },
-  avoidDPhaseMinutes?: Set<number>
+  avoidDPhaseMinutes?: Set<number>,
+  /**
+   * Sprint 3 — when a MultiColumnCoordinator is passed, every
+   * rangesAvoidingDMinutes call inside this function folds the coordinator's
+   * reservations into the "avoid" set. This makes the coordinator the
+   * authoritative doctor-bottleneck source (Bible §4). Legacy callers that
+   * pass no coordinator get identical behavior to Sprint 2.
+   */
+  coordinator?: MultiColumnCoordinator,
 ): void {
   const futureMix = doc.futureProcedureMix!;
   const categoryTargets = calculateCategoryTargets(doc, blockTypes, futureMix);
@@ -167,7 +180,7 @@ export function placeDoctorBlocksByMix(
       if (ranges.length === 0) break;
 
       const afterStagger = rangesAfter(ranges, slots, staggeredStartMin);
-      const availableRanges = rangesAvoidingDMinutes(afterStagger, slots, avoidDPhaseMinutes, bt, doc);
+      const availableRanges = rangesAvoidingDMinutes(afterStagger, slots, avoidDPhaseMinutes, bt, doc, coordinator);
       const targetRange = availableRanges[0] ?? afterStagger[0] ?? ranges[0];
 
       const amount = bt.minimumAmount ?? 0;
@@ -199,7 +212,7 @@ export function placeDoctorBlocksByMix(
       const slotsNeeded = Math.ceil(bt.durationMin / timeIncrement);
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) continue;
-      const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes, bt, doc)[0] ?? ranges[0];
+      const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes, bt, doc, coordinator)[0] ?? ranges[0];
       const amount = bt.minimumAmount ?? 0;
       placeBlockInSlots(slots, chosen, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label, 'mix gap fill');
       recordProd(amount);
@@ -226,7 +239,7 @@ export function placeDoctorBlocksByMix(
       const ranges = findAvailableRanges(slots, ps, slotsNeeded);
       if (ranges.length === 0) continue;
       if (wouldExceedVarietyCap(slots, ps, bt.id, slotsNeeded)) continue;
-      const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes, bt, doc)[0] ?? ranges[0];
+      const chosen = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes, bt, doc, coordinator)[0] ?? ranges[0];
       const amount = bt.minimumAmount ?? 0;
       placeBlockInSlots(slots, chosen, bt, doc, amount > 0 ? makeLabel(bt, amount) : bt.label, 'buffer / gap');
       recordProd(amount);
@@ -282,7 +295,9 @@ export function placeDoctorBlocks(
   staggerOffsetMin: number = 0,
   opIndex: number = 0,
   sharedProductionCtx?: { target: number; produced: number },
-  avoidDPhaseMinutes?: Set<number>
+  avoidDPhaseMinutes?: Set<number>,
+  /** Sprint 3 — see placeDoctorBlocksByMix JSDoc. Additive; legacy callers unchanged. */
+  coordinator?: MultiColumnCoordinator,
 ): void {
   // Helper: pick the best target range out of `ranges`, preferring ranges
   // whose predicted D-phase minutes do not collide with the other column's
@@ -290,7 +305,7 @@ export function placeDoctorBlocks(
   // avoid filter is empty or no clean candidate exists.
   const pickAvoiding = (ranges: number[][], bt?: BlockTypeInput): number[] | undefined => {
     if (ranges.length === 0) return undefined;
-    const filtered = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes, bt, doc);
+    const filtered = rangesAvoidingDMinutes(ranges, slots, avoidDPhaseMinutes, bt, doc, coordinator);
     return filtered[0] ?? ranges[0];
   };
   const staggeredStartMin = toMinutes(doc.workingStart) + staggerOffsetMin;
@@ -490,8 +505,8 @@ export function placeDoctorBlocks(
     const pmRanges = afternoonRanges(ranges, slots, doc);
     const lateRanges = rangesAfter(pmRanges, slots, 16 * 60);
     // Prefer late ranges that avoid cross-column D-phase; fall back to any late range.
-    const lateAvoid = rangesAvoidingDMinutes(lateRanges, slots, avoidDPhaseMinutes, nonProdBlock, doc);
-    const pmAvoid = rangesAvoidingDMinutes(pmRanges, slots, avoidDPhaseMinutes, nonProdBlock, doc);
+    const lateAvoid = rangesAvoidingDMinutes(lateRanges, slots, avoidDPhaseMinutes, nonProdBlock, doc, coordinator);
+    const pmAvoid = rangesAvoidingDMinutes(pmRanges, slots, avoidDPhaseMinutes, nonProdBlock, doc, coordinator);
     const targetRange = lastRange(lateAvoid) || lastRange(lateRanges) || lastRange(pmAvoid) || lastRange(pmRanges);
 
     if (targetRange) {
@@ -809,7 +824,8 @@ function fillDocOpSlots(
   staggerOffsetMin: number = 0,
   sharedProductionCtx?: { target: number; produced: number },
   avoidDPhaseMinutes?: Set<number>,
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
+  coordinator?: MultiColumnCoordinator,
 ): void {
   const hpBlocks = getAllBlocksForCategory('HP', blocksByCategory, doc);
   const mpBlocks = getAllBlocksForCategory('MP', blocksByCategory, doc);
@@ -879,7 +895,8 @@ function fillDocOpSlots(
       slots,
       avoidDPhaseMinutes,
       selectedBlock,
-      doc
+      doc,
+      coordinator,
     );
     if (avoidFiltered.length > 0) targetRange = avoidFiltered[0];
 
@@ -1062,3 +1079,118 @@ export function addDoctorMatrixing(
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Sprint 1 — Coordinator-backed multi-column placement (additive)
+// ---------------------------------------------------------------------------
+
+// MultiColumnCoordinator/CoordinatorConfig/PlacementResult are now imported
+// at the top of the file (Sprint 3). See that block above for rationale.
+import { resolvePatternV2 } from './pattern-catalog';
+import type { PracticeModelCode } from './types';
+
+export interface CoordinatorPlacementRequest {
+  blockInstanceId: string;
+  operatory: string;
+  column: number;
+  blockType: BlockTypeInput;
+  earliestStartMin: number;
+  latestStartMin: number;
+  stepMin: number;
+  practiceModel: PracticeModelCode;
+}
+
+export interface CoordinatorPlacementOutcome extends PlacementResult {
+  blockStartMin?: number;
+  xSegment?: {
+    asstPreMin: number;
+    doctorMin: number;
+    asstPostMin: number;
+    doctorContinuityRequired?: boolean;
+  };
+}
+
+/**
+ * Sprint 1 — Consult the MultiColumnCoordinator to place a single block's
+ * doctor-X segment across N operatory columns. This is the new RSW→coordinator
+ * hook point. Currently invoked only when `office.maxConcurrentDoctorOps > 1`;
+ * the legacy single-column placement path above still handles 1D1O/1D2O cases
+ * for back-compat.
+ *
+ * Returns the admitted blockStartMin + x-segment or a PlacementResult with
+ * `ok: false` when no slot is admissible.
+ */
+export function placeBlockWithCoordinator(
+  coordinator: MultiColumnCoordinator,
+  req: CoordinatorPlacementRequest
+): CoordinatorPlacementOutcome {
+  const v2 = resolvePatternV2({
+    blockType: req.blockType,
+    practiceModel: req.practiceModel,
+    column: req.column,
+  });
+
+  const slot = coordinator.findDoctorSegmentSlot({
+    blockInstanceId: req.blockInstanceId,
+    operatory: req.operatory,
+    xSegment: v2.xSegment,
+    earliestStartMin: req.earliestStartMin,
+    latestStartMin: req.latestStartMin,
+    stepMin: req.stepMin,
+  });
+
+  if (!slot.ok || slot.blockStartMin == null) {
+    return { ...slot };
+  }
+
+  // Commit the reservation to the coordinator.
+  const reserved = coordinator.reserveDoctorSegment({
+    blockInstanceId: req.blockInstanceId,
+    operatory: req.operatory,
+    blockStartMin: slot.blockStartMin,
+    xSegment: v2.xSegment,
+  });
+
+  if (!reserved.ok) return { ...reserved };
+
+  return {
+    ok: true,
+    blockStartMin: slot.blockStartMin,
+    doctorStartMin: reserved.doctorStartMin,
+    doctorEndMin: reserved.doctorEndMin,
+    xSegment: {
+      asstPreMin: v2.xSegment.asstPreMin,
+      doctorMin: v2.xSegment.doctorMin,
+      asstPostMin: v2.xSegment.asstPostMin,
+      doctorContinuityRequired: v2.xSegment.doctorContinuityRequired,
+    },
+  };
+}
+
+/**
+ * Sprint 1 — Factory helper: build a coordinator configured from an Office
+ * + Doctor provider. Saves callers from restating boilerplate.
+ */
+export function buildCoordinatorForDoctor(args: {
+  doctorProviderId: string;
+  workingStart: string;
+  workingEnd: string;
+  lunchStart?: string | null;
+  lunchEnd?: string | null;
+  maxConcurrentDoctorOps: number;
+  doctorTransitionBufferMin: number;
+  efdaScopeLevel?: 'NONE' | 'LIMITED' | 'BROAD';
+}): MultiColumnCoordinator {
+  const cfg: CoordinatorConfig = {
+    doctorProviderId: args.doctorProviderId,
+    dayStartMin: toMinutes(args.workingStart),
+    dayEndMin: toMinutes(args.workingEnd),
+    lunchStartMin: args.lunchStart ? toMinutes(args.lunchStart) : null,
+    lunchEndMin: args.lunchEnd ? toMinutes(args.lunchEnd) : null,
+    maxConcurrentDoctorOps: args.maxConcurrentDoctorOps,
+    doctorTransitionBufferMin: args.doctorTransitionBufferMin,
+    efdaScopeLevel: args.efdaScopeLevel ?? 'NONE',
+  };
+  return new MultiColumnCoordinator(cfg);
+}
+

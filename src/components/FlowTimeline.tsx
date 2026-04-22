@@ -56,7 +56,7 @@ export function FlowTimeline({
   operatoryCount,
   startMin = 480,
   endMin = 1020,
-  increment = 10,
+  increment: _increment = 10,
   examRequests = [],
   operatoryLabels,
 }: FlowTimelineProps) {

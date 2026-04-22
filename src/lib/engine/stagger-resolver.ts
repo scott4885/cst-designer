@@ -88,7 +88,8 @@ export function autoResolveStaggerConflicts(
 
     for (const conflict of currentConflicts) {
       // Keep the first operatory in place; try to move the secondary ones
-      const [primaryOp, ...secondaryOps] = conflict.operatories;
+      const [_primaryOp, ...secondaryOps] = conflict.operatories;
+      void _primaryOp;
 
       for (const operatory of secondaryOps) {
         const resolved = tryResolveConflict(

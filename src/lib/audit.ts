@@ -61,11 +61,12 @@ export interface OfficeWithSchedules {
 
 // ─── Category time benchmarks ────────────────────────────────────────────────────
 
-/** Roles to category rough benchmarks */
-const CATEGORY_BENCHMARKS_PCT: Record<string, { min: number; max: number }> = {
+/** Roles to category rough benchmarks — reserved for future audit checks. */
+const _CATEGORY_BENCHMARKS_PCT: Record<string, { min: number; max: number }> = {
   DOCTOR: { min: 5, max: 40 },
   HYGIENIST: { min: 5, max: 40 },
 };
+void _CATEGORY_BENCHMARKS_PCT;
 
 function getBlockTypeCategory(bt: BlockTypeInput): string {
   return bt.appliesToRole;

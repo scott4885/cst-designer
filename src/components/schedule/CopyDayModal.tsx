@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Copy, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -68,13 +68,21 @@ export default function CopyDayModal({
   const [mode, setMode] = useState<"replace" | "merge">("replace");
   const [lastResult, setLastResult] = useState<CopyDayResult | null>(null);
 
-  // Reset on open
-  useEffect(() => {
+  // Reset selection and result when the dialog opens or sourceDay changes.
+  // Uses the prevProp-style reset pattern (React docs: "Adjusting state
+  // based on props") to avoid setState-in-effect which triggers cascading
+  // renders and fails the react-hooks/no-setState-in-effect rule.
+  const [lastOpenKey, setLastOpenKey] = useState<string>(
+    open ? `${sourceDay}:open` : "closed",
+  );
+  const currentKey = open ? `${sourceDay}:open` : "closed";
+  if (currentKey !== lastOpenKey) {
+    setLastOpenKey(currentKey);
     if (open) {
       setSelectedTargets(new Set());
       setLastResult(null);
     }
-  }, [open, sourceDay]);
+  }
 
   const targetCandidates = useMemo(
     () => workingDays.filter((d) => d !== sourceDay),

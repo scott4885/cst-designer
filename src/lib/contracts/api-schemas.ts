@@ -390,6 +390,33 @@ export const SequenceUpdateSchema = z
   .passthrough();
 
 // ---------------------------------------------------------------------------
+// ProcedureOverride — Sprint 3 (PRD-V4 FR-6)
+// Per-practice x-segment overrides on top of base BlockType.
+// All three length fields are optional; null/undefined = "no override".
+// ---------------------------------------------------------------------------
+
+const nonNegativeIntOrNull = z
+  .union([z.number().int().min(0).max(600), z.null()])
+  .optional();
+
+export const ProcedureOverrideCreateSchema = z
+  .object({
+    blockTypeId: z.string().min(1, 'blockTypeId is required'),
+    asstPreMin: nonNegativeIntOrNull,
+    doctorMin: nonNegativeIntOrNull,
+    asstPostMin: nonNegativeIntOrNull,
+  })
+  .passthrough();
+
+export const ProcedureOverrideUpdateSchema = z
+  .object({
+    asstPreMin: nonNegativeIntOrNull,
+    doctorMin: nonNegativeIntOrNull,
+    asstPostMin: nonNegativeIntOrNull,
+  })
+  .passthrough();
+
+// ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
 

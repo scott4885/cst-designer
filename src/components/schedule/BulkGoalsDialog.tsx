@@ -9,7 +9,7 @@
  * them. This avoids a brand-new server endpoint while still achieving a
  * one-modal bulk edit.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,14 +56,20 @@ export default function BulkGoalsDialog({
   const [values, setValues] = useState<Record<number, string>>(initial);
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
+  const [lastOpen, setLastOpen] = useState(open);
 
-  useEffect(() => {
+  // Reset dialog state when transitioning from closed → open. Using a
+  // prevProp-style reset (per React docs "Adjusting state based on props")
+  // avoids calling setState inside an effect, which would trigger cascading
+  // renders and fail the react-hooks/no-setState-in-effect rule.
+  if (open !== lastOpen) {
+    setLastOpen(open);
     if (open) {
       setValues(initial);
       setErrors({});
       setFormError(undefined);
     }
-  }, [open, initial]);
+  }
 
   const handleSubmit = () => {
     setFormError(undefined);

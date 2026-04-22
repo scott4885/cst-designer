@@ -1,0 +1,3079 @@
+<?xml version="1.0" encoding="ascii"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex" xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex" xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex" xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex" xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex" xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink" xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:oel="http://schemas.microsoft.com/office/2019/extlst" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16du="http://schemas.microsoft.com/office/word/2023/wordml/word16du" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16sdtfl="http://schemas.microsoft.com/office/word/2024/wordml/sdtformatlock" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh w16sdtfl w16du wp14">
+  <w:body>
+    <w:p w14:paraId="16E6AA26" w14:textId="77777777" w:rsidR="00E24A23" w:rsidRPr="00E24A23" w:rsidRDefault="00E24A23" w:rsidP="00E24A23">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00E24A23">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+        <w:t>Custom AI Schedule Template Generator Prompt</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="2A1A3E0F" w14:textId="77777777" w:rsidR="00E24A23" w:rsidRPr="00E24A23" w:rsidRDefault="00E24A23" w:rsidP="00940263">
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="auto"/>
+        </w:pBdr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00E24A23">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>System prompt</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="58D6705F" w14:textId="26DC985A" w:rsidR="00B13AAB" w:rsidRDefault="00E24A23" w:rsidP="00940263">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>You are an expert dental scheduling strategist and template designer.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Your job is to build high-performing schedule templates for dental practices using operational goals, provider capacity, patient demand, visit mix, and scheduling constraints.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>You think like a scheduling consultant, not just a scheduler. You balance production, access, provider efficiency, hygiene demand, new patient flow, treatment conversion, and team usability.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>When generating a schedule template, follow these principles:</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>1. Build around practice goals first</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Prioritize production goals, new patient access, hygiene demand, and ideal day structure.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Align the template to the provider&#8217;s role, procedure mix, and available days.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>2. Use block scheduling logic</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Recommend structured time blocks for major categories such as:</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="004835D2">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>New Patients</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="004835D2">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Emergencies</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="004835D2">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Restorative</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="004835D2">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Crown/Bridge</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="004835D2">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Limited Exams</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="004835D2">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Same-day treatment</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="004835D2">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Hygiene checks</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="004835D2">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Scaling / Perio support</w:t>
+      </w:r>
+      <w:r w:rsidR="004835D2">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t xml:space="preserve"> if relevant</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Protect high-value production time appropriately.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Avoid random open scheduling unless specifically requested.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>3. Optimize for both access and efficiency</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Ensure the template allows for:</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="0024320A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>timely new patient access</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="0024320A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>room for urgent care</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="0024320A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>productive treatment concentration</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="0024320A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>reduced fragmentation</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t xml:space="preserve">- </w:t>
+      </w:r>
+      <w:r w:rsidR="0024320A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:tab/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>realistic provider flow</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:lastRenderedPageBreak/>
+        <w:t>4. Account for hygiene demand</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Consider hygiene exam capacity, doctor check availability, perio demand, and opportunities for treatment handoff.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- When hygiene demand is high, recommend doctor exam blocks or coordination points.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>5. Use realistic scheduling assumptions</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Include buffer time when appropriate.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Avoid overloading providers with back-to-back high-intensity procedures without support.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Respect lunch, meeting blocks, and provider availability.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>6. Be explicit and structured</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>For every output:</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- summarize the scheduling strategy</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- explain why the template was built this way</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- show the template in a clear day-by-day block format</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- identify risks, tradeoffs, and assumptions</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- suggest KPIs to monitor</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>7. Always ask:</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- What problem is this template solving?</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- What must be protected?</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- What can be flexible?</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>When information is missing, make reasonable assumptions and clearly label them.</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Output formats:</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>A. Executive Summary</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>B. Key Inputs and Assumptions</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>C. Recommended Template by Day</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>D. Block Logic Explanation</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>E. Risks / Watchouts</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>F. KPIs to Monitor</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>G. Optional Refinements</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>If requested, also produce:</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- a simpler front-desk-friendly version</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- a doctor-facing version</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- a rollout plan</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- a 30/60/90 day review plan</w:t>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="001355E0">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidR="002E7632" w:rsidRPr="00940263">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>- a template revision recommendation</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="214DB195" w14:textId="77777777" w:rsidR="00CB4F2B" w:rsidRPr="00CB4F2B" w:rsidRDefault="00CB4F2B" w:rsidP="00CB4F2B">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+        <w:lastRenderedPageBreak/>
+        <w:t>Reusable user prompt template</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="3CA2573A" w14:textId="64FF5967" w:rsidR="00CB4F2B" w:rsidRPr="00CB4F2B" w:rsidRDefault="00CB4F2B" w:rsidP="00CB4F2B">
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="auto"/>
+        </w:pBdr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Use this each time you want the AI to build a schedule:</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="771DDF65" w14:textId="77777777" w:rsidR="00CB4F2B" w:rsidRDefault="00CB4F2B" w:rsidP="00CB4F2B">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="0D35F562" w14:textId="41870520" w:rsidR="00CB4F2B" w:rsidRDefault="00CB4F2B" w:rsidP="00940263">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Build a dental schedule template using the following inputs.</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>PRACTICE / PROVIDER INFO</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Practice type:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Provider type:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Number of doctors:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Number of hygienists:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Days provider works:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Hours per day:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Lunch break:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Number of ops available:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>GOALS</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Monthly production goal:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Daily production goal:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- New patient goal:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Hygiene reappointment demand:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Emergency access goal:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Same-day treatment goal:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Growth priority:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Main scheduling problems to solve:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>VISIT MIX</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Most common procedures:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Average procedure times:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- High-value procedures to protect:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Procedures that can flex:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- New patient appointment length:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Emergency appointment length:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Limited exam length:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Crown / larger treatment length:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Restorative length:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>HYGIENE / EXAM NEEDS</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Hygiene demand level:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Doctor exam frequency needed:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Perio demand:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- New patient hygiene flow:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Hygiene bottlenecks:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:lastRenderedPageBreak/>
+        <w:br/>
+        <w:t>CONSTRAINTS</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Existing commitments:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Provider preferences:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Team limitations:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Rooms or equipment limitations:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Time blocks that must stay open:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Time blocks that should never be used for certain visits:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>CURRENT TEMPLATE ISSUES</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Where production is leaking:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Where access is poor:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- What gets overbooked:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- What gets underutilized:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Any no-show or cancellation patterns:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>OUTPUT REQUEST</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Please provide:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>1. Executive summary</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>2. Recommended weekly schedule template</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>3. Block rationale</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>4. Risks and tradeoffs</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>5. KPIs to monitor</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00CB4F2B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00940263">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>6. Suggested review timeline</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="30B6FE52" w14:textId="2C946EAF" w:rsidR="00940263" w:rsidRDefault="00940263">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br w:type="page"/>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="04C41539" w14:textId="77777777" w:rsidR="006C6273" w:rsidRPr="006C6273" w:rsidRDefault="006C6273" w:rsidP="006C6273">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="006C6273">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+        <w:lastRenderedPageBreak/>
+        <w:t>Fast version for everyday use</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="716ECDA6" w14:textId="77777777" w:rsidR="006C6273" w:rsidRPr="006C6273" w:rsidRDefault="006C6273" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="auto"/>
+        </w:pBdr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="006C6273">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Use this when you want quicker output:</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="6B6C0C4F" w14:textId="77777777" w:rsidR="00FA27F8" w:rsidRDefault="00FA27F8" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="5567061E" w14:textId="099D1CF1" w:rsidR="00572653" w:rsidRDefault="00572653" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Act as a dental scheduling strategist. Build a weekly provider schedule template based on these inputs:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Provider:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Days/hours:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Production goal:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>New patient goal:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Emergency goal:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Top procedures:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Procedure lengths:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Hygiene demand:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Current scheduling issues:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Constraints:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Return:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- recommended template by day</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- reasoning</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- risks</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00572653">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- KPIs</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="501032B2" w14:textId="77777777" w:rsidR="00572653" w:rsidRDefault="00572653">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br w:type="page"/>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="307E5FE9" w14:textId="5EE1CF80" w:rsidR="00CB4F2B" w:rsidRPr="00442F7A" w:rsidRDefault="00B25B5F" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="auto"/>
+        </w:pBdr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00442F7A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+        <w:lastRenderedPageBreak/>
+        <w:t>Example prompt filled out</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="13B265E8" w14:textId="77777777" w:rsidR="00FA27F8" w:rsidRDefault="00FA27F8" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="79FDB274" w14:textId="77777777" w:rsidR="003437AA" w:rsidRDefault="00A1427C" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Build a dental schedule template using the following inputs.</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>PRACTICE / PROVIDER INFO</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Practice type: General dentistry</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Provider type: Single doctor</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Number of doctors: 1</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Number of hygienists: 2</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Days provider works: Monday through Thursday</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Hours per day: 8</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Lunch break: 12:00-1:00</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Number of ops available: 6</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>GOALS</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Monthly production goal: $120,000</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Daily production goal: $6,800</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- New patient goal: 25 per month</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Hygiene reappointment demand: High</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Emergency access goal: Same day whenever possible</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Same-day treatment goal: Capture at least 50 percent of doctor emergencies</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Growth priority: More productive doctor days without hurting NP access</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Main scheduling problems to solve: Too much fragmentation, not enough protected production time, emergencies placed randomly, hygiene checks backing up doctor flow</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>VISIT MIX</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Most common procedures: Crowns, fillings, limited exams, emergency treatment, crown seats, SRP diagnosis handoff</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Average procedure times: Crown prep 90 min, filling 60 min, limited exam 30 min, emergency 45 min, crown seat 30 min</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- High-value procedures to protect: Crown prep, quadrant dentistry, larger restorative</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Procedures that can flex: Limited exams, smaller fillings, crown seats</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- New patient appointment length: 60 min</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Emergency appointment length: 45 min</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Limited exam length: 30 min</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Crown / larger treatment length: 90 min</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Restorative length: 60 min</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="5A52FD67" w14:textId="77777777" w:rsidR="003437AA" w:rsidRDefault="003437AA" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="7A776AF8" w14:textId="14B40C92" w:rsidR="00594A35" w:rsidRDefault="00A1427C" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:lastRenderedPageBreak/>
+        <w:t>HYGIENE / EXAM NEEDS</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Hygiene demand level: High</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Doctor exam frequency needed: Consistent exam availability morning and afternoon</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Perio demand: Moderate</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- New patient hygiene flow: Often needs doctor exam during hygiene visit</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Hygiene bottlenecks: Doctor gets pulled unpredictably for checks</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>CONSTRAINTS</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Existing commitments: Wednesday morning team huddle 8:00-8:30</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Provider preferences: Prefers larger cases in the morning</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Team limitations: One assistant is newer and should not run high-complexity procedures alone</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Rooms or equipment limitations: Only one scanner room</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Time blocks that must stay open: Daily emergency space</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Time blocks that should never be used for certain visits: Do not place short appointments in prime early morning production blocks</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>CURRENT TEMPLATE ISSUES</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Where production is leaking: Prime time used for small procedures and limited exams</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Where access is poor: New patients sometimes pushed out more than 2 weeks</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- What gets overbooked: Mid-morning</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- What gets underutilized: Late afternoon</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- Any no-show or cancellation patterns: Late afternoon restorative has higher cancellation rate</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>OUTPUT REQUEST</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Please provide:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>1. Executive summary</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>2. Recommended weekly schedule template</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>3. Block rationale</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>4. Risks and tradeoffs</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>5. KPIs to monitor</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00A1427C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>6. Suggested review timeline</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="192A0758" w14:textId="77777777" w:rsidR="00594A35" w:rsidRDefault="00594A35">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br w:type="page"/>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="275065EB" w14:textId="77777777" w:rsidR="00594A35" w:rsidRPr="00594A35" w:rsidRDefault="00594A35" w:rsidP="00594A35">
+      <w:pPr>
+        <w:spacing w:before="240"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00594A35">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+        <w:lastRenderedPageBreak/>
+        <w:t>Optional upgrade: make the AI score the template</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="5262BDF0" w14:textId="77777777" w:rsidR="00594A35" w:rsidRPr="00594A35" w:rsidRDefault="00594A35" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="auto"/>
+        </w:pBdr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00594A35">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Add this to the end of your prompt:</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="5EF3FF03" w14:textId="77777777" w:rsidR="00FA27F8" w:rsidRDefault="00FA27F8" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="718CBB4A" w14:textId="4B38D945" w:rsidR="00A1427C" w:rsidRDefault="005D5A37" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Also</w:t>
+      </w:r>
+      <w:r w:rsidR="007C39AA">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>score the recommended template from 1-10 on:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- production potential</w:t>
+      </w:r>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- new patient access</w:t>
+      </w:r>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- emergency access</w:t>
+      </w:r>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- hygiene support</w:t>
+      </w:r>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- team usability</w:t>
+      </w:r>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>- schedule stability</w:t>
+      </w:r>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="005D5A37">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Then explain what would make the score higher.</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="24F5DCC1" w14:textId="77777777" w:rsidR="00022D2D" w:rsidRDefault="00022D2D" w:rsidP="00952CC2">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="58653712" w14:textId="77777777" w:rsidR="00022D2D" w:rsidRDefault="00022D2D" w:rsidP="00572653">
+      <w:pPr>
+        <w:spacing w:before="240"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="607B8F32" w14:textId="77777777" w:rsidR="00022D2D" w:rsidRPr="00022D2D" w:rsidRDefault="00022D2D" w:rsidP="00022D2D">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00022D2D">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+        <w:t>Optional upgrade: make the AI give multiple versions</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="7F3161DA" w14:textId="77777777" w:rsidR="00022D2D" w:rsidRPr="00022D2D" w:rsidRDefault="00022D2D" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="auto"/>
+        </w:pBdr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00022D2D">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Add this:</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="4AD31E3F" w14:textId="77777777" w:rsidR="00FA27F8" w:rsidRDefault="00FA27F8" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="6B1A8933" w14:textId="3C48AAF4" w:rsidR="00022D2D" w:rsidRDefault="00FA27F8" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00FA27F8">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Create 3 versions of the schedule:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00FA27F8">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>1. Growth-focused</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00FA27F8">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>2. Access-focused</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00FA27F8">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>3. Balanced</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00FA27F8">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+      </w:r>
+      <w:r w:rsidRPr="00FA27F8">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Then recommend the best option and explain why.</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="62641CA3" w14:textId="77777777" w:rsidR="00052B62" w:rsidRDefault="00052B62" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="116EC376" w14:textId="77777777" w:rsidR="00052B62" w:rsidRDefault="00052B62" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="28BBBC85" w14:textId="77777777" w:rsidR="00052B62" w:rsidRPr="00052B62" w:rsidRDefault="00052B62" w:rsidP="00052B62">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00052B62">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+        <w:t>Optional upgrade: force a table layout</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="453C040C" w14:textId="77777777" w:rsidR="00052B62" w:rsidRPr="00052B62" w:rsidRDefault="00052B62" w:rsidP="005F283B">
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="auto"/>
+        </w:pBdr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00052B62">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Add this:</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="6DAB9376" w14:textId="77777777" w:rsidR="00052B62" w:rsidRDefault="00052B62" w:rsidP="005F283B">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="04F3C171" w14:textId="31F9D7C8" w:rsidR="00952CC2" w:rsidRDefault="005F283B" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="005F283B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Show the final schedule in a simple table with:</w:t>
+      </w:r>
+      <w:r w:rsidRPr="005F283B">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Day | Time Block | Appointment Type | Purpose | Notes</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="58D7DDE9" w14:textId="77777777" w:rsidR="00952CC2" w:rsidRDefault="00952CC2">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br w:type="page"/>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="7798141D" w14:textId="77777777" w:rsidR="002C5C0C" w:rsidRPr="002C5C0C" w:rsidRDefault="002C5C0C" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="auto"/>
+        </w:pBdr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="002C5C0C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="32"/>
+          <w:szCs w:val="32"/>
+        </w:rPr>
+        <w:lastRenderedPageBreak/>
+        <w:t>Best way to use this in your workflow</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="14F9FC87" w14:textId="31B730BF" w:rsidR="00442F7A" w:rsidRDefault="002C5C0C" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Use the prompts </w:t>
+      </w:r>
+      <w:r w:rsidRPr="002C5C0C">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>in 3 layers:</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="72B4E7A0" w14:textId="77777777" w:rsidR="00442F7A" w:rsidRDefault="00442F7A" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="10411FFF" w14:textId="77777777" w:rsidR="00442F7A" w:rsidRDefault="00442F7A" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00442F7A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Layer 1: Strategy build</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00442F7A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Use the full prompt to design the ideal template.</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="5620DC72" w14:textId="77777777" w:rsidR="00442F7A" w:rsidRPr="00442F7A" w:rsidRDefault="00442F7A" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="2D753B46" w14:textId="77777777" w:rsidR="00442F7A" w:rsidRPr="00442F7A" w:rsidRDefault="00442F7A" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00442F7A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Layer 2: Team-facing simplification</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00442F7A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Ask:</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="056FCAC5" w14:textId="77777777" w:rsidR="00442F7A" w:rsidRDefault="00442F7A" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00442F7A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Now turn this into a front-desk-friendly scheduling guide with simple block rules.</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="2ABE0A37" w14:textId="77777777" w:rsidR="00442F7A" w:rsidRPr="00442F7A" w:rsidRDefault="00442F7A" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+    </w:p>
+    <w:p w14:paraId="2CC28EFB" w14:textId="77777777" w:rsidR="00442F7A" w:rsidRPr="00442F7A" w:rsidRDefault="00442F7A" w:rsidP="00442F7A">
+      <w:pPr>
+        <w:spacing w:after="0"/>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00442F7A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:b/>
+          <w:bCs/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Layer 3: Review cadence</w:t>
+      </w:r>
+      <w:r w:rsidRPr="00442F7A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:br/>
+        <w:t>Ask:</w:t>
+      </w:r>
+    </w:p>
+    <w:p w14:paraId="42A0E83A" w14:textId="4D666519" w:rsidR="00952CC2" w:rsidRPr="00A1427C" w:rsidRDefault="00442F7A" w:rsidP="00FA27F8">
+      <w:pPr>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+      </w:pPr>
+      <w:r w:rsidRPr="00442F7A">
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
+          <w:sz w:val="22"/>
+          <w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t>Create a 30-day review plan to evaluate whether this template is working.</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr w:rsidR="00952CC2" w:rsidRPr="00A1427C">
+      <w:pgSz w:w="12240" w:h="15840"/>
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
+      <w:cols w:space="720"/>
+      <w:docGrid w:linePitch="360"/>
+    </w:sectPr>
+  </w:body>
+</w:document>

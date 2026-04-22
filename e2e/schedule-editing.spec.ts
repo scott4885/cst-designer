@@ -11,7 +11,9 @@ test.describe('Schedule Editing', () => {
     // Navigate to the first office with a schedule
     await page.goto('/');
 
-    const officeLink = page.locator('a[href*="/offices/"]').first();
+    const officeLink = page
+      .locator('a[href*="/offices/"]:not([href$="/offices/new"])')
+      .first();
     if (await officeLink.isVisible({ timeout: 5000 }).catch(() => false)) {
       await officeLink.click();
       await page.waitForURL(/offices\//, { timeout: 10000 });

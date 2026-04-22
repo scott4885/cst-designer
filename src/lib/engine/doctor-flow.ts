@@ -108,7 +108,8 @@ export function buildDoctorFlow(
     const bt = blockTypeMap.get(slot.blockTypeId);
     const label = slot.blockLabel ?? bt?.label ?? 'Unknown';
     const dRatio = bt ? getDRatio(bt) : 0.5;
-    const aRatio = bt ? getARatio(bt) : 0.5;
+    const _aRatio = bt ? getARatio(bt) : 0.5;
+    void _aRatio;
 
     const totalDur = slot.durationMin;
     const dDur = Math.round(totalDur * dRatio);

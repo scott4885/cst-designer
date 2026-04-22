@@ -110,7 +110,7 @@ export default function ScheduleBuilderPage() {
   const {
     generatedSchedules, activeDay, activeWeek,
     setActiveDay, setActiveWeek, setSchedules,
-    isGenerating, setGenerating, isExporting, setExporting,
+    isGenerating, setGenerating, isExporting: _isExporting, setExporting,
     loadSchedulesForOffice, clearSchedules,
     placeBlockInDay, removeBlockInDay, moveBlockInDay, updateBlockInDay,
     copyDayToDays, setVariantLabel,
@@ -124,7 +124,7 @@ export default function ScheduleBuilderPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ completed: 0, total: 0 });
   const [showODExportDialog, setShowODExportDialog] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [, setIsExportingPdf] = useState(false);
   const [autoLoadedBanner, setAutoLoadedBanner] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);

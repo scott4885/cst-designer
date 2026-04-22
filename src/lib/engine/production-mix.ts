@@ -138,7 +138,8 @@ export function calculateProductionMix(
   providers?: ProviderInput[]
 ): ProductionMix {
   // Build lookup: blockTypeId → category (for label-based fallback)
-  const blockTypeById = new Map(blockTypes.map(bt => [bt.id, bt]));
+  const _blockTypeById = new Map(blockTypes.map(bt => [bt.id, bt]));
+  void _blockTypeById;
   const providerById = new Map((providers ?? []).map(p => [p.id, p]));
 
   const providerMixes: ProviderMix[] = schedule.productionSummary.map(summary => {

@@ -170,7 +170,7 @@ export function simulatePatientFlow(
 
   for (let run = 0; run < runs; run++) {
     let cursor = blockRuns[0].startMin; // start time of first block
-    let totalPatients = 0;
+    let _totalPatients = 0;
 
     for (let i = 0; i < blockRuns.length; i++) {
       const block = blockRuns[i];
@@ -180,9 +180,10 @@ export function simulatePatientFlow(
       const delta = (random.next() * 2 - 1) * block.variance;
       const actualDuration = Math.max(timeIncrement, block.nominalDuration + delta);
       blockVarianceTotals[i] += Math.abs(delta);
-      totalPatients += block.patientCount;
+      _totalPatients += block.patientCount;
       cursor += actualDuration;
     }
+    void _totalPatients;
 
     completionTimes.push(cursor);
   }

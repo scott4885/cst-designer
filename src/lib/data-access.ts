@@ -6,6 +6,7 @@ import type { ProviderInput, BlockTypeInput, ScheduleRules, GenerationResult } f
 import { generateSchedule as engineGenerateSchedule } from './engine/generator';
 import { detectConflicts } from './engine/stagger';
 import { autoResolveStaggerConflicts } from './engine/stagger-resolver';
+import { mergeProcedureOverrides } from './engine/procedure-overrides';
 import { defaultRules } from './mock-data';
 import { DEFAULT_OPERATORIES } from './operatory-utils';
 import type {
@@ -404,12 +405,29 @@ export async function generateSchedule(
 
   const { autoApplyStagger = true } = options;
 
+  // Sprint 3 — ProcedureOverride merge (PRD-V4 FR-6). Resolve ONCE per
+  // generation call so the hot path never hits the DB. Falls through to
+  // `office.blockTypes` when no overrides exist (common case).
+  const overrides = await prisma.procedureOverride.findMany({
+    where: { officeId },
+  });
+  const blockTypesForEngine = mergeProcedureOverrides(
+    office.blockTypes,
+    overrides.map((o) => ({
+      officeId: o.officeId,
+      blockTypeId: o.blockTypeId,
+      asstPreMin: o.asstPreMin,
+      doctorMin: o.doctorMin,
+      asstPostMin: o.asstPostMin,
+    })),
+  );
+
   const results: GenerationResult[] = [];
 
   for (const day of days) {
     const result = engineGenerateSchedule({
       providers: office.providers,
-      blockTypes: office.blockTypes,
+      blockTypes: blockTypesForEngine,
       rules: office.rules,
       timeIncrement: office.timeIncrement,
       dayOfWeek: day,

@@ -143,6 +143,60 @@ export interface ProviderInput {
    * When set and valid (sum ~100), drives the generator's category-weighted placement.
    */
   futureProcedureMix?: ProcedureMix;
+  /**
+   * Sprint 1 — Day-of-week roster (Bible \u00a77). First-class, not an override.
+   * Provider only appears on days listed here. When undefined/empty, defaults to
+   * all five weekdays (MON\u2013FRI) per backward-compatibility.
+   *
+   * Example: Kelli (hygienist) with roster ['MON','TUE','WED','THU'] does NOT
+   * appear on Friday regardless of providerSchedule overrides.
+   */
+  dayOfWeekRoster?: DayOfWeekCode[];
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 1 — X-segment canonical primitive (Bible §2.1)
+// ---------------------------------------------------------------------------
+
+/**
+ * The X-segment template is the canonical decomposition of a procedure into
+ * three contiguous time bands:
+ *
+ *   [ asstPreMin ][ doctorMin ][ asstPostMin ]
+ *   (assistant)  (doctor X)    (assistant)
+ *
+ * All durations are in **minutes**. Total duration = asstPreMin + doctorMin + asstPostMin.
+ *
+ * Per Bible §2.1:
+ * - `doctorMin` is the constrained (singleton) resource the multi-column
+ *   coordinator solves on.
+ * - `asstPreMin` and `asstPostMin` are assistant-only (or hygienist-only for
+ *   hygiene blocks) and may overlap freely across columns.
+ * - `doctorContinuityRequired=true` forces the doctor to remain in the room
+ *   for the full `doctorMin` window (endo, surgical ext, implant, IV sedation).
+ *   The coordinator refuses to schedule a second continuity-required D-segment
+ *   concurrent on the same doctor even if `maxConcurrentDoctorOps > 1`.
+ * - `examWindowMin` constrains a hygiene block's embedded doctor exam to a
+ *   given sub-range (in 10-min unit indices within the block).
+ */
+export interface XSegmentTemplate {
+  /** Leading assistant-only minutes (setup, seat, numb, x-rays) */
+  readonly asstPreMin: number;
+  /** Middle doctor hands-on minutes — the X-segment. 0 = pure assistant/hygiene block */
+  readonly doctorMin: number;
+  /** Trailing assistant-only minutes (dismiss, turnover, temps) */
+  readonly asstPostMin: number;
+  /** If true, doctor cannot leave mid-procedure (endo, surgical ext, implant) */
+  readonly doctorContinuityRequired?: boolean;
+  /**
+   * Hygiene-only: the range of 10-min unit indices within the block where
+   * the embedded doctor exam may land. `earliestUnitIdx` inclusive,
+   * `latestUnitIdx` inclusive. Middle 30 min of a 60-min recall = {1, 4}.
+   */
+  readonly examWindowMin?: {
+    readonly earliestUnitIdx: number;
+    readonly latestUnitIdx: number;
+  };
 }
 
 export interface BlockTypeInput {
@@ -179,11 +233,23 @@ export interface BlockTypeInput {
   procedureCategory?: ProcedureCategory;
   /**
    * Per-slot staffing pattern extracted from real practice templates.
-   * Length must equal durationMin / timeIncrement. When present, placeBlockInSlots uses
-   * this array directly instead of hardcoded A/D/H generation.
-   * Example HP > $1800 (80min @ 10min): ['A','A','D','D','D','D','A','A']
+   *
+   * @deprecated Prefer `xSegment` for Sprint 1+ code. The legacy `pattern`
+   * array is still honored by `pattern-catalog.resolvePattern()` as a
+   * single-column fallback when no X-segment template is present.
    */
   pattern?: StaffingCode[];
+  /**
+   * Sprint 1 — X-segment canonical primitive. When present, the Multi-Column
+   * Coordinator uses this (not `pattern`) to solve the doctor graph. See
+   * Bible §2.1 and `XSegmentTemplate` above.
+   */
+  xSegment?: XSegmentTemplate;
+  /**
+   * Sprint 1 — convenience duplicate of `xSegment.doctorContinuityRequired`
+   * so the Prisma column can map 1:1. When both are set, `xSegment` wins.
+   */
+  doctorContinuityRequired?: boolean;
 }
 
 export interface ScheduleRules {
@@ -236,6 +302,13 @@ export interface GenerationResult {
    * for alternate schedules). Null/undefined/empty = regular (non-variant) day.
    */
   variantLabel?: string | null;
+  /**
+   * Sprint 3 — Anti-Pattern Guard report (AP-1..AP-15). Computed from the
+   * placed-block decomposition of `slots` at the tail of generation. Null
+   * when the pipeline has no placed doctor D-segments (e.g. hygiene-only
+   * office with no xSegment data). The UI "Guard Report" panel reads this.
+   */
+  guardReport?: GuardReport | null;
   /** Loop 4: Morning-load enforcer telemetry (optional; omitted if no doctors). */
   morningLoadSwaps?: {
     /** Schedule-wide ratio of morning doctor restorative $ / total doctor restorative $. */
@@ -328,6 +401,178 @@ export interface StaggerApplicationResult {
  * Value: { start, end } for working days, or null for closed days.
  */
 export type PerDayHours = Record<string, { start: string; end: string } | null>;
+
+// ---------------------------------------------------------------------------
+// Sprint 1 — Coordination contracts (Bible §3, §4, §9)
+// ---------------------------------------------------------------------------
+
+/**
+ * Canonical practice-model codes per Bible §8 / PRD-V4 §6.
+ * Format: `<nDoctors>D<nOps>O[_<nHygienists>H]` or hybrid variants.
+ * - `1D1O`: 1 doctor, 1 operatory (single-column)
+ * - `1D2O`: 1 doctor, 2 ops (classic dual-column)
+ * - `1D3O`: 1 doctor, 3 ops (quarterback model — only with EFDA scope)
+ * - `2D3O`: 2 doctors, 3 ops (Dr. A & Dr. B sharing middle op)
+ * - `1D2O_3H`: 1 doctor, 2 doctor ops, 3 hygiene ops
+ * - `2D4O_2H`: 2 doctors, 4 doctor ops, 2 hygiene ops
+ */
+export type PracticeModelCode =
+  | '1D1O'
+  | '1D2O'
+  | '1D3O'
+  | '1D4O'
+  | '2D3O'
+  | '2D4O'
+  | '2D5O'
+  | '2D6O'
+  | '1D2O_3H'
+  | '2D4O_2H'
+  | 'CUSTOM';
+
+/**
+ * Production-target policy per Bible §4.
+ * - `JAMESON_50`: Jameson — 50% primary pre-block
+ * - `LEVIN_60`: Levin Group — 60–65% morning
+ * - `FARRAN_75_BY_NOON`: Farran / Burkhart — 75–80% primary before noon
+ * - `CUSTOM`: caller supplies explicit morningSharePct + morningCutoffMin
+ */
+export type ProductionTargetPolicy =
+  | 'JAMESON_50'
+  | 'LEVIN_60'
+  | 'FARRAN_75_BY_NOON'
+  | 'CUSTOM';
+
+/**
+ * EFDA (Expanded Function Dental Assistant) scope profile per Bible §3.3.
+ * Gates whether `maxConcurrentDoctorOps` may exceed 2.
+ */
+export type EfdaScopeLevel = 'NONE' | 'LIMITED' | 'BROAD';
+
+/** Day-of-week roster abbreviation per Bible §7. */
+export type DayOfWeekCode = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
+
+/**
+ * Canonical placed-block shape returned by the generator after coordination.
+ * Extends the slot-level TimeSlotOutput with block-level metadata and
+ * X-segment band minutes per Bible §2.1.
+ */
+export interface PlacedBlock {
+  /** Unique instance id shared by every slot of this block */
+  blockInstanceId: string;
+  blockTypeId: string;
+  blockLabel: string;
+  providerId: string;
+  operatory: string;
+  /** Start minute of day (0 = midnight) */
+  startMinute: number;
+  /** Total duration in minutes (asstPreMin + doctorMin + asstPostMin) */
+  durationMin: number;
+  /** Leading assistant-only minutes (X-segment pre-band) */
+  asstPreMin: number;
+  /** Middle doctor hands-on minutes (X-segment D-band) */
+  doctorMin: number;
+  /** Trailing assistant-only minutes (X-segment post-band) */
+  asstPostMin: number;
+  /** Start minute (of day) of the doctor-X band */
+  doctorStartMinute?: number;
+  /** Set true when doctor must remain continuous for the full D-band */
+  doctorContinuityRequired?: boolean;
+  /** Production amount in dollars for this placed block */
+  productionAmount?: number;
+  /** Explanation string for the UI rationale tooltip */
+  rationale?: string | null;
+}
+
+/**
+ * Per-minute (or per-unit) doctor-occupancy entry recorded by the
+ * MultiColumnCoordinator. Used for trace inspection, tests, and debug UI.
+ */
+export interface DoctorScheduleTrace {
+  /** Minute of day (0 = midnight) the D-band starts */
+  doctorStartMinute: number;
+  /** Minute of day (exclusive) the D-band ends */
+  doctorEndMinute: number;
+  /** Doctor provider id the D-band is bound to */
+  doctorProviderId: string;
+  /** Operatory the patient is seated in (may differ from doctorProviderId.operatories[0]) */
+  operatory: string;
+  /** Placed block instance that owns this D-band */
+  blockInstanceId: string;
+  /** True when serialized due to continuityRequired */
+  continuityRequired: boolean;
+  /** Whether this D-band was placed as the 'primary' or an overlap */
+  concurrencyIndex: number;
+}
+
+/**
+ * A single anti-pattern violation flagged by the AntiPatternGuard.
+ * `ap` identifies which rule (AP-1..AP-15, Bible §9).
+ */
+export interface Violation {
+  /** Anti-pattern identifier, e.g. "AP-1", "AP-7" */
+  ap: string;
+  /** Short machine-readable code (e.g. "D_COLLISION", "ORPHAN_X") */
+  code: string;
+  /** Human-readable explanation (surfaced in UI) */
+  message: string;
+  /** Severity: HARD = must be fixed, SOFT = advisory, INFO = telemetry */
+  severity: 'HARD' | 'SOFT' | 'INFO';
+  /** Optional block instance(s) involved */
+  blockInstanceIds?: string[];
+  /** Optional time-of-day range */
+  range?: { startMinute: number; endMinute: number };
+  /** Optional provider id */
+  providerId?: string;
+  /** Optional operatory */
+  operatory?: string;
+}
+
+/**
+ * Per-guard result. Returned by each AP-* guard function and aggregated by
+ * `runAllGuards()`.
+ */
+export interface GuardResult {
+  /** Guard identifier, e.g. "AP-1" */
+  ap: string;
+  /** Whether no violations were found */
+  passed: boolean;
+  violations: Violation[];
+}
+
+/**
+ * Aggregate report from `runAllGuards()`.
+ */
+export interface GuardReport {
+  /** True only when every guard passed */
+  passed: boolean;
+  results: GuardResult[];
+  /** Flat list of every violation across all guards, sorted by severity */
+  violations: Violation[];
+  /** Counts by severity, for dashboards */
+  counts: { hard: number; soft: number; info: number };
+}
+
+/**
+ * Full generator output. Sprint 1 onward this is the coordinator-backed shape;
+ * legacy `GenerationResult` stays for back-compat with the existing UI until
+ * Sprint 2 finishes the UI migration.
+ */
+export interface GeneratedSchedule {
+  dayOfWeek: DayOfWeekCode;
+  blocks: PlacedBlock[];
+  doctorTrace: DoctorScheduleTrace[];
+  guardReport: GuardReport;
+  warnings: string[];
+  /** Optional telemetry surfaced for diagnostics / policy-tuning UI */
+  policy?: {
+    policy: ProductionTargetPolicy;
+    targetPrimaryPct: number;
+    morningSharePct?: number;
+    morningCutoffMin?: number;
+    achievedPrimaryPct?: number;
+    achievedMorningPct?: number;
+  };
+}
 
 /**
  * Snap a minute value to the nearest time increment boundary.

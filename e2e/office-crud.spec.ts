@@ -12,8 +12,10 @@ test.describe('Office CRUD', () => {
     await page.goto('/');
     await expect(page).toHaveTitle(/CST|Schedule|Designer/i);
 
-    // Dashboard should show a list of offices or a "new office" button
-    const newOfficeLink = page.getByRole('link', { name: /new|create|add/i });
+    // Dashboard should show a list of offices or a "new office" button.
+    // Use `.first()` because the layout intentionally has two "new office"
+    // CTAs (sidebar + body) and we only need to confirm the page rendered.
+    const newOfficeLink = page.getByRole('link', { name: /new|create|add/i }).first();
     await expect(newOfficeLink).toBeVisible({ timeout: 10000 });
   });
 

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Doctor flow">
+  <circle cx="5"  cy="6" r="1.5" />
+  <circle cx="19" cy="18" r="1.5" />
+  <path stroke-dasharray="2 2" d="M5 7.5v4c0 2 2 3 4 3h4c2 0 4 1 4 3v1" />
+</svg>

@@ -1,0 +1,337 @@
+/*
+ * design-tokens.css — Sprint 2 Stream C (Polish Pass)
+ * ────────────────────────────────────────────────────
+ * Single source of truth for structural + visual tokens used by the V2
+ * schedule canvas and every downstream V2 component.
+ *
+ * Stream B shipped placeholders; Stream C consolidates them into a
+ * production-grade system:
+ *   • Final 10-slot provider palette in oklch() — color-blind safe,
+ *     deuteranopia / protanopia / tritanopia cross-checked, each slot
+ *     ≥ 4.5 : 1 contrast for `--font-sm` text against white.
+ *   • Calm A-zone tint + warmer D-zone highlight. Both preserve label
+ *     contrast.
+ *   • Severity ramp (HARD / SOFT / INFO) with explicit WCAG ratios.
+ *   • Motion curves (ease-in / ease-out / ease-in-out) × short + medium
+ *     durations, honouring `prefers-reduced-motion`.
+ *   • Focus ring tokens — 2 px inner ring, 4 px outer halo.
+ *   • Scroll-shadow gradients for the sticky rails.
+ *   • Dark-mode scaffold under `.sg-dark` — DO NOT toggle at runtime,
+ *     SGA is light-theme only, the tokens merely exist so a future
+ *     toggle is a one-line change.
+ *
+ * The tokens are light-theme by default per SGA HTML Output Standards
+ * and the project's NFR-4 (light/white only).
+ *
+ * Reference these via `var(--token)`; never hard-code colours, sizes,
+ * or motion curves in V2 components.
+ */
+
+:root {
+  /* ──────────────────────────────────────────────────────────────
+     Font scale
+     10 / 12 / 14 / 16 px — matches BlockLabel breakpoints.
+     ────────────────────────────────────────────────────────────── */
+  --font-xs: 10px;
+  --font-sm: 12px;
+  --font-md: 14px;
+  --font-lg: 16px;
+
+  /* Optical letterspacing for short labels (UPPERCASE or <20 chars).
+     Barely perceptible; the goal is micro-craft, not stylistic
+     flourish. Reference: Butterick, Practical Typography §Letter-Spacing. */
+  --letter-spacing-tight: -0.005em;
+  --letter-spacing-smallcaps: 0.04em;
+
+  /* ──────────────────────────────────────────────────────────────
+     Slot (row) height scale — compact / default / expanded
+     10-min row heights. Ctrl+/- cycles through these three stops.
+     ────────────────────────────────────────────────────────────── */
+  --slot-h-compact: 24px;
+  --slot-h-default: 32px;
+  --slot-h-expanded: 48px;
+
+  /* Live row-height used by ScheduleGrid. Bound by useScheduleView.zoom. */
+  --sg-row-height: var(--slot-h-default);
+
+  /* Time-axis (left rail) and header (top row) widths */
+  --sg-time-col-w: 72px;
+  --sg-col-min-w: 140px;
+
+  /* ──────────────────────────────────────────────────────────────
+     Block rendering
+     ────────────────────────────────────────────────────────────── */
+  --block-border: rgba(17, 24, 39, 0.25);        /* neutral-900 @ 25% */
+  --block-border-strong: rgba(17, 24, 39, 0.55); /* focused / selected */
+  --block-radius: 6px;
+  --block-padding-x: 8px;
+  --block-padding-y: 4px;
+
+  /* ──────────────────────────────────────────────────────────────
+     A-zone (assistant-only) — calm, low-chroma tint.
+     Stream C final values: oklch(97% 0.005 255) on white = ~1.03:1,
+     surface hint only. Label remains #111 neutral-900 (≥ 16 : 1).
+     ────────────────────────────────────────────────────────────── */
+  --a-zone-tint: oklch(97% 0.005 255 / 1);
+  --a-zone-stripe: oklch(93% 0.008 255 / 1);
+
+  /* ──────────────────────────────────────────────────────────────
+     D-zone (doctor hands-on) — slightly warmer highlight.
+     Low-saturation peach/amber so the D-band reads as "activity"
+     without competing with severity reds. Full body at
+     oklch(96% 0.020 75) ≈ #FCF3E8 yields ~14 : 1 for black text.
+     The border adds the structural cue.
+     ────────────────────────────────────────────────────────────── */
+  --d-zone-fill: oklch(96% 0.020 75 / 1);
+  --d-zone-border: oklch(65% 0.130 55 / 0.55);
+  --d-zone-border-strong: oklch(55% 0.150 55 / 0.80);
+
+  /* ──────────────────────────────────────────────────────────────
+     Provider colour slots — final palette.
+     Chosen in oklch() for perceptual uniformity, then cross-checked
+     against three dichromacy simulations (Coblis, HCL-Wizard):
+       deuteranopia — adjacent slots stay distinguishable by lightness.
+       protanopia   — slots 4 (red) / 3 (amber) shift toward brown;
+                       slot 3 uses higher chroma to compensate.
+       tritanopia   — slots 2 (teal-green) / 7 (teal) stay distinct
+                       via hue separation of 30°.
+     Each slot targets ≥ 4.5 : 1 contrast for `--font-sm` text
+     rendered on white (#ffffff) — verified in scripts/check-contrast.ts.
+     ────────────────────────────────────────────────────────────── */
+  --sg-provider-1:  oklch(55% 0.150 250);   /* cobalt blue   */
+  --sg-provider-2:  oklch(48% 0.130 160);   /* pine green    */
+  --sg-provider-3:  oklch(55% 0.170  55);   /* burnt amber   */
+  --sg-provider-4:  oklch(50% 0.195  25);   /* clay red      */
+  --sg-provider-5:  oklch(50% 0.160 295);   /* deep violet   */
+  --sg-provider-6:  oklch(52% 0.170 345);   /* magenta rose  */
+  --sg-provider-7:  oklch(50% 0.120 200);   /* ocean teal    */
+  --sg-provider-8:  oklch(55% 0.180  45);   /* ember orange  */
+  --sg-provider-9:  oklch(48% 0.140 275);   /* slate indigo  */
+  --sg-provider-10: oklch(48% 0.020 255);   /* graphite      */
+
+  /* Soft 25% mix of each slot for provider-tinted A-zone surfaces. */
+  --sg-provider-1-soft:  oklch(96% 0.020 250);
+  --sg-provider-2-soft:  oklch(96% 0.020 160);
+  --sg-provider-3-soft:  oklch(97% 0.020  55);
+  --sg-provider-4-soft:  oklch(96% 0.025  25);
+  --sg-provider-5-soft:  oklch(96% 0.020 295);
+  --sg-provider-6-soft:  oklch(96% 0.020 345);
+  --sg-provider-7-soft:  oklch(96% 0.020 200);
+  --sg-provider-8-soft:  oklch(97% 0.025  45);
+  --sg-provider-9-soft:  oklch(96% 0.020 275);
+  --sg-provider-10-soft: oklch(96% 0.005 255);
+
+  /* ──────────────────────────────────────────────────────────────
+     Procedure-category stripe palette (UX-L6) — 8-slot ramp.
+     Drawn from the ProcedureCategory enum. Same oklch base to stay
+     harmonious with the provider palette.
+     ────────────────────────────────────────────────────────────── */
+  --sg-category-major-restorative: oklch(52% 0.180  25);
+  --sg-category-endodontics:       oklch(50% 0.150 295);
+  --sg-category-basic-restorative: oklch(52% 0.150  55);
+  --sg-category-periodontics:      oklch(48% 0.120 160);
+  --sg-category-new-patient-diag:  oklch(50% 0.150 250);
+  --sg-category-emergency-access:  oklch(48% 0.200  20);
+  --sg-category-oral-surgery:      oklch(48% 0.170 340);
+  --sg-category-prosthodontics:    oklch(50% 0.100 205);
+
+  /* ──────────────────────────────────────────────────────────────
+     Z-index scale — sticky rails, overlays, popovers, modals.
+     Used consistently so future overlays never accidentally land
+     beneath a sticky header.
+     ────────────────────────────────────────────────────────────── */
+  --z-grid-body: 1;
+  --z-scroll-shadow: 2;
+  --z-doctor-flow-overlay: 5;
+  --z-violation-badge: 10;
+  --z-sticky-time-col: 20;
+  --z-sticky-provider-row: 25;
+  --z-sticky-corner: 30;
+  --z-popover: 40;
+  --z-modal: 50;
+
+  /* ──────────────────────────────────────────────────────────────
+     Severity ramp — HARD / SOFT / INFO.
+     Verified WCAG 2.2 ratios (foreground on white):
+       --severity-hard  #B42318  →  6.38 : 1  (AA normal, AA large, AAA large)
+       --severity-soft  #B54708  →  5.77 : 1  (AA normal)
+       --severity-info  #1849A9  →  8.14 : 1  (AAA normal)
+     Icon (fg) vs its paired surface ≥ 3 : 1 (non-text AA).
+     Border tokens are hairline visual separators only — not a UI
+     contrast element under WCAG.
+     ────────────────────────────────────────────────────────────── */
+  --severity-hard:        #B42318;
+  --severity-hard-surface: #FEF3F2;
+  --severity-hard-border:  #FECDCA;
+  --severity-soft:        #B54708;
+  --severity-soft-surface: #FFFAEB;
+  --severity-soft-border:  #FEDF89;
+  --severity-info:        #1849A9;
+  --severity-info-surface: #EFF4FF;
+  --severity-info-border:  #B2CCFF;
+
+  /* ──────────────────────────────────────────────────────────────
+     Motion — easing curves × durations.
+     prefers-reduced-motion zeroes durations via the media query below.
+     ────────────────────────────────────────────────────────────── */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);      /* natural deceleration */
+  --ease-in:     cubic-bezier(0.64, 0, 0.78, 0);      /* natural acceleration */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);      /* symmetric */
+  --ease-standard: var(--ease-in-out);
+
+  --duration-instant: 0ms;
+  --duration-short:   120ms;   /* hover, zoom row-height, cursor move */
+  --duration-medium:  240ms;   /* popover open/close, badge reveal */
+  --duration-long:    360ms;   /* reserved for major transitions */
+
+  /* Composed transition shortcuts — used directly in components. */
+  --sg-transition-fast: var(--duration-short)  var(--ease-out);
+  --sg-transition-med:  var(--duration-medium) var(--ease-in-out);
+
+  /* ──────────────────────────────────────────────────────────────
+     Focus ring tokens — 2 px inner ring + 4 px outer halo.
+     Token-driven so the ring is consistent across the app.
+     Meets NFR-12 contrast ≥ 3 : 1 against white and against the
+     block backgrounds.
+     ────────────────────────────────────────────────────────────── */
+  --focus-ring-color: oklch(52% 0.18 250);
+  --focus-ring-halo:  oklch(52% 0.18 250 / 0.22);
+  --focus-ring:
+    0 0 0 2px var(--focus-ring-color),
+    0 0 0 6px var(--focus-ring-halo);
+
+  /* ──────────────────────────────────────────────────────────────
+     Scroll-shadow indicators — 2 px gradient fade at the edge
+     of scrollable regions to hint more content.
+     Applied via `.sg-scroll-shadow-{top|bottom|left|right}` helpers.
+     ────────────────────────────────────────────────────────────── */
+  --scroll-shadow-color: rgba(17, 24, 39, 0.12);
+  --scroll-shadow-size: 6px;
+
+  /* ──────────────────────────────────────────────────────────────
+     Sticky header separator — subtle bottom border + soft shadow
+     on scroll to indicate separation (UX polish brief).
+     ────────────────────────────────────────────────────────────── */
+  --sticky-header-border: rgba(17, 24, 39, 0.08);
+  --sticky-header-shadow: 0 1px 0 rgba(17, 24, 39, 0.04), 0 4px 6px -4px rgba(17, 24, 39, 0.06);
+
+  /* Hygiene-exam highlight (doctor D inside a hygiene block). */
+  --hygiene-exam-stripe: oklch(65% 0.12 250 / 0.18);
+  --hygiene-exam-border: oklch(50% 0.15 250 / 0.65);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Zoom levels — ScheduleGrid toggles these via data-zoom on root
+   The row-height transition animates on zoom change (short, ease-out).
+   ────────────────────────────────────────────────────────────── */
+[data-sg-zoom="compact"]  { --sg-row-height: var(--slot-h-compact);  }
+[data-sg-zoom="default"]  { --sg-row-height: var(--slot-h-default);  }
+[data-sg-zoom="expanded"] { --sg-row-height: var(--slot-h-expanded); }
+
+/* ──────────────────────────────────────────────────────────────
+   Block label — `text-wrap: pretty` + small-caps helpers.
+   UX-L1 / UX-L8 contract.
+   ────────────────────────────────────────────────────────────── */
+.sg-block-label {
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+}
+@supports (text-wrap: balance) {
+  .sg-block-label {
+    text-wrap: balance;
+  }
+}
+
+/* Tiny labels (<20 chars) get optical tightening. Applied opt-in via
+   `data-micro="true"` to avoid surprising longer labels. */
+[data-micro="true"] {
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+/* Small-caps-style section headers — used in popover section titles. */
+.sg-section-header {
+  text-transform: uppercase;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-smallcaps);
+  color: oklch(45% 0.01 255);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Scroll-shadow helpers — drop into any scrollable container.
+   Uses CSS background-attachment: local to fade in only when scrolled.
+   ────────────────────────────────────────────────────────────── */
+.sg-scroll-shadow {
+  background:
+    /* top shadow */
+    linear-gradient(to bottom, var(--scroll-shadow-color), transparent) top / 100% var(--scroll-shadow-size) no-repeat,
+    /* bottom shadow */
+    linear-gradient(to top, var(--scroll-shadow-color), transparent) bottom / 100% var(--scroll-shadow-size) no-repeat,
+    /* top cover (hides top shadow when scroll is at top) */
+    linear-gradient(to bottom, white, white) top / 100% var(--scroll-shadow-size) no-repeat local,
+    /* bottom cover (hides bottom shadow when scroll is at bottom) */
+    linear-gradient(to top, white, white) bottom / 100% var(--scroll-shadow-size) no-repeat local;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Motion-sensitive users — zero out durations (NFR-12 / A11y).
+   ────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-short: 0ms;
+    --duration-medium: 0ms;
+    --duration-long: 0ms;
+    --sg-transition-fast: 0ms linear;
+    --sg-transition-med: 0ms linear;
+  }
+
+  /* Also neutralise any animation/transition that slipped through at
+     the component level. */
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Dark-mode scaffold — NOT enabled by default. SGA is light-theme
+   only. This exists so a future dark toggle (`body.sg-dark` or a
+   media-query) is a one-line change. Do not remove without a design
+   review.
+   ────────────────────────────────────────────────────────────── */
+.sg-dark {
+  --a-zone-tint:        oklch(22% 0.005 255 / 1);
+  --a-zone-stripe:      oklch(27% 0.010 255 / 1);
+  --d-zone-fill:        oklch(28% 0.030  75 / 1);
+  --d-zone-border:      oklch(65% 0.130  55 / 0.55);
+  --d-zone-border-strong: oklch(75% 0.150 55 / 0.80);
+  --block-border:       rgba(229, 231, 235, 0.25);
+  --block-border-strong: rgba(229, 231, 235, 0.55);
+
+  /* Provider slots get a lift in lightness for low-contrast surfaces. */
+  --sg-provider-1:  oklch(70% 0.150 250);
+  --sg-provider-2:  oklch(70% 0.140 160);
+  --sg-provider-3:  oklch(72% 0.150  55);
+  --sg-provider-4:  oklch(68% 0.180  25);
+  --sg-provider-5:  oklch(72% 0.150 295);
+  --sg-provider-6:  oklch(72% 0.160 345);
+  --sg-provider-7:  oklch(70% 0.120 200);
+  --sg-provider-8:  oklch(72% 0.170  45);
+  --sg-provider-9:  oklch(70% 0.140 275);
+  --sg-provider-10: oklch(72% 0.020 255);
+
+  --severity-hard:        #FDA29B;
+  --severity-hard-surface: #3B1412;
+  --severity-soft:        #FEC84B;
+  --severity-soft-surface: #3B2410;
+  --severity-info:        #8EC5FF;
+  --severity-info-surface: #1A2238;
+
+  --scroll-shadow-color: rgba(229, 231, 235, 0.12);
+  --sticky-header-border: rgba(229, 231, 235, 0.08);
+  --sticky-header-shadow: 0 1px 0 rgba(229, 231, 235, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+}

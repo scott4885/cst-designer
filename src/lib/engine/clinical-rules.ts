@@ -95,7 +95,7 @@ function getProviderBlocks(
  * Count total consecutive D-time minutes for a provider starting at a given time.
  * Consecutive = no A-time or lunch gap between blocks.
  */
-function getConsecutiveDTimeMinutes(
+function _getConsecutiveDTimeMinutes(
   slots: TimeSlotOutput[],
   providerId: string,
   blockTypes: BlockTypeInput[],
@@ -115,7 +115,8 @@ function getConsecutiveDTimeMinutes(
     if (slotMin < startMinutes) continue;
     if (slotMin > currentMinute + 10) break; // gap in time → stop
 
-    const bt = slot.blockTypeId ? byId.get(slot.blockTypeId) : undefined;
+    const _bt = slot.blockTypeId ? byId.get(slot.blockTypeId) : undefined;
+    void _bt;
     const code = slot.staffingCode;
 
     if (code === 'D') {
@@ -248,7 +249,7 @@ function checkRule3_EmergencyMorningOnly(
 function checkRule4_ConsecutiveDTime(
   schedule: GenerationResult,
   providers: ProviderInput[],
-  blockTypes: BlockTypeInput[]
+  _blockTypes: BlockTypeInput[]
 ): ClinicalWarning[] {
   const warnings: ClinicalWarning[] = [];
   const MAX_CONSECUTIVE_D_TIME = 90; // minutes

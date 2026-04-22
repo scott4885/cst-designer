@@ -38,7 +38,7 @@ export interface StaggerOptimizationResult {
 function sequenceToSlots(
   sequence: ProcedureToSchedule[],
   operatoryCount: number,
-  staggerOffsetMin: number
+  _staggerOffsetMin: number
 ): Slot[] {
   const slots: Slot[] = [];
   // Track current time cursor per operatory
@@ -83,9 +83,10 @@ function proceduresToBlockTypes(procedures: ProcedureToSchedule[]): BlockTypeInp
 function scoreFlow(flow: DoctorFlowResult, hygExamIntervalMin: number, hygienistCount: number): number {
   // Estimate how many exams we need based on total A-time gaps
   const totalATimeMin = flow.aTimeGaps.reduce((s, g) => s + (g.endMin - g.startMin), 0);
-  const examsNeeded = hygienistCount > 0 && hygExamIntervalMin > 0
+  const _examsNeeded = hygienistCount > 0 && hygExamIntervalMin > 0
     ? Math.ceil((totalATimeMin / hygExamIntervalMin) * hygienistCount)
     : 0;
+  void _examsNeeded;
 
   // Idle penalty: conflicts are bad (doctor double-booked)
   const conflictPenalty = flow.conflicts.reduce((s, c) => s + (c.endMin - c.startMin), 0);

@@ -79,6 +79,86 @@ import {
   computeScheduleMorningLoadRatio,
 } from './morning-load-enforcer';
 
+// Sprint 3 — Anti-Pattern Guard report. Decompose final slots into
+// PlacedBlocks + DoctorScheduleTrace, then run all 15 guards.
+import { runAllGuards } from './anti-pattern-guard';
+import {
+  slotsToPlacedBlocks,
+  placedBlocksToDoctorTrace,
+} from './slots-to-placed-blocks';
+import type { GuardReport, ScheduleRules as _SR_TYPE } from './types';
+
+/**
+ * Sprint 3 — Build a GuardReport from the generator's final output. Kept
+ * inside the module so callers don't need to know the assembly order.
+ * Returns `null` when the pipeline has no placed doctor D-segments (all
+ * guards would pass trivially — surfacing that as a green "15/15 pass"
+ * card is handled by the UI panel, but we still null here to keep
+ * `guardReport.violations.length === 0` from masking "not applicable").
+ */
+function computeGuardReport(
+  slots: TimeSlotOutput[],
+  providers: ProviderInput[],
+  blockTypes: BlockTypeInput[],
+  timeIncrement: number,
+  dayOfWeek: string,
+  _rules: _SR_TYPE,
+): GuardReport | null {
+  const placed = slotsToPlacedBlocks(slots, blockTypes, timeIncrement);
+  const doctorTrace = placedBlocksToDoctorTrace(placed, providers);
+  if (placed.length === 0) return null;
+
+  // Compute day window from the active providers — earliest start, latest end.
+  let dayStartMin = Number.POSITIVE_INFINITY;
+  let dayEndMin = Number.NEGATIVE_INFINITY;
+  for (const p of providers) {
+    const [sh, sm] = (p.workingStart ?? '07:00').split(':').map(Number);
+    const [eh, em] = (p.workingEnd ?? '16:00').split(':').map(Number);
+    dayStartMin = Math.min(dayStartMin, sh * 60 + (sm ?? 0));
+    dayEndMin = Math.max(dayEndMin, eh * 60 + (em ?? 0));
+  }
+  if (!Number.isFinite(dayStartMin)) dayStartMin = 7 * 60;
+  if (!Number.isFinite(dayEndMin)) dayEndMin = 17 * 60;
+
+  // Lunch (use the first provider's lunch if enabled — shared lunch windows are
+  // the common case; AP-8 tolerates variance.
+  const lunchProv = providers.find((p) => p.lunchEnabled !== false);
+  let lunchStartMin: number | null = null;
+  let lunchEndMin: number | null = null;
+  if (lunchProv) {
+    const [lsh, lsm] = (lunchProv.lunchStart ?? '12:00').split(':').map(Number);
+    const [leh, lem] = (lunchProv.lunchEnd ?? '13:00').split(':').map(Number);
+    lunchStartMin = lsh * 60 + (lsm ?? 0);
+    lunchEndMin = leh * 60 + (lem ?? 0);
+  }
+
+  const dayCodeMap: Record<string, string> = {
+    MONDAY: 'MON', TUESDAY: 'TUE', WEDNESDAY: 'WED',
+    THURSDAY: 'THU', FRIDAY: 'FRI', SATURDAY: 'SAT', SUNDAY: 'SUN',
+  };
+  const dayCode = dayCodeMap[dayOfWeek] ?? dayOfWeek;
+
+  const providerRosters: Record<string, string[]> = {};
+  for (const p of providers) providerRosters[p.id] = p.dayOfWeekRoster ?? [];
+
+  return runAllGuards({
+    blocks: placed,
+    doctorTrace,
+    dayStartMin,
+    dayEndMin,
+    lunchStartMin,
+    lunchEndMin,
+    maxConcurrentDoctorOps: 2,
+    doctorTransitionBufferMin: 0,
+    productionPolicy: 'JAMESON_50',
+    dayOfWeek: dayCode,
+    providerRosters,
+    // Sprint 4 (P0-5): pass the block catalog so AP-5 can consult
+    // `xSegment.examWindowMin` per Bible §R-3.5a instead of the heuristic.
+    blockTypes,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Time slot generation
 // ---------------------------------------------------------------------------
@@ -165,6 +245,26 @@ export function resolveProviderDayHours(
   };
 }
 
+/**
+ * Sprint 1 — Day-of-week roster check (Bible §7, closes P0-1).
+ *
+ * Returns true when the provider is on-roster for the given day. A provider
+ * without a declared dayOfWeekRoster defaults to working MON–FRI to preserve
+ * backward-compat with existing persisted data.
+ *
+ * `dayOfWeek` accepts either long form ("MONDAY") or short form ("MON").
+ */
+export function isOnRosterForDay(provider: ProviderInput, dayOfWeek: string): boolean {
+  const roster = provider.dayOfWeekRoster;
+  if (!roster || roster.length === 0) {
+    const WEEKDAYS = new Set(['MON', 'TUE', 'WED', 'THU', 'FRI', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']);
+    return WEEKDAYS.has(dayOfWeek.toUpperCase());
+  }
+  const upper = dayOfWeek.toUpperCase();
+  const short = upper.substring(0, 3);
+  return roster.some((r) => r.toUpperCase() === short || r.toUpperCase() === upper);
+}
+
 // ---------------------------------------------------------------------------
 // Main schedule generation — Orchestrator
 // ---------------------------------------------------------------------------
@@ -195,10 +295,26 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
   // otherwise fall back to Math.random (legacy UI/API behavior unchanged).
   const rng: () => number = inputRng ?? (seed !== undefined ? createSeededRng(seed) : Math.random);
 
+  // Sprint 4 P0-4: Bible §7 makes roster first-class. Providers with an
+  // empty roster are fallback-treated as MON–FRI for backward-compat, but
+  // each such case emits a warning so operators know to set it explicitly.
+  for (const provider of providers) {
+    const roster = provider.dayOfWeekRoster;
+    if (!roster || roster.length === 0) {
+      warnings.push(
+        `Provider "${provider.name}" has no dayOfWeekRoster set — falling back to MON–FRI. Set it explicitly in provider intake (Bible §7).`,
+      );
+    }
+  }
+
   // ─── Step 1: Create empty time slots for every provider x operatory ───
   for (const provider of providers) {
     const dayHours = resolveProviderDayHours(provider, dayOfWeek);
     if (dayHours === null) continue;
+
+    // Sprint 1 — Day-of-week roster filter (Bible §7). First-class gate that
+    // runs BEFORE rotation-week check. Closes P0-1.
+    if (!isOnRosterForDay(provider, dayOfWeek)) continue;
 
     // Rotation week filtering
     if (activeWeek) {
@@ -346,11 +462,25 @@ export function generateSchedule(input: GenerationInput & { activeWeek?: string 
   // ─── Step 8: Morning-load telemetry (schedule-wide ratio for UI + scorer) ───
   const scheduleRatio = computeScheduleMorningLoadRatio(slots, activeProviders, blockTypes);
 
+  // ─── Step 9: Anti-Pattern Guard report (Sprint 3) ───
+  // Decompose slots → PlacedBlocks → DoctorTrace, then run all 15 guards.
+  // When there are no placed doctor D-segments we skip to keep the report
+  // meaningful (a HARD count of 0 on an all-hygiene office would be noise).
+  const guardReport = computeGuardReport(
+    slots,
+    activeProviders,
+    blockTypes,
+    timeIncrement,
+    dayOfWeek,
+    rules,
+  );
+
   return {
     dayOfWeek,
     slots,
     productionSummary,
     warnings,
+    guardReport,
     morningLoadSwaps: {
       scheduleRatio,
       perOpRatios: morningLoadReport.ratios,

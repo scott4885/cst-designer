@@ -66,7 +66,7 @@ const TIER_META: Record<QualityTier, { emoji: string; label: string }> = {
  */
 function scoreProductionGoal(
   schedule: GenerationResult,
-  providers: ProviderInput[]
+  _providers: ProviderInput[]
 ): QualityScoreComponent {
   const MAX = 30;
 

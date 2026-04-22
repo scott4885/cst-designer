@@ -187,7 +187,7 @@ function NewOfficeForm() {
     name: "providers",
   });
 
-  const { fields: procedureFields, update: updateProcedure } = useFieldArray({
+  const { fields: procedureFields, update: _updateProcedure } = useFieldArray({
     control,
     name: "procedures",
   });

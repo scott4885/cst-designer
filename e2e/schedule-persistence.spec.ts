@@ -11,7 +11,9 @@ test.describe('Schedule Persistence', () => {
     // Step 1: Navigate to first existing office
     await page.goto('/');
 
-    const officeLink = page.locator('a[href*="/offices/"]').first();
+    const officeLink = page
+      .locator('a[href*="/offices/"]:not([href$="/offices/new"])')
+      .first();
     if (!await officeLink.isVisible({ timeout: 5000 }).catch(() => false)) {
       test.skip();
       return;
@@ -47,14 +49,26 @@ test.describe('Schedule Persistence', () => {
     const scheduleContent = page.locator('main');
     await expect(scheduleContent).toBeVisible({ timeout: 10000 });
 
-    // The presence of the schedule grid or blocks indicates persistence worked
-    const indicators = page.locator(
-      '[data-block-type], [data-testid*="block"], .schedule-block, [style*="background-color"], table'
-    );
-    const count = await indicators.count();
+    // Give rehydration a chance to complete (localStorage load + render).
+    await page.waitForTimeout(1500);
 
-    // At least some content should be present
-    expect(count).toBeGreaterThan(0);
+    // Persistence is verified by the presence of EITHER:
+    //   (a) the V2 canvas + any block instance, or
+    //   (b) a schedule grid with any colored block/style, or
+    //   (c) the Regenerate CTA (only rendered when a schedule exists).
+    // Failing all three would indicate the hydration path truly regressed.
+    const indicators = page.locator(
+      '[data-schedule-v2="true"], [data-testid="sg-canvas-v2"], ' +
+        '[data-block-id], [data-block-type], [data-testid*="block"], ' +
+        '.schedule-block, [style*="background-color"], table',
+    );
+    const regenerateBtn = page.getByRole('button', { name: /regenerate/i });
+
+    const count = await indicators.count();
+    const hasRegenerate = await regenerateBtn.first().isVisible({ timeout: 1500 }).catch(() => false);
+
+    // At least some schedule content OR a regenerate CTA should be present.
+    expect(count > 0 || hasRegenerate).toBe(true);
   });
 
   test('schedule persists after closing and reopening browser context', async ({ browser }) => {
@@ -64,7 +78,9 @@ test.describe('Schedule Persistence', () => {
 
     await page1.goto('/');
 
-    const officeLink = page1.locator('a[href*="/offices/"]').first();
+    const officeLink = page1
+      .locator('a[href*="/offices/"]:not([href$="/offices/new"])')
+      .first();
     if (!await officeLink.isVisible({ timeout: 5000 }).catch(() => false)) {
       await context1.close();
       test.skip();
@@ -122,7 +138,9 @@ test.describe('Schedule Persistence', () => {
   test('auto-save persists edits without explicit save button', async ({ page }) => {
     await page.goto('/');
 
-    const officeLink = page.locator('a[href*="/offices/"]').first();
+    const officeLink = page
+      .locator('a[href*="/offices/"]:not([href$="/offices/new"])')
+      .first();
     if (!await officeLink.isVisible({ timeout: 5000 }).catch(() => false)) {
       test.skip();
       return;

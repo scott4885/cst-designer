@@ -62,3 +62,17 @@ data/
 # OpenNext / Cloudflare build artifacts (deprecated adapter, kept out of git)
 .open-next/
 .wrangler/
+
+# Visual QA screenshots (Phase 4 QA — not tracked in git)
+.cst-rebuild-v3/logs/visual-qa/
+
+# Scratch / temp workspace (local only)
+.tmp/
+.tmp-*.mjs
+
+# Playwright HTML report (regenerated per run)
+playwright-report/
+test-results/
+
+# Sprint smoke screenshots (regenerated per run)
+smoke-passed.png

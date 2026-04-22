@@ -306,8 +306,9 @@ function ProviderPanel({ mix, color }: ProviderPanelProps) {
       ? compareToIndustryBenchmark(mix, mix.role)
       : null;
 
-  const benchmarkMap =
+  const _benchmarkMap =
     mix.role === "DOCTOR" ? DOCTOR_BENCHMARKS : HYGIENIST_BENCHMARKS;
+  void _benchmarkMap;
 
   const segments: DonutSegment[] = mix.entries.map((e) => ({
     category: e.category,

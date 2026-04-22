@@ -60,8 +60,14 @@ export default function MatrixPage() {
   }, [officeId]);
 
   const schedule = generatedSchedules[activeDay];
-  const providers = currentOffice?.providers ?? [];
-  const blockTypes = currentOffice?.blockTypes ?? [];
+  const providers = useMemo(
+    () => currentOffice?.providers ?? [],
+    [currentOffice?.providers],
+  );
+  const blockTypes = useMemo(
+    () => currentOffice?.blockTypes ?? [],
+    [currentOffice?.blockTypes],
+  );
 
   const matrixData: MatrixData | null = useMemo(() => {
     if (!schedule || providers.length === 0) return null;
@@ -283,7 +289,7 @@ export default function MatrixPage() {
                 {row.cells.map((cell, cellIdx) => {
                   const isEmpty = !cell.blockLabel;
                   const isLunchCell = cell.isBreak;
-                  const header = matrixData.providerHeaders[cellIdx];
+                  const _header = matrixData.providerHeaders[cellIdx];
 
                   let cellContent = null;
                   if (isLunchCell) {

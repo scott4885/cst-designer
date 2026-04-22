@@ -142,7 +142,8 @@ export function cloneDaySchedule(
   const productionSummary = targetProviders.map(p => {
     // Find matching source provider to carry over goal
     const srcIdx = Array.from(providerMapping.entries()).find(([, v]) => v === p.id)?.[0];
-    const srcProvider = srcIdx ? sourceProviders.find(sp => sp.id === srcIdx) : undefined;
+    const _srcProvider = srcIdx ? sourceProviders.find(sp => sp.id === srcIdx) : undefined;
+    void _srcProvider;
     return {
       providerId: p.id,
       providerName: p.name,

@@ -62,8 +62,8 @@ export function findHygieneExamWindows(
   hygienistSlots: HygienistSlot[],
   blockTypes: BlockTypeInput[],
   examOffsetMin: number = 45,
-  examDurationMin: number = 10,
-  startTime: string = '08:00'
+  _examDurationMin: number = 10,
+  _startTime: string = '08:00'
 ): HygieneExamRequest[] {
   const blockTypeMap = new Map(blockTypes.map(bt => [bt.id, bt]));
   const requests: HygieneExamRequest[] = [];

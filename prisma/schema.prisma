@@ -20,6 +20,12 @@ model Office {
   rotationEnabled      Boolean  @default(false)
   rotationWeeks        Int      @default(2)
   schedulingWindows    String   @default("[]")
+  // Sprint 1 — X-segment + practice-model metadata
+  practiceModel            String  @default("1D2O")
+  productionPolicy         String  @default("JAMESON_50")
+  maxConcurrentDoctorOps   Int     @default(2)
+  doctorTransitionBufferMin Int    @default(0)
+  efdaScopeLevel           String  @default("NONE")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   providers            Provider[]
@@ -48,6 +54,11 @@ model Provider {
   providerSchedule  String  @default("{}")
   currentProcedureMix String @default("{}")
   futureProcedureMix  String @default("{}")
+  // Sprint 1 \u2014 day-of-week roster (JSON array e.g. ["MON","TUE","WED","THU"])
+  // Sprint 4 P0-4: Bible \u00a77 makes roster first-class. Default is empty; the
+  // generator refuses to place blocks for an empty-roster provider and emits
+  // a warning. Provider intake must set this explicitly.
+  dayOfWeekRoster   String  @default("[]")
   office            Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
   absences          ProviderAbsence[]
 }
@@ -66,6 +77,11 @@ model BlockType {
   dTimeMin      Int     @default(0)
   aTimeMin      Int     @default(0)
   procedureCategory String @default("BASIC_RESTORATIVE")
+  // Sprint 1 \u2014 X-segment canonical primitive (Bible \u00a72.1)
+  asstPreMin    Int     @default(0)
+  doctorMin     Int     @default(0)
+  asstPostMin   Int     @default(0)
+  doctorContinuityRequired Boolean @default(false)
   office        Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
 }
 
@@ -146,4 +162,22 @@ model TreatmentSequence {
   isBuiltIn   Boolean  @default(false)
   stepsJson   String   @default("[]")
   createdAt   DateTime @default(now())
+}
+
+// Sprint 3 — Per-practice procedure length overrides (PRD-V4 FR-6).
+// When a row exists for (officeId, blockTypeId), its x-segment values shadow
+// the base BlockType row at generation time. The coordinator merges overrides
+// once per generation call at the top of `generateSchedule()`, so there is
+// no per-block DB read.
+model ProcedureOverride {
+  id          String   @id @default(cuid())
+  officeId    String
+  blockTypeId String
+  asstPreMin  Int?
+  doctorMin   Int?
+  asstPostMin Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([officeId, blockTypeId], name: "unique_office_block_override")
 }

@@ -10,6 +10,7 @@
 
 import type { TimeSlotOutput, ProviderInput, BlockTypeInput, StaffingCode } from './types';
 import { resolvePattern, derivePattern } from './pattern-catalog';
+import type { MultiColumnCoordinator } from './multi-column-coordinator';
 
 // ---------------------------------------------------------------------------
 // Time conversion helpers
@@ -394,14 +395,38 @@ export function rangesAvoidingDMinutes(
   slots: TimeSlotOutput[],
   avoid: Set<number> | undefined,
   blockType?: BlockTypeInput,
-  provider?: ProviderInput
+  provider?: ProviderInput,
+  /**
+   * Sprint 3 — when a MultiColumnCoordinator is provided, fold its current
+   * D-reservations into the `avoid` set before scoring. This makes the
+   * coordinator the source-of-truth for doctor-bottleneck collisions (per
+   * Bible §4) while keeping the legacy function signature and deterministic
+   * tie-break ordering (originalIdx ASC) intact.
+   */
+  coordinator?: MultiColumnCoordinator,
 ): number[][] {
-  if (!avoid || avoid.size === 0 || ranges.length === 0) return ranges;
+  // Fold coordinator reservations into the avoid set (deterministic — reservations
+  // are appended in insertion order and iterated in that same order here).
+  let effectiveAvoid: Set<number> | undefined = avoid;
+  if (coordinator) {
+    const trace = coordinator.trace();
+    if (trace.length > 0) {
+      effectiveAvoid = new Set(avoid ?? []);
+      for (const r of trace) {
+        for (let m = r.doctorStartMinute; m < r.doctorEndMinute; m++) {
+          effectiveAvoid.add(m);
+        }
+      }
+    }
+  }
+
+  if (!effectiveAvoid || effectiveAvoid.size === 0 || ranges.length === 0) return ranges;
+  const avoidLocal = effectiveAvoid;
 
   const scored = ranges.map((r, i) => {
     const dMins = predictRangeDMinutes(slots, r, blockType, provider);
     let overlap = 0;
-    for (const m of dMins) if (avoid.has(m)) overlap++;
+    for (const m of dMins) if (avoidLocal.has(m)) overlap++;
     return { range: r, overlap, originalIdx: i };
   });
 

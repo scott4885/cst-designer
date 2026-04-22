@@ -167,7 +167,8 @@ export function transformToOpenDental(
 
   const entries: OpenDentalScheduleEntry[] = [];
 
-  for (const [providerId, slots] of slotsByProvider) {
+  for (const [_providerId, slots] of slotsByProvider) {
+    void _providerId;
     // Sort by time (they should already be, but be safe)
     const sorted = [...slots].sort((a, b) => {
       const toMin = (t: string) => {

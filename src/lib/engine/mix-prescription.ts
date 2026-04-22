@@ -70,7 +70,7 @@ export function buildBlockPrescription(
   dailyGoal: number,
   procedureMix: Partial<Record<ProcedureCategory, number>>,
   availableBlockTypes: BlockTypeInput[],
-  incrementMin: number = 10
+  _incrementMin: number = 10
 ): BlockPrescription {
   // Filter out hygiene-only types and zero-production blocks for doctor scheduling
   const doctorBlockTypes = availableBlockTypes.filter(

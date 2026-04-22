@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../styles/design-tokens.css";
 
 /* ──────────────────────────────────────────────────────────────
    Light theme (default)
@@ -30,10 +31,17 @@
   --warning: oklch(55% 0.15 60);
   --error: oklch(55% 0.22 25);
 
-  --provider-1: oklch(68% 0.15 50);
-  --provider-2: oklch(55% 0.12 240);
-  --provider-3: oklch(65% 0.15 95);
-  --provider-4: oklch(60% 0.12 180);
+  /**
+   * @deprecated Legacy provider colour vars — consolidated into
+   * --sg-provider-1..10 (see src/styles/design-tokens.css).
+   * These aliases stay for one release so any untouched legacy consumer
+   * keeps working; remove them in Sprint 3.1 once every caller is on
+   * --sg-provider-*.
+   */
+  --provider-1: var(--sg-provider-1);
+  --provider-2: var(--sg-provider-2);
+  --provider-3: var(--sg-provider-3);
+  --provider-4: var(--sg-provider-4);
 
   --sidebar-bg: oklch(96% 0.005 240);
 }
@@ -68,10 +76,11 @@
   --warning: oklch(55% 0.15 60);
   --error: oklch(55% 0.22 25);
 
-  --provider-1: oklch(68% 0.15 50);
-  --provider-2: oklch(55% 0.12 240);
-  --provider-3: oklch(65% 0.15 95);
-  --provider-4: oklch(60% 0.12 180);
+  /** @deprecated — see root block. */
+  --provider-1: var(--sg-provider-1);
+  --provider-2: var(--sg-provider-2);
+  --provider-3: var(--sg-provider-3);
+  --provider-4: var(--sg-provider-4);
 
   --sidebar-bg: oklch(96% 0.005 240);
 }
@@ -106,10 +115,12 @@
   --warning: oklch(65% 0.15 60);
   --error: oklch(55% 0.22 25);
 
-  --provider-1: oklch(68% 0.15 50);
-  --provider-2: oklch(70% 0.1 240);
-  --provider-3: oklch(80% 0.15 95);
-  --provider-4: oklch(75% 0.12 180);
+  /** @deprecated — see light-theme root block. Dark palette lives in
+      design-tokens.css under .sg-dark. Kept here only for legacy parity. */
+  --provider-1: var(--sg-provider-1);
+  --provider-2: var(--sg-provider-2);
+  --provider-3: var(--sg-provider-3);
+  --provider-4: var(--sg-provider-4);
 
   --sidebar-bg: oklch(14% 0 0);
 }

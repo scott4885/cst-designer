@@ -166,7 +166,7 @@ export default function TimeGridRenderer({
   dragOverCell,
   sidebarDragging,
   dragValidityMap,
-  currentDragValidity,
+  currentDragValidity: _currentDragValidity,
   getBlockInfo,
   onEmptyCellClick,
   onBlockCellClick,
