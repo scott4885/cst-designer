@@ -26,6 +26,10 @@ model Office {
   maxConcurrentDoctorOps   Int     @default(2)
   doctorTransitionBufferMin Int    @default(0)
   efdaScopeLevel           String  @default("NONE")
+  // Sprint 5 — Intake V2 (see SPRINT-5-PLAN §3.1 / engine/types.ts IntakeGoals + IntakeConstraints).
+  // JSON blobs; structure validated by zod in src/lib/contracts/api-schemas.ts.
+  intakeGoals              String  @default("{}")
+  intakeConstraints        String  @default("{}")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   providers            Provider[]
@@ -33,6 +37,7 @@ model Office {
   rules                ScheduleRule?
   templates            ScheduleTemplate[]
   scheduleVersions     ScheduleVersion[]
+  advisories           TemplateAdvisory[]
 }
 
 model Provider {
@@ -162,6 +167,25 @@ model TreatmentSequence {
   isBuiltIn   Boolean  @default(false)
   stepsJson   String   @default("[]")
   createdAt   DateTime @default(now())
+}
+
+// Sprint 5 — Persisted Advisory artifact (one row per Generate). The four
+// JSON blobs are the output of the advisory composer (see
+// src/lib/engine/advisory/compose.ts). No FK to ScheduleTemplate so that the
+// advisory survives template rebuilds; the UI joins by (templateId, officeId).
+model TemplateAdvisory {
+  id              String   @id @default(cuid())
+  templateId      String
+  officeId        String
+  generatedAt     DateTime @default(now())
+  documentJson    String   @default("{}")
+  scoreJson       String   @default("{}")
+  variantsJson    String   @default("{}")
+  reviewPlanJson  String   @default("{}")
+  office          Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@index([officeId])
 }
 
 // Sprint 3 — Per-practice procedure length overrides (PRD-V4 FR-6).

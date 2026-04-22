@@ -70,3 +70,7 @@ data/
 .cst-rebuild-v3/logs/phase-6-screenshots/
 e2e/qa-phase6-live-smoke.spec.ts
 playwright.phase6.config.ts
+
+# Playwright run artifacts + scratch screenshots
+/playwright-report/
+smoke-passed.png

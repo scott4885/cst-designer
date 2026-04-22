@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { getSettings } from "@/lib/settings";
+import { IntakeV2 } from "@/components/intake/IntakeV2";
+import type { IntakeGoals, IntakeConstraints } from "@/lib/engine/advisory/types";
 // createOffice uses API route
 
 const DEFAULT_SCHEDULING_RULES = `# Office Scheduling Rules
@@ -138,6 +140,8 @@ function NewOfficeForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const [intakeGoals, setIntakeGoals] = useState<IntakeGoals>({});
+  const [intakeConstraints, setIntakeConstraints] = useState<IntakeConstraints>({});
   const submittedRef = useRef(false);
 
   const DRAFT_KEY = 'schedule-designer-draft-new';
@@ -304,6 +308,8 @@ function NewOfficeForm() {
           blockTypes,
           rules,
           schedulingRules: data.schedulingRules || "",
+          intakeGoals,
+          intakeConstraints,
         }),
       });
       if (!res.ok) throw new Error('Failed to create office');
@@ -485,11 +491,12 @@ function NewOfficeForm() {
       {/* Tabbed Form */}
       <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
             <TabsTrigger value="practice" className="text-xs sm:text-sm">1. Practice</TabsTrigger>
             <TabsTrigger value="providers" className="text-xs sm:text-sm">2. Providers</TabsTrigger>
             <TabsTrigger value="timing" className="text-xs sm:text-sm">3. Timing</TabsTrigger>
             <TabsTrigger value="rules" className="text-xs sm:text-sm">4. Rules</TabsTrigger>
+            <TabsTrigger value="intake" className="text-xs sm:text-sm" data-testid="tab-intake">5. Intake Advisory</TabsTrigger>
           </TabsList>
 
           {/* Tab 1: Practice Foundation */}
@@ -982,6 +989,27 @@ function NewOfficeForm() {
 
             <div className="flex flex-col-reverse sm:flex-row justify-between gap-2">
               <Button type="button" variant="outline" onClick={() => handleTabChange("timing")} className="w-full sm:w-auto min-h-[44px]">
+                Back
+              </Button>
+              <Button type="button" onClick={() => handleTabChange("intake")} className="w-full sm:w-auto min-h-[44px]">
+                Next: Intake Advisory →
+              </Button>
+            </div>
+          </TabsContent>
+
+          {/* Tab 5: Intake Advisory (Sprint 5) */}
+          <TabsContent value="intake" className="space-y-6" data-testid="tab-content-intake">
+            <IntakeV2
+              intakeGoals={intakeGoals}
+              intakeConstraints={intakeConstraints}
+              onChange={(next) => {
+                setIntakeGoals(next.intakeGoals);
+                setIntakeConstraints(next.intakeConstraints);
+              }}
+            />
+
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-2">
+              <Button type="button" variant="outline" onClick={() => handleTabChange("rules")} className="w-full sm:w-auto min-h-[44px]">
                 Back
               </Button>
               <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto min-h-[44px]">

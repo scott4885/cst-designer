@@ -75,6 +75,14 @@ export async function PUT(
         ? data.schedulingWindows
         : JSON.stringify(data.schedulingWindows);
     }
+    // Sprint 5 — intake V2 blobs pass through as records; data-access layer
+    // stringifies on the way into Prisma.
+    if (data.intakeGoals !== undefined) {
+      updatePayload.intakeGoals = data.intakeGoals as Record<string, unknown>;
+    }
+    if (data.intakeConstraints !== undefined) {
+      updatePayload.intakeConstraints = data.intakeConstraints as Record<string, unknown>;
+    }
 
     const updatedOffice = await updateOffice(id, updatePayload);
 

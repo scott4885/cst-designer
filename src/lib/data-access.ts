@@ -53,6 +53,10 @@ export interface OfficeDetail {
   rotationEnabled: boolean;
   rotationWeeks: number;
   schedulingWindows: string;
+  // Sprint 5 — Intake V2 blobs (parsed JSON). Default `{}` when the office
+  // has not been edited since the migration.
+  intakeGoals: Record<string, unknown>;
+  intakeConstraints: Record<string, unknown>;
 }
 
 export interface CreateOfficeInput {
@@ -70,6 +74,9 @@ export interface CreateOfficeInput {
   rotationEnabled?: boolean;
   rotationWeeks?: number;
   schedulingWindows?: string;
+  // Sprint 5 — Intake V2 (unknown shape at this layer; validated by zod at API edge).
+  intakeGoals?: Record<string, unknown>;
+  intakeConstraints?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,6 +151,14 @@ function dbOfficeToDetail(office: DbOfficeWithRelations): OfficeDetail {
     rotationEnabled: office.rotationEnabled ?? false,
     rotationWeeks: office.rotationWeeks ?? 2,
     schedulingWindows: office.schedulingWindows || '[]',
+    intakeGoals: safeParseJSON(
+      (office as unknown as { intakeGoals?: string }).intakeGoals ?? '{}',
+      {},
+    ),
+    intakeConstraints: safeParseJSON(
+      (office as unknown as { intakeConstraints?: string }).intakeConstraints ?? '{}',
+      {},
+    ),
   };
 }
 
@@ -204,6 +219,12 @@ export async function createOffice(data: CreateOfficeInput): Promise<OfficeDetai
       feeModel: data.feeModel,
       operatories: JSON.stringify(data.operatories || DEFAULT_OPERATORIES),
       schedulingRules: data.schedulingRules || '',
+      intakeGoals: typeof data.intakeGoals === 'string'
+        ? data.intakeGoals
+        : JSON.stringify(data.intakeGoals ?? {}),
+      intakeConstraints: typeof data.intakeConstraints === 'string'
+        ? data.intakeConstraints
+        : JSON.stringify(data.intakeConstraints ?? {}),
       providers: {
         create: (data.providers || []).map((p) => ({
           name: p.name,
@@ -276,6 +297,16 @@ export async function updateOffice(id: string, data: Partial<CreateOfficeInput>)
       ...(data.rotationEnabled !== undefined && { rotationEnabled: data.rotationEnabled }),
       ...(data.rotationWeeks !== undefined && { rotationWeeks: data.rotationWeeks }),
       ...(data.schedulingWindows !== undefined && { schedulingWindows: data.schedulingWindows }),
+      ...(data.intakeGoals !== undefined && {
+        intakeGoals: typeof data.intakeGoals === 'string'
+          ? data.intakeGoals
+          : JSON.stringify(data.intakeGoals),
+      }),
+      ...(data.intakeConstraints !== undefined && {
+        intakeConstraints: typeof data.intakeConstraints === 'string'
+          ? data.intakeConstraints
+          : JSON.stringify(data.intakeConstraints),
+      }),
     },
   });
 

@@ -1,5 +1,85 @@
 # Changelog
 
+## Sprint 5 — Advisory Output Layer — 2026-04-21
+
+Ships the full "advisory on top of generator" layer per SPRINT-5-PLAN.md
+without touching the Sprint 1-4 engine. Five epics (A: Intake V2 with
+28 new fields + completeness gate, B: composed advisory document + .md
+download, C: deterministic 6-axis 1-10 scoring rubric, D: 3-variant
+Growth/Access/Balanced generator + recommendation, E: 30/60/90 review
+plan). All Sprint 1-4 outputs remain byte-identical — advisory modules
+are pure functions with fixed `computedAt` defaults.
+
+Vitest **1274/1274** pass (+22 new advisory tests). ESLint
+`--max-warnings=0` green. `tsc --noEmit` clean. `next build` clean.
+
+### Added
+
+- **`prisma/schema.prisma`** — Added `Office.intakeGoals` and
+  `Office.intakeConstraints` (JSON TEXT, default `"{}"`) to persist
+  the Intake V2 payload. New `TemplateAdvisory` model (one row per
+  Generate — fields: `templateId`, `officeId`, `generatedAt`,
+  `documentJson`, `scoreJson`, `variantsJson`, `reviewPlanJson`).
+  Migration `20260422000000_intake_v2_and_advisory/`.
+- **`src/lib/engine/advisory/`** — Six pure-function modules:
+  `types.ts`, `completeness.ts`, `scoring.ts`, `variants.ts`,
+  `review-plan.ts`, `rationale-templates.ts`, `compose.ts`,
+  `markdown.ts`. 22 unit tests under `__tests__/`.
+- **`src/components/intake/IntakeV2.tsx`** — "use client" controlled
+  component rendering all 28 intake fields in 5 Cards, with a
+  self-computing completeness badge (green ≥ 80%, amber 50-79%,
+  red < 50%). Every input has a `data-testid` attribute for
+  Playwright.
+- **`src/components/schedule/v2/AdvisoryPanel.tsx`** — In-app
+  rendering of the persisted `AdvisoryArtifact`: 6-axis score bars
+  with collapsible signals/raise-suggestions, 6-section advisory
+  document, 3-card variant comparison (winner badge), 30/60/90
+  review plan strip. Generate gated at 80% completeness. Download
+  `.md` + Copy-as-Prompt controls.
+- **`src/app/offices/[id]/advisory/page.tsx`** — Full-screen advisory
+  route. Loads the persisted artifact on mount, autosaves intake
+  edits, re-renders after Generate.
+- **`src/app/offices/[id]/advisory/route.ts`** — `POST` runs engine
+  per working day, scores, optionally generates 3 variants, composes
+  document + review plan, persists one `TemplateAdvisory` row.
+  `GET` returns the latest persisted advisory + completeness.
+- **`src/app/offices/[id]/advisory/markdown/route.ts`** — `GET`
+  returns the latest advisory as a `.md` download with
+  `Content-Disposition: attachment; filename="{slug}-advisory-{date}.md"`.
+- **`e2e/sprint-5-advisory.spec.ts`** — Playwright specs covering
+  the Intake V2 tab, advisory panel render, and quick-link.
+
+### Changed
+
+- **`src/app/offices/new/page.tsx`** — Added 5th tab "Intake
+  Advisory" hosting `<IntakeV2>`. Lifts `intakeGoals` +
+  `intakeConstraints` state, POSTs them to `/api/offices` on submit.
+  TabsList grid now `grid-cols-3 sm:grid-cols-5`.
+- **`src/app/offices/[id]/page.tsx`** — Added "Open Advisory"
+  quick-link under the toolbar ribbon (routes to
+  `/offices/:id/advisory`).
+- **`src/app/api/offices/[id]/route.ts`** — PUT handler passes
+  `intakeGoals` + `intakeConstraints` through to the data-access
+  layer.
+- **`src/lib/contracts/api-schemas.ts`** — Added `IntakeGoalsSchema`
+  + `IntakeConstraintsSchema` (z.record) to `CreateOfficeInputSchema`
+  and `UpdateOfficeInputSchema`.
+- **`src/lib/data-access.ts`** — `OfficeDetail` + `CreateOfficeInput`
+  now carry `intakeGoals` / `intakeConstraints`. `dbOfficeToDetail`
+  parses the JSON, `createOffice` + `updateOffice` stringify.
+
+### Invariants preserved
+
+- Coordinator-owned placement unchanged — variants re-run the
+  existing `generateSchedule()` with overlaid rules rather than
+  reimplementing placement.
+- Advisory modules deterministic: no LLM calls; `computedAt`
+  defaults to `new Date(0).toISOString()` or an injectable value so
+  snapshot tests can pin outputs.
+- No modifications to `src/lib/engine/{generator,coordinator,
+  anti-pattern-guard}.ts` — Sprint 1-4 byte-identical-output
+  guarantee extends unchanged.
+
 ## Sprint 4 Fix Pass — 2026-04-21
 
 Clears every P0 blocker from Phase 4 QA so the build can deploy to Coolify.

@@ -172,6 +172,14 @@ const WorkingDaysSchema = z.union([
     .pipe(z.array(DayOfWeekSchema).min(1)),
 ]);
 
+/**
+ * Sprint 5 — intake V2 JSON blobs. Validated as `record(unknown)` at the
+ * API edge so new fields can be added without API churn; strong typing
+ * lives in `src/lib/engine/advisory/types.ts`.
+ */
+export const IntakeGoalsSchema = z.record(z.string(), z.unknown());
+export const IntakeConstraintsSchema = z.record(z.string(), z.unknown());
+
 export const CreateOfficeInputSchema = z
   .object({
     name: z.string().min(1, 'Office name required'),
@@ -183,6 +191,8 @@ export const CreateOfficeInputSchema = z
     blockTypes: z.array(BlockTypeInputSchema).optional(),
     rules: OfficeRulesSchema.optional(),
     schedulingRules: z.string().optional(),
+    intakeGoals: IntakeGoalsSchema.optional(),
+    intakeConstraints: IntakeConstraintsSchema.optional(),
   })
   .passthrough();
 
@@ -202,6 +212,8 @@ export const UpdateOfficeInputSchema = z
     rotationEnabled: z.boolean().optional(),
     rotationWeeks: z.number().int().min(1).max(52).optional(),
     schedulingWindows: z.unknown().optional(),
+    intakeGoals: IntakeGoalsSchema.optional(),
+    intakeConstraints: IntakeConstraintsSchema.optional(),
   })
   .passthrough();
 

@@ -714,6 +714,21 @@ export default function ScheduleBuilderPage() {
         </div>
       )}
 
+      {/* Sprint 5 — Advisory quick-link */}
+      <div className="flex items-center justify-end gap-2 px-4 py-1.5 bg-indigo-50 border-b border-indigo-100 text-indigo-800 text-xs font-medium flex-shrink-0">
+        <span>Sprint 5: Template Advisory available for this office.</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-[11px]"
+          data-testid="open-advisory-btn"
+          onClick={() => router.push(`/offices/${officeId}/advisory`)}
+        >
+          Open Advisory →
+        </Button>
+      </div>
+
       {/* Mobile/tablet panel toggle bar (hidden on xl+) */}
       {!fullScreen && hasSchedules && (
         <div className="xl:hidden flex items-center gap-2 px-3 py-1.5 bg-white border-b border-border/40 flex-shrink-0">
