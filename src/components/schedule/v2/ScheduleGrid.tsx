@@ -7,10 +7,13 @@
  *
  *   • Vertical canvas of all 10-min slots from workingStart → workingEnd.
  *   • Sticky TOP row: provider/column headers.
- *   • Sticky LEFT rail: time axis (e.g. "8:00 AM", every 30 min labelled).
+ *   • Sticky LEFT rail: time axis labelled every 10 min (hour/half-hour
+ *     ticks dark, intermediate 10/20/40/50 marks muted).
  *   • Virtualised row rendering (windowed by scroll offset + buffer).
  *   • Keyboard cursor: Arrow keys move; Enter opens; Escape dismisses.
- *   • Zoom: Ctrl+/− cycles compact (24px) / default (32px) / expanded (48px).
+ *   • Zoom: Ctrl+/− cycles fit (14px) / compact (24px) / default (32px) /
+ *     expanded (48px). Default on load is `fit` — a 9-hour day fits in
+ *     one pane (~756px) without scrolling.
  *   • Consumes `GeneratedSchedule` from the engine (blocks + guardReport).
  *   • Delegates doctor-stagger connectors to <DoctorFlowOverlay/>.
  *
@@ -104,9 +107,11 @@ function formatMinute(minutes: number): string {
   return `${h12}:${mm} ${ampm}`;
 }
 
-/** Every 30-min tick gets a full label; 10/20 ticks get a dot only. */
+/** Every 10-min row gets a full time label (every row). The time gutter is
+ *  72px wide and tabular-nums, so "12:00 AM"-width labels render cleanly
+ *  even at fit zoom (14px rows). */
 function minuteLabel(rowStartMin: number): string {
-  return rowStartMin % 30 === 0 ? formatMinute(rowStartMin) : '';
+  return formatMinute(rowStartMin);
 }
 
 /** Group violations by block id so we can forward them to each BlockInstance. */
@@ -801,7 +806,9 @@ const GridRow = memo(function GridRow({
     // layout-inert — the inner cells continue to participate in the parent
     // CSS grid as direct-placement children.
     <div role="row" aria-rowindex={rowIdx + 2} style={{ display: 'contents' }}>
-      {/* Sticky time rail cell */}
+      {/* Sticky time rail cell. Hour/half-hour ticks render dark for anchor
+          scanning; intermediate 10/20/40/50 marks render muted so the eye
+          can still land on the hour lines quickly. */}
       <div
         data-testid="sg-time-cell"
         data-row-index={rowIdx}
@@ -815,7 +822,15 @@ const GridRow = memo(function GridRow({
         }}
       >
         {label && (
-          <span className="text-[var(--font-xs)] text-neutral-700 tabular-nums">
+          <span
+            className={`text-[10px] tabular-nums leading-none ${
+              isHourTick
+                ? 'font-semibold text-neutral-900'
+                : isHalfHourTick
+                  ? 'font-medium text-neutral-700'
+                  : 'text-neutral-400'
+            }`}
+          >
             {label}
           </span>
         )}

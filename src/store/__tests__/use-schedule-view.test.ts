@@ -25,7 +25,7 @@ describe('useScheduleView', () => {
     expect(s.showDoctorFlow).toBe(false);
   });
 
-  it('zoomIn / zoomOut cycles through compact → default → expanded', () => {
+  it('zoomIn / zoomOut cycles through fit → compact → default → expanded', () => {
     const s = useScheduleView.getState();
     s.zoomIn();
     expect(useScheduleView.getState().zoom).toBe('expanded');
@@ -33,9 +33,11 @@ describe('useScheduleView', () => {
     expect(useScheduleView.getState().zoom).toBe('default');
     s.zoomOut();
     expect(useScheduleView.getState().zoom).toBe('compact');
+    s.zoomOut();
+    expect(useScheduleView.getState().zoom).toBe('fit');
     // can't go further
     s.zoomOut();
-    expect(useScheduleView.getState().zoom).toBe('compact');
+    expect(useScheduleView.getState().zoom).toBe('fit');
   });
 
   it('moveCursor respects bounds', () => {
@@ -61,6 +63,7 @@ describe('useScheduleView', () => {
   });
 
   it('ZOOM_ROW_HEIGHT_PX matches design-token stops', () => {
+    expect(ZOOM_ROW_HEIGHT_PX.fit).toBe(14);
     expect(ZOOM_ROW_HEIGHT_PX.compact).toBe(24);
     expect(ZOOM_ROW_HEIGHT_PX.default).toBe(32);
     expect(ZOOM_ROW_HEIGHT_PX.expanded).toBe(48);

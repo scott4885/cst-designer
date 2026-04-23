@@ -44,15 +44,18 @@
   --letter-spacing-smallcaps: 0.04em;
 
   /* ──────────────────────────────────────────────────────────────
-     Slot (row) height scale — compact / default / expanded
-     10-min row heights. Ctrl+/- cycles through these three stops.
+     Slot (row) height scale — fit / compact / default / expanded
+     10-min row heights. Ctrl+/- cycles through these stops.
+     `fit` is the default: at 14px per 10-min slot a 9-hour day
+     (54 rows) fits in ~756px — one-pane view on a laptop.
      ────────────────────────────────────────────────────────────── */
+  --slot-h-fit: 14px;
   --slot-h-compact: 24px;
   --slot-h-default: 32px;
   --slot-h-expanded: 48px;
 
   /* Live row-height used by ScheduleGrid. Bound by useScheduleView.zoom. */
-  --sg-row-height: var(--slot-h-default);
+  --sg-row-height: var(--slot-h-fit);
 
   /* Time-axis (left rail) and header (top row) widths */
   --sg-time-col-w: 72px;

@@ -16,7 +16,7 @@
 
 import { create } from 'zustand';
 
-export type ScheduleZoom = 'compact' | 'default' | 'expanded';
+export type ScheduleZoom = 'fit' | 'compact' | 'default' | 'expanded';
 
 export interface GridCursor {
   rowIndex: number;   // 0-based index into visible 10-min slot rows
@@ -44,10 +44,10 @@ interface ScheduleViewState {
   toggleDoctorFlow: () => void;
 }
 
-const ZOOM_ORDER: ScheduleZoom[] = ['compact', 'default', 'expanded'];
+const ZOOM_ORDER: ScheduleZoom[] = ['fit', 'compact', 'default', 'expanded'];
 
 export const useScheduleView = create<ScheduleViewState>((set, get) => ({
-  zoom: 'default',
+  zoom: 'fit',
   cursor: null,
   hoveredBlockId: null,
   selectedBlockId: null,
@@ -78,8 +78,11 @@ export const useScheduleView = create<ScheduleViewState>((set, get) => ({
   toggleDoctorFlow: () => set((s) => ({ showDoctorFlow: !s.showDoctorFlow })),
 }));
 
-/** Pixel height for a 10-min slot at each zoom. Kept in sync with design-tokens.css. */
+/** Pixel height for a 10-min slot at each zoom. Kept in sync with design-tokens.css.
+ *  `fit` (14px) is the new default — at a 9-hour day (54 rows) it fits in ~756px,
+ *  visible in one pane on a typical laptop viewport without scrolling. */
 export const ZOOM_ROW_HEIGHT_PX: Record<ScheduleZoom, number> = {
+  fit: 14,
   compact: 24,
   default: 32,
   expanded: 48,

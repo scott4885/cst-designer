@@ -130,15 +130,16 @@ describe('ScheduleGrid — structure & a11y', () => {
     expect(headers[2].textContent).toContain('Hyg 1');
   });
 
-  it('renders time rail cells at 30-min ticks with labels', () => {
+  it('renders time rail cells with a full label at every 10-min row', () => {
     renderGrid();
     const timeCells = screen.getAllByTestId('sg-time-cell');
     // 60min / 10min = 6 time cells
     expect(timeCells).toHaveLength(6);
-    // First cell is 8:00 AM (label shown because 480 % 30 === 0)
     expect(timeCells[0].textContent).toContain('8:00 AM');
-    // Middle cells at 8:10/8:20 have no label (only dot ticks)
-    expect(timeCells[1].textContent?.trim()).toBe('');
+    expect(timeCells[1].textContent).toContain('8:10 AM');
+    expect(timeCells[2].textContent).toContain('8:20 AM');
+    expect(timeCells[3].textContent).toContain('8:30 AM');
+    expect(timeCells[5].textContent).toContain('8:50 AM');
   });
 
   it('renders all blocks attached to their column', () => {
