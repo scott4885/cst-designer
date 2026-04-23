@@ -62,32 +62,43 @@
   --sg-col-min-w: 140px;
 
   /* ──────────────────────────────────────────────────────────────
-     Block rendering
+     Block rendering — visual treatment of a single BlockInstance.
+     Redesign (post-Sprint-8 UX): borders needed to read at fit zoom
+     (14px rows), so opacities were lifted from 0.25 → 0.38 (outer)
+     and 0.55 → 0.62 (strong). Soft elevation shadow added so the
+     block lifts off the grid canvas as a card.
      ────────────────────────────────────────────────────────────── */
-  --block-border: rgba(17, 24, 39, 0.25);        /* neutral-900 @ 25% */
-  --block-border-strong: rgba(17, 24, 39, 0.55); /* focused / selected */
+  --block-border: rgba(17, 24, 39, 0.38);        /* neutral-900 @ 38% */
+  --block-border-strong: rgba(17, 24, 39, 0.62); /* focused / selected / hover */
   --block-radius: 6px;
   --block-padding-x: 8px;
   --block-padding-y: 4px;
+  --block-shadow:
+    0 1px 2px rgba(17, 24, 39, 0.06),
+    0 0 0 0.5px rgba(17, 24, 39, 0.04);
+  --block-shadow-hover:
+    0 2px 6px rgba(17, 24, 39, 0.10),
+    0 0 0 0.5px rgba(17, 24, 39, 0.08);
 
   /* ──────────────────────────────────────────────────────────────
-     A-zone (assistant-only) — calm, low-chroma tint.
-     Stream C final values: oklch(97% 0.005 255) on white = ~1.03:1,
-     surface hint only. Label remains #111 neutral-900 (≥ 16 : 1).
+     A-zone (assistant-only) — cool neutral tint that reads as a
+     surface, not as the page. Redesign moves from 97% L / 0.005 C
+     (invisible) to 94% L / 0.025 C so the assistant bands are a
+     legible container for the doctor band in between.
      ────────────────────────────────────────────────────────────── */
-  --a-zone-tint: oklch(97% 0.005 255 / 1);
-  --a-zone-stripe: oklch(93% 0.008 255 / 1);
+  --a-zone-tint: oklch(94% 0.025 255 / 1);
+  --a-zone-stripe: oklch(90% 0.020 255 / 1);
 
   /* ──────────────────────────────────────────────────────────────
-     D-zone (doctor hands-on) — slightly warmer highlight.
-     Low-saturation peach/amber so the D-band reads as "activity"
-     without competing with severity reds. Full body at
-     oklch(96% 0.020 75) ≈ #FCF3E8 yields ~14 : 1 for black text.
-     The border adds the structural cue.
+     D-zone (doctor hands-on) — warm peach that tells you the
+     doctor is on the tooth here. Redesign lifts from 96% L /
+     0.020 C (invisible) to 90% L / 0.070 C so the D-band is a
+     clear step up in saturation from the A-zones without crossing
+     into "alert" territory.
      ────────────────────────────────────────────────────────────── */
-  --d-zone-fill: oklch(96% 0.020 75 / 1);
-  --d-zone-border: oklch(65% 0.130 55 / 0.55);
-  --d-zone-border-strong: oklch(55% 0.150 55 / 0.80);
+  --d-zone-fill: oklch(90% 0.070 75 / 1);
+  --d-zone-border: oklch(58% 0.150 55 / 0.85);
+  --d-zone-border-strong: oklch(50% 0.160 55 / 0.95);
 
   /* ──────────────────────────────────────────────────────────────
      Provider colour slots — final palette.
@@ -112,17 +123,19 @@
   --sg-provider-9:  oklch(48% 0.140 275);   /* slate indigo  */
   --sg-provider-10: oklch(48% 0.020 255);   /* graphite      */
 
-  /* Soft 25% mix of each slot for provider-tinted A-zone surfaces. */
-  --sg-provider-1-soft:  oklch(96% 0.020 250);
-  --sg-provider-2-soft:  oklch(96% 0.020 160);
-  --sg-provider-3-soft:  oklch(97% 0.020  55);
-  --sg-provider-4-soft:  oklch(96% 0.025  25);
-  --sg-provider-5-soft:  oklch(96% 0.020 295);
-  --sg-provider-6-soft:  oklch(96% 0.020 345);
-  --sg-provider-7-soft:  oklch(96% 0.020 200);
-  --sg-provider-8-soft:  oklch(97% 0.025  45);
-  --sg-provider-9-soft:  oklch(96% 0.020 275);
-  --sg-provider-10-soft: oklch(96% 0.005 255);
+  /* Soft 25% mix of each slot for provider-tinted A-zone surfaces.
+     Redesign: lightness 96% → 93%, chroma 0.020 → 0.035 so the tint
+     actually reads as a provider-owned surface on the canvas. */
+  --sg-provider-1-soft:  oklch(93% 0.035 250);
+  --sg-provider-2-soft:  oklch(93% 0.035 160);
+  --sg-provider-3-soft:  oklch(94% 0.040  55);
+  --sg-provider-4-soft:  oklch(93% 0.045  25);
+  --sg-provider-5-soft:  oklch(93% 0.035 295);
+  --sg-provider-6-soft:  oklch(93% 0.035 345);
+  --sg-provider-7-soft:  oklch(93% 0.035 200);
+  --sg-provider-8-soft:  oklch(94% 0.045  45);
+  --sg-provider-9-soft:  oklch(93% 0.035 275);
+  --sg-provider-10-soft: oklch(93% 0.010 255);
 
   /* ──────────────────────────────────────────────────────────────
      Procedure-category stripe palette (UX-L6) — 8-slot ramp.
@@ -218,15 +231,18 @@
   --sticky-header-border: rgba(17, 24, 39, 0.08);
   --sticky-header-shadow: 0 1px 0 rgba(17, 24, 39, 0.04), 0 4px 6px -4px rgba(17, 24, 39, 0.06);
 
-  /* Hygiene-exam highlight (doctor D inside a hygiene block). */
-  --hygiene-exam-stripe: oklch(65% 0.12 250 / 0.18);
-  --hygiene-exam-border: oklch(50% 0.15 250 / 0.65);
+  /* Hygiene-exam highlight (doctor D inside a hygiene block).
+     Redesign: stripe alpha 0.18 → 0.32 so the diagonal hatching
+     actually reads on the new (bolder) D-zone fill. */
+  --hygiene-exam-stripe: oklch(65% 0.12 250 / 0.32);
+  --hygiene-exam-border: oklch(50% 0.15 250 / 0.85);
 }
 
 /* ──────────────────────────────────────────────────────────────
    Zoom levels — ScheduleGrid toggles these via data-zoom on root
    The row-height transition animates on zoom change (short, ease-out).
    ────────────────────────────────────────────────────────────── */
+[data-sg-zoom="fit"]      { --sg-row-height: var(--slot-h-fit);      }
 [data-sg-zoom="compact"]  { --sg-row-height: var(--slot-h-compact);  }
 [data-sg-zoom="default"]  { --sg-row-height: var(--slot-h-default);  }
 [data-sg-zoom="expanded"] { --sg-row-height: var(--slot-h-expanded); }

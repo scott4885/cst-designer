@@ -28,6 +28,10 @@ export interface BlockInstanceProps {
   slotHeightPx: number;
   /** Colour for the block / provider — used for the left accent bar. */
   providerColor?: string;
+  /** Soft/low-chroma version of the provider colour. When present, tints
+   *  the A-zones so each block visually "belongs" to its provider's column
+   *  family. Falls back to the neutral `--a-zone-tint` when absent. */
+  providerColorSoft?: string;
   /** Whether the block is currently hovered or selected. */
   isHovered?: boolean;
   isSelected?: boolean;
@@ -90,6 +94,7 @@ const BlockInstance = memo(function BlockInstance({
   block,
   slotHeightPx,
   providerColor,
+  providerColorSoft,
   isHovered = false,
   isSelected = false,
   violations = [],
@@ -117,19 +122,29 @@ const BlockInstance = memo(function BlockInstance({
   }, [violations]);
 
   const outlineClass = '';
-  // Selected / hover / severity use the shared focus-ring token system so
-  // states compose cleanly. Precedence: HARD sev > selected > SOFT sev >
-  // hovered. INFO severity does NOT paint an outline (non-blocking).
-  let sevBorderStyle: React.CSSProperties | undefined;
+  // Selected / hover / severity compose on top of the base elevation
+  // shadow so the block always reads as a lifted card. Precedence:
+  // HARD sev > selected > SOFT sev > hovered > default-rest.
+  // INFO severity does NOT paint an outline (non-blocking).
+  let sevBorderStyle: React.CSSProperties = {
+    boxShadow: 'var(--block-shadow)',
+  };
   if (highestSev === 'HARD') {
-    sevBorderStyle = { boxShadow: '0 0 0 2px var(--severity-hard)' };
+    sevBorderStyle = {
+      boxShadow: '0 0 0 2px var(--severity-hard), var(--block-shadow-hover)',
+    };
   } else if (isSelected) {
-    sevBorderStyle = { boxShadow: 'var(--focus-ring)' };
+    sevBorderStyle = {
+      boxShadow: 'var(--focus-ring), var(--block-shadow-hover)',
+    };
   } else if (highestSev === 'SOFT') {
-    sevBorderStyle = { boxShadow: '0 0 0 2px var(--severity-soft)' };
+    sevBorderStyle = {
+      boxShadow: '0 0 0 2px var(--severity-soft), var(--block-shadow-hover)',
+    };
   } else if (isHovered) {
     sevBorderStyle = {
-      boxShadow: '0 0 0 1px var(--block-border-strong)',
+      boxShadow:
+        '0 0 0 1px var(--block-border-strong), var(--block-shadow-hover)',
     };
   }
 
@@ -174,7 +189,9 @@ const BlockInstance = memo(function BlockInstance({
       onFocus={() => onHoverChange?.(block.blockInstanceId)}
       onBlur={() => onHoverChange?.(null)}
     >
-      {/* A-pre band */}
+      {/* A-pre band — assistant-only surface, tinted by the provider
+          when a provider colour is assigned so the block visually
+          belongs to its column family. */}
       {preSlots > 0 && (
         <div
           data-testid="sg-aband-pre"
@@ -182,14 +199,16 @@ const BlockInstance = memo(function BlockInstance({
           className="w-full"
           style={{
             height: preHeightPx,
-            background: 'var(--a-zone-tint)',
-            borderBottom: '1px dashed var(--block-border)',
+            background: providerColorSoft ?? 'var(--a-zone-tint)',
+            borderBottom: '1px solid var(--d-zone-border)',
           }}
           aria-hidden="true"
         />
       )}
 
-      {/* D band — where the doctor is hands-on */}
+      {/* D band — where the doctor is hands-on. Warm peach fill +
+          crisp separators so the band reads as a clear step up in
+          attention from the A-zones. */}
       {docSlots > 0 && (
         <div
           data-testid="sg-dband"
@@ -230,7 +249,7 @@ const BlockInstance = memo(function BlockInstance({
         </div>
       )}
 
-      {/* A-post band */}
+      {/* A-post band — mirrors A-pre (provider-tinted when available). */}
       {postSlots > 0 && (
         <div
           data-testid="sg-aband-post"
@@ -238,8 +257,8 @@ const BlockInstance = memo(function BlockInstance({
           className="w-full"
           style={{
             height: postHeightPx,
-            background: 'var(--a-zone-tint)',
-            borderTop: '1px dashed var(--block-border)',
+            background: providerColorSoft ?? 'var(--a-zone-tint)',
+            borderTop: '1px solid var(--d-zone-border)',
           }}
           aria-hidden="true"
         />

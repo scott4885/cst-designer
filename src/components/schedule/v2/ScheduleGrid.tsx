@@ -691,6 +691,11 @@ const ScheduleGrid = memo(function ScheduleGrid({
                             ? `var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))})`
                             : undefined
                         }
+                        providerColorSoft={
+                          col.providerColorIndex
+                            ? `var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))}-soft)`
+                            : undefined
+                        }
                         isHovered={hoveredBlockId === block.blockInstanceId}
                         isSelected={selectedBlockId === block.blockInstanceId}
                         violations={violationsByBlock[block.blockInstanceId]}
