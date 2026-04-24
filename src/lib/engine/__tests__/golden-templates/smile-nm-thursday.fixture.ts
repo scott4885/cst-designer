@@ -25,8 +25,9 @@ export const smileNmThursday: GoldenFixture = {
     hpMin: 2,
     hpMax: 10,
     hygMin: 10,
-    blocksMin: 20,
-    blocksMax: 60,
+    // Post-2026-04-24 slot-aggregator fix: adjacent-split doubled counts.
+    blocksMin: 40,
+    blocksMax: 90,
     // Sprint 4 P0-2: per-AP known-debt ledger. Empty = zero-tolerance.
     knownHardDebt: {},
   },

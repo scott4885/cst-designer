@@ -39,8 +39,11 @@ export const smileNmMonday: GoldenFixture = {
     // 3 RDHs × ~9 hours of hygiene blocks — engine currently yields ~10–15
     // after adjacent-block splitting; keep floor at 10 to catch regressions.
     hygMin: 10,
-    blocksMin: 20,
-    blocksMax: 60,
+    // Post-2026-04-24 slot-aggregator fix: adjacent same-blockType slots
+    // are now correctly split at the blockType.durationMin boundary,
+    // which ~doubled the PlacedBlock count from its pre-fix value.
+    blocksMin: 40,
+    blocksMax: 90,
     // Sprint 4 P0-2 — per-AP known-debt ledger. Empty map = zero tolerance
     // for every AP. Phase 4 re-baseline measured 0 HARD across 20 seed
     // variations. AP-8 (lunch) is structurally prevented at slot-creation

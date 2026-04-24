@@ -51,41 +51,69 @@ export function slotsToPlacedBlocks(
   let runningProvider: string | null = null;
   let runningOperatory: string | null = null;
   let runningLabel: string | null = null;
+  let runningBtDurationMin: number | null = null;
+  let runningStartMinute: number | null = null;
+
+  const reset = () => {
+    runningInstanceId = null;
+    runningProvider = null;
+    runningOperatory = null;
+    runningLabel = null;
+    runningBtDurationMin = null;
+    runningStartMinute = null;
+  };
 
   for (const slot of slots) {
     if (slot.isBreak) {
-      runningInstanceId = null;
-      runningProvider = null;
-      runningOperatory = null;
-      runningLabel = null;
+      reset();
       continue;
     }
     if (!slot.blockLabel && !slot.staffingCode) {
-      runningInstanceId = null;
-      runningProvider = null;
-      runningOperatory = null;
-      runningLabel = null;
+      reset();
       continue;
     }
+    const slotMin = parseDisplayMinutes(slot.time);
+    const bt = slot.blockTypeId ? btById.get(slot.blockTypeId) : undefined;
+    const btDurationMin = bt?.durationMin ?? null;
+
     let id = slot.blockInstanceId;
     // A "new block" starts when any of the following changes from the
-    // running state: providerId, operatory, or blockLabel. This lets us
-    // split adjacent same-type hygiene blocks that share no instanceId
-    // (e.g. PMGING followed immediately by RCPM on the same column).
+    // running state:
+    //   (a) providerId, operatory, or blockLabel changes (handles an
+    //       adjacent block of a different type on the same column)
+    //   (b) running accumulated length would EQUAL OR EXCEED the
+    //       blockType's declared durationMin (handles the common case
+    //       of the generator emitting N back-to-back instances of the
+    //       SAME block type — e.g. eight consecutive 30-min MP blocks
+    //       filling a 4-hour mid-day stretch. Without this check, all
+    //       eight were merged into one 240-min phantom block with a
+    //       single A-D-A x-segment at the front.)
+    const wouldExceedDuration =
+      runningBtDurationMin != null &&
+      runningStartMinute != null &&
+      slotMin - runningStartMinute >= runningBtDurationMin;
+
     const isBoundary =
       slot.providerId !== runningProvider ||
       slot.operatory !== runningOperatory ||
-      (slot.blockLabel != null && slot.blockLabel !== runningLabel);
+      (slot.blockLabel != null && slot.blockLabel !== runningLabel) ||
+      wouldExceedDuration;
 
     if (!id) {
       if (isBoundary || runningInstanceId == null) {
         id = `syn:${slot.providerId}:${slot.operatory ?? ''}:${slot.time}`;
         runningInstanceId = id;
+        runningStartMinute = slotMin;
+        runningBtDurationMin = btDurationMin;
       } else {
         id = runningInstanceId;
       }
     } else {
-      runningInstanceId = id;
+      if (id !== runningInstanceId) {
+        runningInstanceId = id;
+        runningStartMinute = slotMin;
+        runningBtDurationMin = btDurationMin;
+      }
     }
     runningProvider = slot.providerId;
     runningOperatory = slot.operatory ?? null;
