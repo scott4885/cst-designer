@@ -1,36 +1,57 @@
 "use client";
 
 /**
- * BlockInstance — Sprint 2 Stream B
- * ─────────────────────────────────
- * Renders one PlacedBlock as a SINGLE rectangle that spans N 10-min rows
- * (N = durationMin / 10). Inside the rectangle:
+ * BlockInstance — Sprint 2 Stream B (redesigned v2)
+ * ────────────────────────────────────────────────
+ * Renders one PlacedBlock as either:
  *
- *   1. A visible outline that groups the slots (UX-L1).
- *   2. Three X-segment bands — A-pre / D / A-post (UX-L2). A-zones get a
- *      subtle tint + side rule; D-zone is neutral fill + stronger outline.
- *   3. A single BlockLabel centred vertically (UX-L1, UX-L8).
- *   4. Optional violation badges (HARD / SOFT / INFO) from the guardReport.
+ *   COMPACT (default, showXSegments=false):
+ *     Solid provider-tinted card, 4px TOP accent strip carrying the
+ *     X-segment proportions (A-pre / D / A-post) as three horizontally
+ *     laid-out spans, 1px border, 6px radius, top-left anchored label,
+ *     no shadow. The accent strip encodes the same information that
+ *     Open Dental's left-edge time-bar does — just rotated 90°.
+ *
+ *   FULL-BAND (showXSegments=true, legacy / diagnostic mode):
+ *     Three full-height bands (A-pre / D / A-post) coloured separately
+ *     so designers can study doctor-vs-assistant allocation inside a
+ *     single block. Toggled from the grid toolbar.
+ *
+ * Label: top-left anchored (not vertically centred), Inter 600 13px,
+ *   truncates with ellipsis. Dollar amount hides when block height
+ *   < 56px (Google Calendar pattern — suppress secondary fields rather
+ *   than resize the primary one).
+ *
+ * Elevation: **borders only, no shadow** (Linear density rule — at
+ *   template-mode density, 100+ blocks with per-block shadows become
+ *   visual soup).
+ *
+ * Left category stripe: **removed** from the compact view. The top
+ *   accent strip already carries the provider-color signal; a left
+ *   stripe would duplicate/compete. Category colour shows through in
+ *   the accent strip's D-segment hue (future: swap to category-hue
+ *   accent if we want that mapping).
  *
  * Bible: §2.1 (X-segment primitive), §3 (doctor-as-bottleneck invariant).
  * PRD-V4: UX-L1, UX-L2, UX-L3, UX-L6, UX-L9.
- * Sprint plan: T-201, T-202, T-203.
+ * Reference study: BRIEF-BLOCK-REFERENCE-STUDY.md (Open Dental +
+ * Linear + Google Calendar convergence).
  */
 
 import { memo, useMemo } from 'react';
 import type { PlacedBlock, Violation } from '@/lib/engine/types';
 import BlockLabel from './BlockLabel';
 import { IconWarning, IconSoft, IconInfo } from './icons';
+import { useScheduleView } from '@/store/use-schedule-view';
 
 export interface BlockInstanceProps {
   block: PlacedBlock;
   /** Height of a single 10-min slot row in px. */
   slotHeightPx: number;
-  /** Colour for the block / provider — used for the left accent bar. */
+  /** Colour for the block / provider — drives accent strip + body tint. */
   providerColor?: string;
-  /** Soft/low-chroma version of the provider colour. When present, tints
-   *  the A-zones so each block visually "belongs" to its provider's column
-   *  family. Falls back to the neutral `--a-zone-tint` when absent. */
+  /** Soft/low-chroma version of the provider colour — used as the
+   *  compact-view body fill. Falls back to `--a-zone-tint` when absent. */
   providerColorSoft?: string;
   /** Whether the block is currently hovered or selected. */
   isHovered?: boolean;
@@ -45,7 +66,7 @@ export interface BlockInstanceProps {
    * Defaults to `isHygieneBlock` when not provided.
    */
   highlightHygieneExamSlot?: boolean;
-  /** Procedure category — drives the 3-px left-border stripe (UX-L6). */
+  /** Procedure category — reserved; not currently rendered in compact view. */
   procedureCategory?: ProcedureCategoryCode;
   /** Fires when the block is clicked / Enter is pressed on the block. */
   onActivate?: (blockId: string) => void;
@@ -90,6 +111,10 @@ function severityClass(sev: 'HARD' | 'SOFT' | 'INFO'): string {
   return 'text-[var(--severity-info)]';
 }
 
+/** Height threshold (px) below which secondary label content (dollar
+ *  amount, sublines) is suppressed. Google Calendar 2024 pattern. */
+const SECONDARY_LABEL_THRESHOLD_PX = 56;
+
 const BlockInstance = memo(function BlockInstance({
   block,
   slotHeightPx,
@@ -104,6 +129,8 @@ const BlockInstance = memo(function BlockInstance({
   onActivate,
   onHoverChange,
 }: BlockInstanceProps) {
+  const showXSegments = useScheduleView((s) => s.showXSegments);
+
   const durationSlots = Math.max(1, Math.round(block.durationMin / 10));
   const preSlots = Math.round((block.asstPreMin ?? 0) / 10);
   const docSlots = Math.round((block.doctorMin ?? 0) / 10);
@@ -114,6 +141,13 @@ const BlockInstance = memo(function BlockInstance({
   const docHeightPx = docSlots * slotHeightPx;
   const postHeightPx = postSlots * slotHeightPx;
 
+  // Accent-strip proportions (sum to totalMin; flex-basis handles the
+  // layout math). When any segment is zero it collapses naturally.
+  const totalMin = Math.max(1, block.durationMin);
+  const prePct = ((block.asstPreMin ?? 0) / totalMin) * 100;
+  const docPct = ((block.doctorMin ?? 0) / totalMin) * 100;
+  const postPct = Math.max(0, 100 - prePct - docPct);
+
   const highestSev = useMemo(() => {
     if (!violations?.length) return null;
     if (violations.some((v) => v.severity === 'HARD')) return 'HARD' as const;
@@ -121,40 +155,40 @@ const BlockInstance = memo(function BlockInstance({
     return 'INFO' as const;
   }, [violations]);
 
-  const outlineClass = '';
-  // Selected / hover / severity compose on top of the base elevation
-  // shadow so the block always reads as a lifted card. Precedence:
-  // HARD sev > selected > SOFT sev > hovered > default-rest.
-  // INFO severity does NOT paint an outline (non-blocking).
-  let sevBorderStyle: React.CSSProperties = {
-    boxShadow: 'var(--block-shadow)',
-  };
+  // Borders-only elevation (Linear rule). Selected / hover / severity
+  // compose the outline ring; no block-shadow.
+  let outlineStyle: React.CSSProperties | undefined;
   if (highestSev === 'HARD') {
-    sevBorderStyle = {
-      boxShadow: '0 0 0 2px var(--severity-hard), var(--block-shadow-hover)',
-    };
+    outlineStyle = { boxShadow: '0 0 0 2px var(--severity-hard)' };
   } else if (isSelected) {
-    sevBorderStyle = {
-      boxShadow: 'var(--focus-ring), var(--block-shadow-hover)',
-    };
+    outlineStyle = { boxShadow: 'var(--focus-ring)' };
   } else if (highestSev === 'SOFT') {
-    sevBorderStyle = {
-      boxShadow: '0 0 0 2px var(--severity-soft), var(--block-shadow-hover)',
-    };
+    outlineStyle = { boxShadow: '0 0 0 2px var(--severity-soft)' };
   } else if (isHovered) {
-    sevBorderStyle = {
-      boxShadow:
-        '0 0 0 1px var(--block-border-strong), var(--block-shadow-hover)',
-    };
+    outlineStyle = { boxShadow: '0 0 0 1px var(--block-border-strong)' };
   }
 
-  // Left-border colour: procedure category takes precedence (UX-L6),
-  // falling back to provider colour, then a neutral default.
-  const leftBorderColor = procedureCategory
+  // Compact-view body tint: provider-soft if available, fall back to the
+  // neutral A-zone tint. Matches Dentrix / Open Dental convention of
+  // "provider identity lives in the fill."
+  const bodyFill = providerColorSoft ?? 'var(--a-zone-tint)';
+  const accentColor = providerColor ?? 'var(--block-border-strong)';
+
+  // Accent-strip colors: D segment uses full provider color; A segments
+  // use a darker mix (via CSS color-mix at render time in the style tag).
+  const accentDoctor = accentColor;
+  const accentAssist =
+    providerColor
+      ? `color-mix(in oklch, ${providerColor} 70%, black 15%)`
+      : 'var(--block-border-strong)';
+
+  // Category signal (reserved — not currently painted in compact view).
+  const _categoryColor = procedureCategory
     ? CATEGORY_VAR[procedureCategory]
-    : providerColor ?? 'var(--block-border)';
+    : undefined;
 
   const effectiveHighlightExam = highlightHygieneExamSlot ?? isHygieneBlock;
+  const showSecondaryLabel = totalHeightPx >= SECONDARY_LABEL_THRESHOLD_PX;
 
   return (
     <div
@@ -167,15 +201,17 @@ const BlockInstance = memo(function BlockInstance({
       data-pre-slots={preSlots}
       data-doctor-slots={docSlots}
       data-post-slots={postSlots}
-      className={`relative flex flex-col overflow-hidden rounded-[var(--block-radius)] bg-white cursor-pointer select-none focus-visible:outline-none ${outlineClass}`}
+      data-procedure-category={procedureCategory ?? undefined}
+      data-view={showXSegments ? 'xsegments' : 'compact'}
+      className="relative flex flex-col overflow-hidden rounded-[var(--block-radius)] cursor-pointer select-none focus-visible:outline-none"
       style={{
         height: totalHeightPx,
+        background: showXSegments ? 'white' : bodyFill,
         border: `1px solid var(--block-border)`,
-        borderLeft: `4px solid ${leftBorderColor}`,
         willChange: 'height',
         transition:
           'height var(--sg-transition-fast), box-shadow var(--sg-transition-fast), border-color var(--sg-transition-fast)',
-        ...sevBorderStyle,
+        ...outlineStyle,
       }}
       onClick={() => onActivate?.(block.blockInstanceId)}
       onKeyDown={(e) => {
@@ -189,90 +225,121 @@ const BlockInstance = memo(function BlockInstance({
       onFocus={() => onHoverChange?.(block.blockInstanceId)}
       onBlur={() => onHoverChange?.(null)}
     >
-      {/* A-pre band — assistant-only surface, tinted by the provider
-          when a provider colour is assigned so the block visually
-          belongs to its column family. */}
-      {preSlots > 0 && (
-        <div
-          data-testid="sg-aband-pre"
-          data-slots={preSlots}
-          className="w-full"
-          style={{
-            height: preHeightPx,
-            background: providerColorSoft ?? 'var(--a-zone-tint)',
-            borderBottom: '1px solid var(--d-zone-border)',
-          }}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* D band — where the doctor is hands-on. Warm peach fill +
-          crisp separators so the band reads as a clear step up in
-          attention from the A-zones. */}
-      {docSlots > 0 && (
-        <div
-          data-testid="sg-dband"
-          data-slots={docSlots}
-          data-hygiene-exam={effectiveHighlightExam ? 'true' : 'false'}
-          className="w-full relative flex-1 min-h-0"
-          style={{
-            height: docHeightPx,
-            background: 'var(--d-zone-fill)',
-            borderTop: effectiveHighlightExam
-              ? '2px solid var(--hygiene-exam-border)'
-              : preSlots > 0
-                ? '1px solid var(--d-zone-border)'
-                : undefined,
-            borderBottom: postSlots > 0 ? '1px solid var(--d-zone-border)' : undefined,
-          }}
-          aria-hidden="true"
-        >
-          {isHygieneBlock && (
+      {showXSegments ? (
+        <>
+          {/* Legacy full-bleed 3-band view (diagnostic mode) */}
+          {preSlots > 0 && (
             <div
-              data-testid="sg-hygiene-exam-glyph"
-              className="absolute inset-0 pointer-events-none"
+              data-testid="sg-aband-pre"
+              data-slots={preSlots}
+              className="w-full"
               style={{
-                backgroundImage:
-                  'repeating-linear-gradient(45deg, var(--hygiene-exam-stripe) 0 4px, transparent 4px 8px)',
+                height: preHeightPx,
+                background: bodyFill,
+                borderBottom: '1px solid var(--d-zone-border)',
               }}
               aria-hidden="true"
             />
           )}
-          {isHygieneBlock && (
-            <span
+          {docSlots > 0 && (
+            <div
+              data-testid="sg-dband"
+              data-slots={docSlots}
+              data-hygiene-exam={effectiveHighlightExam ? 'true' : 'false'}
+              className="w-full relative flex-1 min-h-0"
+              style={{
+                height: docHeightPx,
+                background: 'var(--d-zone-fill)',
+                borderTop: effectiveHighlightExam
+                  ? '2px solid var(--hygiene-exam-border)'
+                  : preSlots > 0
+                    ? '1px solid var(--d-zone-border)'
+                    : undefined,
+                borderBottom: postSlots > 0 ? '1px solid var(--d-zone-border)' : undefined,
+              }}
               aria-hidden="true"
-              data-testid="sg-hygiene-exam-dot"
-              className="absolute top-1 left-1 inline-block h-1.5 w-1.5 rounded-full"
-              style={{ background: 'var(--hygiene-exam-border)' }}
+            >
+              {isHygieneBlock && (
+                <div
+                  data-testid="sg-hygiene-exam-glyph"
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(45deg, var(--hygiene-exam-stripe) 0 4px, transparent 4px 8px)',
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+              {isHygieneBlock && (
+                <span
+                  aria-hidden="true"
+                  data-testid="sg-hygiene-exam-dot"
+                  className="absolute top-1 left-1 inline-block h-1.5 w-1.5 rounded-full"
+                  style={{ background: 'var(--hygiene-exam-border)' }}
+                />
+              )}
+            </div>
+          )}
+          {postSlots > 0 && (
+            <div
+              data-testid="sg-aband-post"
+              data-slots={postSlots}
+              className="w-full"
+              style={{
+                height: postHeightPx,
+                background: bodyFill,
+                borderTop: '1px solid var(--d-zone-border)',
+              }}
+              aria-hidden="true"
+            />
+          )}
+        </>
+      ) : (
+        /* Compact view: 4px top accent strip + solid tinted body */
+        <div
+          data-testid="sg-accent-strip"
+          className="flex w-full"
+          style={{ height: 4, flex: '0 0 4px' }}
+          aria-hidden="true"
+        >
+          {prePct > 0 && (
+            <span
+              data-testid="sg-accent-pre"
+              style={{ flexBasis: `${prePct}%`, background: accentAssist }}
+            />
+          )}
+          {docPct > 0 && (
+            <span
+              data-testid="sg-accent-doc"
+              style={{ flexBasis: `${docPct}%`, background: accentDoctor }}
+            />
+          )}
+          {postPct > 0 && (
+            <span
+              data-testid="sg-accent-post"
+              style={{ flexBasis: `${postPct}%`, background: accentAssist }}
             />
           )}
         </div>
       )}
 
-      {/* A-post band — mirrors A-pre (provider-tinted when available). */}
-      {postSlots > 0 && (
-        <div
-          data-testid="sg-aband-post"
-          data-slots={postSlots}
-          className="w-full"
-          style={{
-            height: postHeightPx,
-            background: providerColorSoft ?? 'var(--a-zone-tint)',
-            borderTop: '1px solid var(--d-zone-border)',
-          }}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Label — absolutely centred over the three bands */}
+      {/* Label — top-left anchored (Google Calendar / Linear / Open Dental
+          pattern). In compact view the label sits above the solid body;
+          in xsegments view it absolute-positions to stay readable over
+          the 3-band backdrop. */}
       <div
-        className="absolute inset-0 flex flex-col justify-center pointer-events-none"
+        className={
+          showXSegments
+            ? 'absolute inset-0 flex flex-col justify-center pointer-events-none'
+            : 'px-2 py-1 flex-1 min-h-0 flex flex-col pointer-events-none'
+        }
         data-testid="sg-block-label-wrap"
       >
         <BlockLabel
           label={block.blockLabel}
-          productionAmount={block.productionAmount}
+          productionAmount={showSecondaryLabel ? block.productionAmount : null}
           heightPx={totalHeightPx}
+          topAligned={!showXSegments}
         />
       </div>
 

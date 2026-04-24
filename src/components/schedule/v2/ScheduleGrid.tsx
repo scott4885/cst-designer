@@ -34,7 +34,6 @@ import {
 import BlockInstance, { type ProcedureCategoryCode } from './BlockInstance';
 import DoctorFlowOverlay from './DoctorFlowOverlay';
 import { IconZoomIn, IconZoomOut, IconToggleOverlay } from './icons';
-import ProviderRoleBadge from './ProviderRoleBadge';
 import type { ProviderRoleCode } from './icons';
 import {
   ScheduleGridEmpty,
@@ -163,6 +162,8 @@ const ScheduleGrid = memo(function ScheduleGrid({
   const setSelectedBlockId = useScheduleView((s) => s.setSelectedBlockId);
   const showDoctorFlow = useScheduleView((s) => s.showDoctorFlow);
   const toggleDoctorFlow = useScheduleView((s) => s.toggleDoctorFlow);
+  const showXSegments = useScheduleView((s) => s.showXSegments);
+  const toggleXSegments = useScheduleView((s) => s.toggleXSegments);
   const zoomIn = useScheduleView((s) => s.zoomIn);
   const zoomOut = useScheduleView((s) => s.zoomOut);
   const setZoom = useScheduleView((s) => s.setZoom);
@@ -479,6 +480,24 @@ const ScheduleGrid = memo(function ScheduleGrid({
         </span>
         <div className="flex-1" />
         <ZoomControls zoom={zoom} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={() => setZoom('default')} />
+        <button
+          type="button"
+          data-testid="sg-xsegments-toggle"
+          aria-pressed={showXSegments}
+          onClick={toggleXSegments}
+          title="Show A-pre / Doctor / A-post time bands at full height"
+          className={`inline-flex items-center gap-1 px-2 py-1 text-[var(--font-xs)] rounded border focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] ${
+            showXSegments
+              ? 'bg-neutral-900 text-white border-neutral-900'
+              : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50'
+          }`}
+          style={{
+            transition:
+              'background-color var(--sg-transition-fast), color var(--sg-transition-fast), box-shadow var(--sg-transition-fast)',
+          }}
+        >
+          <span data-micro="true">X-segments</span>
+        </button>
         {!hideDoctorFlow && (
           <button
             type="button"
@@ -581,52 +600,57 @@ const ScheduleGrid = memo(function ScheduleGrid({
           aria-rowindex={1}
           style={{ display: 'contents' }}
         >
-          {/* Sticky corner */}
+          {/* Sticky corner — matches the fixed 40px column-header height
+              so the header row stays aligned at any zoom. */}
           <div
             className="sticky top-0 left-0 bg-white border-b border-r border-neutral-200"
             style={{
               zIndex: 'var(--z-sticky-corner)' as unknown as number,
-              height: slotHeightPx,
+              height: Math.max(40, slotHeightPx),
             }}
             aria-hidden="true"
           />
 
-          {columns.map((col, colIdx) => (
-            <div
-              key={`hdr-${col.id}`}
-              data-testid="sg-col-header"
-              data-col-id={col.id}
-              data-col-index={colIdx}
-              role="columnheader"
-              aria-colindex={colIdx + 2}
-              className="sticky top-0 flex flex-col justify-center px-2 bg-white border-b border-r border-neutral-200"
-              style={{
-                zIndex: 'var(--z-sticky-provider-row)' as unknown as number,
-                height: slotHeightPx,
-                borderLeft: col.providerColorIndex
-                  ? `3px solid var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))})`
-                  : undefined,
-              }}
-            >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[var(--font-sm)] font-semibold text-neutral-900 truncate">
+          {columns.map((col, colIdx) => {
+            // Fixed 40px header regardless of zoom row height (Google
+            // Calendar 2024 pattern — the header is its own surface, not
+            // a time row). Provider colour lives in a 3px left bar +
+            // matching column-bottom accent (Open Dental convention).
+            const HEADER_H = 40;
+            const providerVar = col.providerColorIndex
+              ? `var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))})`
+              : undefined;
+            return (
+              <div
+                key={`hdr-${col.id}`}
+                data-testid="sg-col-header"
+                data-col-id={col.id}
+                data-col-index={colIdx}
+                role="columnheader"
+                aria-colindex={colIdx + 2}
+                className="sticky top-0 flex flex-col justify-center px-3 bg-white border-b border-r border-neutral-200"
+                style={{
+                  zIndex: 'var(--z-sticky-provider-row)' as unknown as number,
+                  height: Math.max(HEADER_H, slotHeightPx),
+                  borderLeft: providerVar
+                    ? `3px solid ${providerVar}`
+                    : undefined,
+                }}
+              >
+                <span
+                  className="text-[var(--font-sm)] font-semibold text-neutral-900 truncate leading-tight"
+                  title={col.label}
+                >
                   {col.label}
                 </span>
-                {col.providerRole && (
-                  <ProviderRoleBadge
-                    role={col.providerRole}
-                    providerColorIndex={col.providerColorIndex}
-                    compact
-                  />
+                {col.sublabel && (
+                  <span className="text-[var(--font-xs)] text-neutral-500 truncate leading-tight">
+                    {col.sublabel}
+                  </span>
                 )}
               </div>
-              {col.sublabel && (
-                <span className="text-[var(--font-xs)] text-neutral-700 truncate">
-                  {col.sublabel}
-                </span>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Row grid — time axis + per-column cells (absolute-positioned blocks overlaid) */}

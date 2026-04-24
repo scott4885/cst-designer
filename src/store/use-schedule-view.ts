@@ -29,6 +29,12 @@ interface ScheduleViewState {
   hoveredBlockId: string | null;
   selectedBlockId: string | null;
   showDoctorFlow: boolean;
+  /** When true, BlockInstance renders the legacy full-bleed X-segment
+   *  3-band view (A-pre / D / A-post as separate color bands filling the
+   *  whole block). Default: false — compact view shows a 4px top accent
+   *  strip carrying the same proportions, with a solid provider-tinted
+   *  body so the label and appointment type dominate the scan. */
+  showXSegments: boolean;
 
   setZoom: (zoom: ScheduleZoom) => void;
   zoomIn: () => void;
@@ -42,6 +48,9 @@ interface ScheduleViewState {
 
   setShowDoctorFlow: (v: boolean) => void;
   toggleDoctorFlow: () => void;
+
+  setShowXSegments: (v: boolean) => void;
+  toggleXSegments: () => void;
 }
 
 const ZOOM_ORDER: ScheduleZoom[] = ['fit', 'compact', 'default', 'expanded'];
@@ -52,6 +61,7 @@ export const useScheduleView = create<ScheduleViewState>((set, get) => ({
   hoveredBlockId: null,
   selectedBlockId: null,
   showDoctorFlow: false,
+  showXSegments: false,
 
   setZoom: (zoom) => set({ zoom }),
   zoomIn: () => {
@@ -76,6 +86,9 @@ export const useScheduleView = create<ScheduleViewState>((set, get) => ({
 
   setShowDoctorFlow: (v) => set({ showDoctorFlow: v }),
   toggleDoctorFlow: () => set((s) => ({ showDoctorFlow: !s.showDoctorFlow })),
+
+  setShowXSegments: (v) => set({ showXSegments: v }),
+  toggleXSegments: () => set((s) => ({ showXSegments: !s.showXSegments })),
 }));
 
 /** Pixel height for a 10-min slot at each zoom. Kept in sync with design-tokens.css.

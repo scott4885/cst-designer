@@ -57,9 +57,12 @@
   /* Live row-height used by ScheduleGrid. Bound by useScheduleView.zoom. */
   --sg-row-height: var(--slot-h-fit);
 
-  /* Time-axis (left rail) and header (top row) widths */
-  --sg-time-col-w: 72px;
-  --sg-col-min-w: 140px;
+  /* Time-axis (left rail) and header (top row) widths.
+     Gutter widened from 72 → 80px so 10-min labels ("10:20 AM"-width)
+     render with breathing room at fit zoom; column min widened so the
+     sticky gutter can't overlap a narrow column on small viewports. */
+  --sg-time-col-w: 80px;
+  --sg-col-min-w: 160px;
 
   /* ──────────────────────────────────────────────────────────────
      Block rendering — visual treatment of a single BlockInstance.

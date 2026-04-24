@@ -130,7 +130,7 @@ describe('ScheduleGrid — provider role badge in headers', () => {
     });
   });
 
-  it('renders a ProviderRoleBadge inside every header that has providerRole', () => {
+  it('does NOT render ProviderRoleBadge inside column headers (dropped in redesign — role is implied by column naming + provider colour bar)', () => {
     render(
       <ScheduleGrid
         schedule={minimalSchedule}
@@ -139,10 +139,7 @@ describe('ScheduleGrid — provider role badge in headers', () => {
         workingEndMin={540}
       />,
     );
-    const badges = screen.getAllByTestId('sg-provider-role-badge');
-    expect(badges).toHaveLength(2);
-    expect(badges[0].getAttribute('data-role')).toBe('DDS');
-    expect(badges[1].getAttribute('data-role')).toBe('RDH');
+    expect(screen.queryAllByTestId('sg-provider-role-badge')).toHaveLength(0);
   });
 });
 
@@ -171,11 +168,12 @@ describe('ScheduleGrid — blockCategories propagation', () => {
       />,
     );
     const block = screen.getByTestId('sg-block-instance') as HTMLElement;
-    // Border-left is set inline from the category variable when present.
-    // We cannot read CSS vars in jsdom, but the style attribute string
-    // contains the var() token.
-    expect(block.getAttribute('style') ?? '').toContain(
-      'var(--sg-category-major-restorative)',
-    );
+    // The redesign dropped the left category stripe from the compact
+    // view (the top accent strip already carries provider-colour signal;
+    // a left stripe would duplicate/compete — see reference study). The
+    // prop is still forwarded and surfaced as a data-attribute so future
+    // orthogonal signals (e.g. category filter highlighting) can light
+    // up without a render change.
+    expect(block.getAttribute('data-procedure-category')).toBe('MAJOR_RESTORATIVE');
   });
 });

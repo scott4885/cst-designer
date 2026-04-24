@@ -30,6 +30,11 @@ export interface BlockLabelProps {
   showInfoGlyph?: boolean;
   /** When true, label is rendered in its compact form regardless of height. */
   forceCompact?: boolean;
+  /** When true, anchor the label to the top of its container (justify-start)
+   *  instead of vertically centring (justify-center). Google Calendar /
+   *  Linear pattern — primary label always sits top-left regardless of
+   *  block duration. */
+  topAligned?: boolean;
 }
 
 /**
@@ -67,6 +72,7 @@ const BlockLabel = memo(function BlockLabel({
   heightPx,
   showInfoGlyph = true,
   forceCompact = false,
+  topAligned = false,
 }: BlockLabelProps) {
   const effectiveShortCode = useMemo(
     () => shortCode ?? deriveShortCode(label),
@@ -101,10 +107,14 @@ const BlockLabel = memo(function BlockLabel({
 
   return (
     <div
-      className="sg-block-label flex flex-col gap-0.5 px-[var(--block-padding-x)] py-[var(--block-padding-y)] h-full justify-center"
+      className={`sg-block-label flex flex-col gap-0.5 h-full ${
+        topAligned
+          ? 'justify-start'
+          : 'px-[var(--block-padding-x)] py-[var(--block-padding-y)] justify-center'
+      }`}
       data-testid="sg-block-label-full"
     >
-      <span className="font-semibold text-[var(--font-sm)] leading-tight text-neutral-900">
+      <span className="font-semibold text-[var(--font-sm)] leading-tight text-neutral-900 truncate">
         {label}
       </span>
       {typeof productionAmount === 'number' && productionAmount > 0 && (
