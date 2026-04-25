@@ -86,8 +86,7 @@ const officeSchema = z.object({
 type OfficeFormData = z.infer<typeof officeSchema>;
 
 const WORKING_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const OPERATORIES = ["OP1", "OP2", "OP3", "OP4", "OP5", "HYG1", "HYG2", "HYG3", "HYG4", "Main", "Consult Room"];
-const PROVIDER_COLORS = ["#ec8a1b", "#87bcf3", "#f4de37", "#44f2ce", "#ff6b9d", "#9b59b6"];
+import { OPERATORIES, PROVIDER_COLORS } from "@/lib/office-constants";
 
 const DEFAULT_PROCEDURES = [
   // Doctor procedures — mirrors the global Appointment Library defaults

@@ -59,17 +59,22 @@ export async function POST(
       autoApplyStagger,
     });
 
-    // Optionally auto-save each generated result as a WORKING schedule
+    // Optionally auto-save each generated result as a WORKING schedule.
+    // Saves are independent across days, so run in parallel to cut the
+    // request lifecycle from N sequential round-trips to one Promise.all
+    // batch (~5x faster for a 5-day generate).
     if (autoSaveGenerated) {
-      for (const result of schedules) {
-        await autoSaveSchedule(id, {
-          dayOfWeek: result.dayOfWeek,
-          weekType,
-          slots: result.slots,
-          productionSummary: result.productionSummary ?? [],
-          warnings: result.warnings ?? [],
-        });
-      }
+      await Promise.all(
+        schedules.map((result) =>
+          autoSaveSchedule(id, {
+            dayOfWeek: result.dayOfWeek,
+            weekType,
+            slots: result.slots,
+            productionSummary: result.productionSummary ?? [],
+            warnings: result.warnings ?? [],
+          }),
+        ),
+      );
     }
 
     return NextResponse.json({

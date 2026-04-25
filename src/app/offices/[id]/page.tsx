@@ -47,6 +47,7 @@ import type { QualityScore } from "@/lib/engine/quality-score";
 // first-paint payload (mirrors the existing pattern for jsPDF / html2canvas).
 import type { ExportInput } from "@/lib/export/excel";
 import { notify } from "@/lib/notifications";
+import { log } from "@/lib/logger";
 
 // ─── Helpers ───────────────────────────────────────────────────────
 
@@ -269,12 +270,14 @@ export default function ScheduleBuilderPage() {
   const currentDayConflicts: ConflictResult[] = useMemo(() => {
     if (!currentDaySchedule || !currentOffice?.providers?.length) return [];
     try { return detectConflicts(currentDaySchedule, currentOffice.providers); } catch { return []; }
-  }, [currentDaySchedule, currentOffice]);
+    // Conflict detection only consumes providers — no need to recompute
+    // on unrelated office field changes.
+  }, [currentDaySchedule, currentOffice?.providers]);
 
   const currentDayDTimeConflicts: DTimeConflict[] = useMemo(() => {
     if (!currentDaySchedule || !currentOffice?.providers?.length) return [];
     try { return detectDTimeConflicts(currentDaySchedule, currentOffice.providers, currentOffice.blockTypes ?? []); } catch { return []; }
-  }, [currentDaySchedule, currentOffice]);
+  }, [currentDaySchedule, currentOffice?.providers, currentOffice?.blockTypes]);
 
   const conflictsPerDay: Record<string, number> = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -283,7 +286,11 @@ export default function ScheduleBuilderPage() {
       try { counts[day] = detectConflicts(schedule, currentOffice.providers).length; } catch { counts[day] = 0; }
     }
     return counts;
-  }, [generatedSchedules, currentOffice]);
+    // Previously depended on the whole `currentOffice` object — every
+    // unrelated field change (name, rules, scheduling windows, etc.)
+    // triggered a fresh per-day conflict scan over all 5 working days.
+    // Narrow to providers only.
+  }, [generatedSchedules, currentOffice?.providers]);
 
   const scheduleExistsPerDay: Record<string, boolean> = useMemo(() => {
     const result: Record<string, boolean> = {};
@@ -291,7 +298,7 @@ export default function ScheduleBuilderPage() {
       result[day] = !!generatedSchedules[day];
     }
     return result;
-  }, [generatedSchedules, currentOffice]);
+  }, [generatedSchedules, currentOffice?.workingDays]);
 
   // Loop 9: per-day variant labels (EOF / Opt1 / Opt2) for badges + copy modal
   const variantLabelsByDay: Record<string, string | null | undefined> = useMemo(() => {
@@ -432,7 +439,7 @@ export default function ScheduleBuilderPage() {
       setIsDirty(false);
       setLastSavedAt(new Date());
       toast.success(`Schedule generated for ${getDayLabel(activeDay)}!`);
-    } catch { toast.error("Failed to generate schedule"); }
+    } catch (e) { log.error("offices.detail", "generate schedule failed", e); toast.error("Failed to generate schedule"); }
     finally { setGenerating(false); }
   };
 
@@ -458,7 +465,7 @@ export default function ScheduleBuilderPage() {
       setLastSavedAt(new Date());
       toast.success("All schedules generated!");
       setGeneratingDay(null);
-    } catch { toast.error("Failed to generate all schedules"); setGeneratingDay(null); }
+    } catch (e) { log.error("offices.detail", "generate-all schedules failed", e); toast.error("Failed to generate all schedules"); setGeneratingDay(null); }
     finally { setGenerating(false); }
   };
 
@@ -478,7 +485,7 @@ export default function ScheduleBuilderPage() {
       }
       setIsDirty(true);
       toast.success(`Smart schedule generated for ${fullProviders.find(p => p.id === realProviderId)?.name ?? "Provider"}!`);
-    } catch { toast.error("Failed to generate provider schedule"); }
+    } catch (e) { log.error("offices.detail", "generate provider schedule failed", e); toast.error("Failed to generate provider schedule"); }
     finally { setGeneratingProviderId(null); }
   };
 
@@ -547,7 +554,7 @@ export default function ScheduleBuilderPage() {
       if (!res.ok) throw new Error("Failed");
       toast.success("Office deleted");
       router.push("/");
-    } catch { toast.error("Failed to delete office"); }
+    } catch (e) { log.error("offices.detail", "delete office failed", e); toast.error("Failed to delete office"); }
     finally { setIsDeleting(false); setShowDeleteDialog(false); }
   };
 
@@ -592,7 +599,7 @@ export default function ScheduleBuilderPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast.success("Schedule exported!");
-    } catch { toast.error("Failed to export schedule"); }
+    } catch (e) { log.error("offices.detail", "Excel export failed", e); toast.error("Failed to export schedule"); }
     finally { setExporting(false); }
   };
 
@@ -619,7 +626,7 @@ export default function ScheduleBuilderPage() {
       pdf.addImage(canvas.toDataURL("image/png"), "PNG", (pw - imgW) / 2, 27, imgW, imgH);
       pdf.save(`${currentOffice.name} - ${getDayLabel(activeDay)} Schedule.pdf`);
       toast.success("PDF exported!");
-    } catch { toast.error("Failed to export PDF"); }
+    } catch (e) { log.error("offices.detail", "PDF export failed", e); toast.error("Failed to export PDF"); }
     finally { setIsExportingPdf(false); }
   };
 

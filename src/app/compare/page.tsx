@@ -26,6 +26,7 @@ import { loadSchedulesFromStorage, cloneTemplateToOffices } from "@/lib/clone-te
 import type { GenerationResult } from "@/lib/engine/types";
 import type { OfficeData } from "@/lib/mock-data";
 import { toast } from "sonner";
+import { log } from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -294,7 +295,7 @@ function ComparePageInner() {
   // Load offices list
   useEffect(() => {
     if (offices.length === 0) {
-      fetchOffices().catch(() => {});
+      fetchOffices().catch((e) => log.error('compare', 'fetchOffices failed', e));
     }
   }, [offices.length, fetchOffices]);
 
@@ -315,7 +316,7 @@ function ComparePageInner() {
         const schedules = loadSchedulesFromStorage(officeIdA);
         setScheduleA(schedules[activeDay] ?? null);
       })
-      .catch(() => toast.error('Failed to load Office A'))
+      .catch((e) => { log.error('compare', `failed to load Office A (${officeIdA})`, e); toast.error('Failed to load Office A'); })
       .finally(() => setLoadingA(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [officeIdA]);
@@ -337,7 +338,7 @@ function ComparePageInner() {
         const schedules = loadSchedulesFromStorage(officeIdB);
         setScheduleB(schedules[activeDay] ?? null);
       })
-      .catch(() => toast.error('Failed to load Office B'))
+      .catch((e) => { log.error('compare', `failed to load Office B (${officeIdB})`, e); toast.error('Failed to load Office B'); })
       .finally(() => setLoadingB(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [officeIdB]);

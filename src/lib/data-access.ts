@@ -162,8 +162,20 @@ function dbOfficeToDetail(office: DbOfficeWithRelations): OfficeDetail {
   };
 }
 
-function safeParseJSON<T>(value: string | null | undefined, fallback: T): T {
-  if (!value) return fallback;
+/**
+ * Parse a JSON string into `T`, returning `fallback` if the input is
+ * null/empty/malformed. Used wall-to-wall in this module to defend
+ * against drift between schema-defined columns and the actual stringy
+ * JSON the SQLite Prisma adapter hands back. Exported so the contract
+ * is testable in isolation (the data-access layer relies heavily on
+ * the silent-fallback behaviour and a regression here would corrupt
+ * every dehydrated office). Also accepts non-string inputs (e.g. a
+ * Prisma adapter that hands back an already-parsed object) and returns
+ * them as-is so we don't double-parse.
+ */
+export function safeParseJSON<T>(value: string | null | undefined, fallback: T): T {
+  if (value == null || value === '') return fallback;
+  if (typeof value !== 'string') return value as T;
   try {
     return JSON.parse(value) as T;
   } catch {

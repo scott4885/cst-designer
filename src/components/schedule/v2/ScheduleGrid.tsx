@@ -187,6 +187,33 @@ const ScheduleGrid = memo(function ScheduleGrid({
     () => indexBlocksByColumn(schedule.blocks ?? []),
     [schedule.blocks],
   );
+  // O(1) block lookup by id — used by the stable `onActivate` callback so
+  // we don't have to close over `block` per block (which would defeat
+  // BlockInstance memoization).
+  const blocksById = useMemo(() => {
+    const m = new Map<string, PlacedBlock>();
+    for (const b of schedule.blocks ?? []) m.set(b.blockInstanceId, b);
+    return m;
+  }, [schedule.blocks]);
+
+  // Per-column provider-colour strings, computed once per column array.
+  // Without this the strings rebuild on every parent render and
+  // BlockInstance's React.memo never sees stable props.
+  const providerColorsByCol = useMemo(() => {
+    const m = new Map<string, { solid: string | undefined; soft: string | undefined }>();
+    for (const col of columns) {
+      if (col.providerColorIndex) {
+        const idx = Math.min(10, Math.max(1, col.providerColorIndex));
+        m.set(col.id, {
+          solid: `var(--sg-provider-${idx})`,
+          soft: `var(--sg-provider-${idx}-soft)`,
+        });
+      } else {
+        m.set(col.id, { solid: undefined, soft: undefined });
+      }
+    }
+    return m;
+  }, [columns]);
 
   // ─── Keyboard handling (UX-L6, UX-L9) ─────────────────────────────
   // WCAG 2.1 grid widget keyboard contract:
@@ -294,6 +321,19 @@ const ScheduleGrid = memo(function ScheduleGrid({
       setCursor({ rowIndex: 0, colIndex: 0 });
     }
   }, [cursor, columns.length, rowCount, setCursor]);
+
+  // Stable per-grid block-activate handler. BlockInstance is memoized;
+  // passing a fresh closure per block per render would force every block
+  // to re-render on any parent state change. Using a single ref-resolved
+  // callback keeps each BlockInstance's `onActivate` reference stable.
+  const handleBlockActivate = useCallback(
+    (id: string) => {
+      setSelectedBlockId(id);
+      const block = blocksById.get(id);
+      if (block) onBlockActivate?.(block);
+    },
+    [setSelectedBlockId, onBlockActivate, blocksById],
+  );
 
   // Cell click handler — sets cursor AND focuses the grid root so keyboard
   // navigation works immediately after a mouse click. Without this, ArrowDown
@@ -761,25 +801,14 @@ const ScheduleGrid = memo(function ScheduleGrid({
                       <BlockInstance
                         block={block}
                         slotHeightPx={slotHeightPx}
-                        providerColor={
-                          col.providerColorIndex
-                            ? `var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))})`
-                            : undefined
-                        }
-                        providerColorSoft={
-                          col.providerColorIndex
-                            ? `var(--sg-provider-${Math.min(10, Math.max(1, col.providerColorIndex))}-soft)`
-                            : undefined
-                        }
+                        providerColor={providerColorsByCol.get(col.id)?.solid}
+                        providerColorSoft={providerColorsByCol.get(col.id)?.soft}
                         isHovered={hoveredBlockId === block.blockInstanceId}
                         isSelected={selectedBlockId === block.blockInstanceId}
                         violations={violationsByBlock[block.blockInstanceId]}
                         isHygieneBlock={hygieneBlockIds?.has(block.blockInstanceId)}
                         procedureCategory={blockCategories?.get(block.blockInstanceId)}
-                        onActivate={(id) => {
-                          setSelectedBlockId(id);
-                          onBlockActivate?.(block);
-                        }}
+                        onActivate={handleBlockActivate}
                         onHoverChange={setHoveredBlockId}
                       />
                     </div>

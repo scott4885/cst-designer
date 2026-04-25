@@ -76,8 +76,7 @@ const editOfficeSchema = z.object({
 
 type EditOfficeFormData = z.infer<typeof editOfficeSchema>;
 
-const OPERATORIES = ["OP1", "OP2", "OP3", "OP4", "OP5", "HYG1", "HYG2", "HYG3", "HYG4", "Main", "Consult Room"];
-const PROVIDER_COLORS = ["#ec8a1b", "#87bcf3", "#f4de37", "#44f2ce", "#ff6b9d", "#9b59b6"];
+import { OPERATORIES, PROVIDER_COLORS } from "@/lib/office-constants";
 
 export default function EditOfficePage() {
   const params = useParams();
