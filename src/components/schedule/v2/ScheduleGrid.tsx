@@ -189,33 +189,68 @@ const ScheduleGrid = memo(function ScheduleGrid({
   );
 
   // ─── Keyboard handling (UX-L6, UX-L9) ─────────────────────────────
+  // WCAG 2.1 grid widget keyboard contract:
+  //   Arrows  — move cursor by 1 cell
+  //   Home    — jump to col 0 in current row
+  //   End     — jump to last col in current row
+  //   Ctrl+Home — jump to (0, 0)
+  //   Ctrl+End  — jump to (rowCount-1, last col)
+  //   PageUp / PageDown — jump 10 rows
+  //   Enter / Space — activate block under cursor
+  //   Escape — clear selection
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
       // Ctrl+/- zoom is handled by the document-level listener below so the
       // shortcut works regardless of whether the grid root has focus. Skip it
       // here to avoid a double-fire that would zoom twice per keystroke.
-      if (e.ctrlKey || e.metaKey) return;
+      if (e.metaKey) return;
+      if (e.ctrlKey && e.key !== 'Home' && e.key !== 'End') return;
       if (e.key === 'Escape') {
         setSelectedBlockId(null);
         return;
       }
       const cur = cursor ?? { rowIndex: 0, colIndex: 0 };
+      const colBound = Math.max(1, columns.length);
       switch (e.key) {
         case 'ArrowUp':
           e.preventDefault();
-          moveCursor(-1, 0, rowCount, Math.max(1, columns.length));
+          moveCursor(-1, 0, rowCount, colBound);
           break;
         case 'ArrowDown':
           e.preventDefault();
-          moveCursor(1, 0, rowCount, Math.max(1, columns.length));
+          moveCursor(1, 0, rowCount, colBound);
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          moveCursor(0, -1, rowCount, Math.max(1, columns.length));
+          moveCursor(0, -1, rowCount, colBound);
           break;
         case 'ArrowRight':
           e.preventDefault();
-          moveCursor(0, 1, rowCount, Math.max(1, columns.length));
+          moveCursor(0, 1, rowCount, colBound);
+          break;
+        case 'Home':
+          e.preventDefault();
+          if (e.ctrlKey) {
+            setCursor({ rowIndex: 0, colIndex: 0 });
+          } else {
+            setCursor({ rowIndex: cur.rowIndex, colIndex: 0 });
+          }
+          break;
+        case 'End':
+          e.preventDefault();
+          if (e.ctrlKey) {
+            setCursor({ rowIndex: rowCount - 1, colIndex: colBound - 1 });
+          } else {
+            setCursor({ rowIndex: cur.rowIndex, colIndex: colBound - 1 });
+          }
+          break;
+        case 'PageUp':
+          e.preventDefault();
+          moveCursor(-10, 0, rowCount, colBound);
+          break;
+        case 'PageDown':
+          e.preventDefault();
+          moveCursor(10, 0, rowCount, colBound);
           break;
         case 'Enter':
         case ' ': {
@@ -401,6 +436,22 @@ const ScheduleGrid = memo(function ScheduleGrid({
   useEffect(() => {
     onScroll();
   }, [onScroll, rowCount, columns.length, zoom]);
+
+  // Auto-scroll the cursor cell into view when keyboard navigation moves
+  // past the visible area (Home/End/PageUp/PageDown can move 10+ rows at
+  // a time and the cursor would otherwise scroll off-screen). Uses
+  // `scrollIntoView({ block: 'nearest', inline: 'nearest' })` so we only
+  // scroll when the cell is actually offscreen — no jitter when navigating
+  // inside the visible range.
+  useEffect(() => {
+    if (!cursor || !bodyRef.current) return;
+    const sel = `[data-testid="sg-cell"][data-row-index="${cursor.rowIndex}"][data-col-index="${cursor.colIndex}"]`;
+    const cell = bodyRef.current.querySelector(sel);
+    // Guard against jsdom test environments where scrollIntoView isn't implemented.
+    if (cell instanceof HTMLElement && typeof cell.scrollIntoView === 'function') {
+      cell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [cursor]);
 
   // ─── State short-circuit (empty / error / loading) ─────────────────
   // When a parent passes `state`, render the matching card inside a
@@ -771,9 +822,27 @@ const ScheduleGrid = memo(function ScheduleGrid({
         )}
       </div>
 
-      {/* Status line / live region for screen readers */}
+      {/* Status line / live region for screen readers. Surfaces state
+          transitions (selection, view-mode toggles, zoom) so non-sighted
+          users hear what their input changed, not just "selected". */}
       <div className="sr-only" aria-live="polite" data-testid="sg-live-region">
-        {selectedBlockId ? `Selected block ${selectedBlockId}` : 'No block selected'}
+        {selectedBlockId
+          ? (() => {
+              const sel = (schedule.blocks ?? []).find(
+                (b) => b.blockInstanceId === selectedBlockId,
+              );
+              if (!sel) return `Selected block ${selectedBlockId}`;
+              const startH = Math.floor(sel.startMinute / 60);
+              const startM = sel.startMinute % 60;
+              const endH = Math.floor((sel.startMinute + sel.durationMin) / 60);
+              const endM = (sel.startMinute + sel.durationMin) % 60;
+              return `Selected ${sel.blockLabel}, ${sel.durationMin} minutes from ${startH}:${String(startM).padStart(2, '0')} to ${endH}:${String(endM).padStart(2, '0')}, in ${sel.operatory}.`;
+            })()
+          : showXSegments
+            ? 'X-segment view active. Press the toggle to return to compact view.'
+            : showDoctorFlow
+              ? 'Doctor-flow overlay shown.'
+              : `Schedule ready. ${(schedule.blocks ?? []).length} blocks across ${columns.length} ${columns.length === 1 ? 'column' : 'columns'}. Navigate with arrow keys; Home and End jump to row edges; press Enter on a block to select.`}
       </div>
     </div>
   );

@@ -42,8 +42,10 @@ import { validateClinicalRules } from "@/lib/engine/clinical-rules";
 import type { ClinicalWarning } from "@/lib/engine/clinical-rules";
 import { calculateQualityScore } from "@/lib/engine/quality-score";
 import type { QualityScore } from "@/lib/engine/quality-score";
-// Export utilities (DO NOT MODIFY — Agent A owns)
-import { generateExcel, type ExportInput } from "@/lib/export/excel";
+// Export utilities — Excel module is dynamic-imported below at the click
+// handler so the 1+ MB ExcelJS bundle stays out of the schedule editor's
+// first-paint payload (mirrors the existing pattern for jsPDF / html2canvas).
+import type { ExportInput } from "@/lib/export/excel";
 import { notify } from "@/lib/notifications";
 
 // ─── Helpers ───────────────────────────────────────────────────────
@@ -578,6 +580,7 @@ export default function ScheduleBuilderPage() {
           productionSummary: schedule.productionSummary.map((s) => ({ providerId: s.providerId, actualScheduled: s.actualScheduled, status: s.status })),
         })),
       };
+      const { generateExcel } = await import("@/lib/export/excel");
       const buffer = await generateExcel(exportInput);
       const blob = new Blob([buffer as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const url = window.URL.createObjectURL(blob);
@@ -785,6 +788,11 @@ export default function ScheduleBuilderPage() {
             onGenerateProvider={currentDaySchedule ? handleGenerateProvider : undefined}
             generatingProviderId={generatingProviderId}
             fullScreen={fullScreen}
+            emptyDayMeta={{
+              activeDayLabel: DAY_LABELS[activeDay] ?? activeDay,
+              onGenerateDay: handleGenerateSchedule,
+              isGenerating,
+            }}
           />
         ) : (
           <EmptyState

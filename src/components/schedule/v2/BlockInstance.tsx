@@ -343,7 +343,9 @@ const BlockInstance = memo(function BlockInstance({
         />
       </div>
 
-      {/* Violation badge(s) — top-right */}
+      {/* Violation badge(s) — top-right. Severity carries via icon shape +
+          colour AND a screen-reader-only text label so users with colour
+          vision deficiency aren't relying on hue alone. */}
       {highestSev && (
         <div
           data-testid="sg-violation-badge"
@@ -352,17 +354,22 @@ const BlockInstance = memo(function BlockInstance({
           style={{ zIndex: 'var(--z-violation-badge)' as unknown as number }}
           title={violations.map((v) => `${v.ap}: ${v.message}`).join(' • ')}
         >
+          <span className="sr-only">{`${highestSev} severity${violations.length > 1 ? `, ${violations.length} violations` : ''}: `}</span>
           {(() => {
             const Icon = severityIcon(highestSev);
             return (
               <Icon
                 size="sm"
                 className={severityClass(highestSev)}
+                aria-hidden="true"
               />
             );
           })()}
           {violations.length > 1 && (
-            <span className={`text-[var(--font-xs)] font-bold ${severityClass(highestSev)}`}>
+            <span
+              aria-hidden="true"
+              className={`text-[var(--font-xs)] font-bold ${severityClass(highestSev)}`}
+            >
               {violations.length}
             </span>
           )}

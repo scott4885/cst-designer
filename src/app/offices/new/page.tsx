@@ -515,9 +515,13 @@ function NewOfficeForm() {
                     {...register("name")}
                     placeholder="e.g., Smile Cascade"
                     aria-required="true"
+                    aria-invalid={!!errors.name}
+                    aria-describedby={errors.name ? "name-error" : undefined}
                   />
                   {errors.name && (
-                    <p className="text-sm text-error mt-1">{errors.name.message}</p>
+                    <p id="name-error" role="alert" className="text-sm text-error mt-1">
+                      {errors.name.message}
+                    </p>
                   )}
                 </div>
 
@@ -527,7 +531,12 @@ function NewOfficeForm() {
                     defaultValue="Open Dental"
                     onValueChange={(value) => setValue("dpms", value as OfficeFormData["dpms"])}
                   >
-                    <SelectTrigger id="dpms" aria-label="DPMS System">
+                    <SelectTrigger
+                      id="dpms"
+                      aria-label="DPMS System"
+                      aria-invalid={!!errors.dpms}
+                      aria-describedby={errors.dpms ? "dpms-error" : undefined}
+                    >
                       <SelectValue placeholder="Select DPMS" />
                     </SelectTrigger>
                     <SelectContent>
@@ -541,7 +550,9 @@ function NewOfficeForm() {
                     </SelectContent>
                   </Select>
                   {errors.dpms && (
-                    <p className="text-sm text-error mt-1">{errors.dpms.message}</p>
+                    <p id="dpms-error" role="alert" className="text-sm text-error mt-1">
+                      {errors.dpms.message}
+                    </p>
                   )}
                 </div>
 
@@ -564,7 +575,9 @@ function NewOfficeForm() {
                     ))}
                   </div>
                   {errors.workingDays && (
-                    <p className="text-sm text-error mt-1">{errors.workingDays.message}</p>
+                    <p id="workingDays-error" role="alert" className="text-sm text-error mt-1">
+                      {errors.workingDays.message}
+                    </p>
                   )}
                 </div>
 

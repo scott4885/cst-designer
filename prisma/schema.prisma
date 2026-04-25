@@ -67,6 +67,8 @@ model Provider {
   dayOfWeekRoster   String  @default("[]")
   office            Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
   absences          ProviderAbsence[]
+
+  @@index([officeId])
 }
 
 model BlockType {
@@ -89,6 +91,8 @@ model BlockType {
   asstPostMin   Int     @default(0)
   doctorContinuityRequired Boolean @default(false)
   office        Office  @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@index([officeId])
 }
 
 model ScheduleRule {
@@ -148,6 +152,9 @@ model ScheduleVersion {
   label       String   @default("")
   createdAt   DateTime @default(now())
   office      Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@index([officeId])
+  @@index([officeId, dayOfWeek, weekType])
 }
 
 // Sprint 13 — Provider Time-Off / Absence Tracking
@@ -158,6 +165,9 @@ model ProviderAbsence {
   date       String
   reason     String   @default("")
   provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([officeId])
 }
 
 // Sprint 14 — Treatment Sequence Templates

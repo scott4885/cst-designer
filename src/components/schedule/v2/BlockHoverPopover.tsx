@@ -220,7 +220,7 @@ const BlockHoverPopover = memo(function BlockHoverPopover({
               <button
                 type="button"
                 onClick={onEdit}
-                className="text-[var(--font-sm)] font-medium text-[oklch(48%_0.15_250)] hover:underline focus-visible:outline-none"
+                className="text-[var(--font-sm)] font-medium text-[oklch(48%_0.15_250)] hover:underline rounded px-1 -mx-1 focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
                 data-testid="sg-popover-action-edit"
               >
                 Edit
@@ -230,7 +230,7 @@ const BlockHoverPopover = memo(function BlockHoverPopover({
               <button
                 type="button"
                 onClick={onReplace}
-                className="text-[var(--font-sm)] text-neutral-700 hover:underline focus-visible:outline-none"
+                className="text-[var(--font-sm)] text-neutral-700 hover:underline rounded px-1 -mx-1 focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
                 data-testid="sg-popover-action-replace"
               >
                 Replace
@@ -240,7 +240,7 @@ const BlockHoverPopover = memo(function BlockHoverPopover({
               <button
                 type="button"
                 onClick={onDelete}
-                className="ml-auto text-[var(--font-sm)] text-[var(--severity-hard)] hover:underline focus-visible:outline-none"
+                className="ml-auto text-[var(--font-sm)] text-[var(--severity-hard)] hover:underline rounded px-1 -mx-1 focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
                 data-testid="sg-popover-action-delete"
               >
                 Delete

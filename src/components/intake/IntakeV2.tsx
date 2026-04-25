@@ -114,10 +114,10 @@ export function IntakeV2({
         </div>
       </div>
 
-      {/* --- 3. GOALS --- */}
+      {/* --- 1. GOALS --- */}
       <Card>
         <CardHeader>
-          <CardTitle>3. Goals</CardTitle>
+          <CardTitle>1. Goals</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -237,10 +237,10 @@ export function IntakeV2({
         </CardContent>
       </Card>
 
-      {/* --- 5. HYGIENE / EXAM --- */}
+      {/* --- 2. HYGIENE / EXAM --- */}
       <Card>
         <CardHeader>
-          <CardTitle>5. Hygiene / Exam</CardTitle>
+          <CardTitle>2. Hygiene / Exam</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -314,10 +314,10 @@ export function IntakeV2({
         </CardContent>
       </Card>
 
-      {/* --- 4. VISIT MIX --- */}
+      {/* --- 3. VISIT MIX --- */}
       <Card>
         <CardHeader>
-          <CardTitle>4. Visit Mix</CardTitle>
+          <CardTitle>3. Visit Mix</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -357,10 +357,10 @@ export function IntakeV2({
         </CardContent>
       </Card>
 
-      {/* --- 6. CONSTRAINTS --- */}
+      {/* --- 4. CONSTRAINTS --- */}
       <Card>
         <CardHeader>
-          <CardTitle>6. Constraints</CardTitle>
+          <CardTitle>4. Constraints</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
@@ -432,10 +432,10 @@ export function IntakeV2({
         </CardContent>
       </Card>
 
-      {/* --- 7. CURRENT TEMPLATE ISSUES --- */}
+      {/* --- 5. CURRENT TEMPLATE ISSUES --- */}
       <Card>
         <CardHeader>
-          <CardTitle>7. Current Template Issues</CardTitle>
+          <CardTitle>5. Current Template Issues</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

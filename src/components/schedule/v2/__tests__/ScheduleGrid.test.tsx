@@ -242,6 +242,57 @@ describe('ScheduleGrid — keyboard interaction (UX-L6, UX-L9)', () => {
     fireEvent.keyDown(grid, { key: 'Escape' });
     expect(useScheduleView.getState().selectedBlockId).toBeNull();
   });
+
+  it('Home moves cursor to col 0 of current row', () => {
+    renderGrid();
+    const grid = screen.getByTestId('sg-schedule-grid');
+    fireEvent.keyDown(grid, { key: 'ArrowRight' });
+    fireEvent.keyDown(grid, { key: 'ArrowRight' });
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    expect(useScheduleView.getState().cursor).toEqual({ rowIndex: 1, colIndex: 2 });
+    fireEvent.keyDown(grid, { key: 'Home' });
+    expect(useScheduleView.getState().cursor).toEqual({ rowIndex: 1, colIndex: 0 });
+  });
+
+  it('End moves cursor to last col of current row', () => {
+    renderGrid();
+    const grid = screen.getByTestId('sg-schedule-grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    fireEvent.keyDown(grid, { key: 'End' });
+    expect(useScheduleView.getState().cursor).toEqual({ rowIndex: 1, colIndex: 2 });
+  });
+
+  it('Ctrl+Home jumps to (0, 0)', () => {
+    renderGrid();
+    const grid = screen.getByTestId('sg-schedule-grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    fireEvent.keyDown(grid, { key: 'ArrowRight' });
+    fireEvent.keyDown(grid, { key: 'Home', ctrlKey: true });
+    expect(useScheduleView.getState().cursor).toEqual({ rowIndex: 0, colIndex: 0 });
+  });
+
+  it('Ctrl+End jumps to (lastRow, lastCol)', () => {
+    renderGrid();
+    const grid = screen.getByTestId('sg-schedule-grid');
+    fireEvent.keyDown(grid, { key: 'End', ctrlKey: true });
+    expect(useScheduleView.getState().cursor).toEqual({ rowIndex: 5, colIndex: 2 });
+  });
+
+  it('PageDown jumps 10 rows (clamped to bound)', () => {
+    renderGrid();
+    const grid = screen.getByTestId('sg-schedule-grid');
+    fireEvent.keyDown(grid, { key: 'PageDown' });
+    // 6 rows total → clamped to last row index (5)
+    expect(useScheduleView.getState().cursor?.rowIndex).toBe(5);
+  });
+
+  it('PageUp moves up 10 rows (clamped to 0)', () => {
+    renderGrid();
+    const grid = screen.getByTestId('sg-schedule-grid');
+    // Cursor at (0, 0) initial — PageUp should clamp to 0
+    fireEvent.keyDown(grid, { key: 'PageUp' });
+    expect(useScheduleView.getState().cursor?.rowIndex).toBe(0);
+  });
 });
 
 describe('ScheduleGrid — doctor-flow overlay toggle', () => {

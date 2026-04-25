@@ -155,21 +155,21 @@ export default function Dashboard() {
                         {office.name}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
                           {office.dpmsSystem.replace("_", " ")}
                         </span>
                         {hasSchedule ? (
-                          <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
                             Schedule Ready
                           </span>
                         ) : (
-                          <span className="text-[10px] font-medium text-slate-300 bg-slate-50 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
                             No Schedule
                           </span>
                         )}
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-400 transition-colors flex-shrink-0 mt-0.5" />
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0 mt-0.5" />
                   </div>
 
                   {/* Stats row */}
@@ -177,21 +177,21 @@ export default function Dashboard() {
                     <div>
                       <div className="flex items-center gap-1 mb-0.5">
                         <Users className="w-3 h-3 text-slate-400" />
-                        <span className="text-[10px] text-slate-400">Providers</span>
+                        <span className="text-[10px] text-slate-600">Providers</span>
                       </div>
                       <p className="text-sm font-semibold text-slate-700">{office.providerCount}</p>
                     </div>
                     <div>
                       <div className="flex items-center gap-1 mb-0.5">
                         <DollarSign className="w-3 h-3 text-slate-400" />
-                        <span className="text-[10px] text-slate-400">Daily Goal</span>
+                        <span className="text-[10px] text-slate-600">Daily Goal</span>
                       </div>
                       <p className="text-sm font-semibold text-slate-700">{formatCurrency(office.totalDailyGoal)}</p>
                     </div>
                     <div>
                       <div className="flex items-center gap-1 mb-0.5">
                         <Calendar className="w-3 h-3 text-slate-400" />
-                        <span className="text-[10px] text-slate-400">Days</span>
+                        <span className="text-[10px] text-slate-600">Days</span>
                       </div>
                       <p className="text-sm font-semibold text-slate-700">{office.workingDays.length}/wk</p>
                     </div>
@@ -206,14 +206,15 @@ export default function Dashboard() {
                           className={`w-5 h-5 rounded-full text-[9px] font-medium flex items-center justify-center ${
                             days.includes(d)
                               ? "bg-blue-50 text-blue-600 border border-blue-200"
-                              : "bg-slate-50 text-slate-300"
+                              : "bg-slate-50 text-slate-400 border border-slate-200"
                           }`}
+                          aria-label={days.includes(d) ? `${d} working day` : `${d} not a working day`}
                         >
                           {d[0]}
                         </div>
                       ))}
                     </div>
-                    <span className="text-[10px] text-slate-300">
+                    <span className="text-[10px] text-slate-500">
                       {getRelativeTime(office.updatedAt)}
                     </span>
                   </div>
